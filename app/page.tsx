@@ -180,7 +180,7 @@ const styles: Record<string, CSSProperties> = {
     borderBottom: "1px solid rgba(125, 211, 252, 0.12)",
   },
   headerInner: {
-    minHeight: 102,
+    minHeight: 86,
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
@@ -188,16 +188,16 @@ const styles: Record<string, CSSProperties> = {
   },
   logo: {
     width: "auto",
-    height: 92,
+    height: 74,
     objectFit: "contain",
     filter: "drop-shadow(0 0 22px rgba(125,211,252,0.18))",
   },
   nav: {
     display: "flex",
     alignItems: "center",
-    gap: 28,
+    gap: 24,
     color: colors.muted,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: 800,
   },
   button: {
@@ -232,12 +232,12 @@ const styles: Record<string, CSSProperties> = {
     textDecoration: "none",
   },
   hero: {
-    padding: "92px 0 80px",
+    padding: "74px 0 64px",
   },
   heroGrid: {
     display: "grid",
     gridTemplateColumns: "minmax(0, 0.95fr) minmax(420px, 0.78fr)",
-    gap: 78,
+    gap: 58,
     alignItems: "center",
   },
   badge: {
@@ -256,16 +256,16 @@ const styles: Record<string, CSSProperties> = {
   heroTitle: {
     margin: 0,
     maxWidth: 940,
-    fontSize: "clamp(42px, 5.15vw, 82px)",
-    lineHeight: 1,
-    letterSpacing: "-0.073em",
+    fontSize: "clamp(34px, 4.35vw, 64px)",
+    lineHeight: 1.04,
+    letterSpacing: "-0.055em",
   },
   heroText: {
     maxWidth: 720,
     margin: "28px 0 0",
     color: colors.muted,
-    fontSize: "clamp(18px, 1.35vw, 22px)",
-    lineHeight: 1.72,
+    fontSize: "clamp(16px, 1.15vw, 20px)",
+    lineHeight: 1.7,
   },
   heroActions: {
     display: "flex",
@@ -275,9 +275,9 @@ const styles: Record<string, CSSProperties> = {
   },
   heroCard: {
     position: "relative",
-    minHeight: 560,
-    borderRadius: 44,
-    padding: 38,
+    minHeight: 500,
+    borderRadius: 38,
+    padding: 32,
     overflow: "hidden",
     background:
       "radial-gradient(circle at 50% 0%, rgba(56,189,248,0.25), transparent 35%), linear-gradient(145deg, rgba(15,23,42,0.96), rgba(8,47,73,0.72))",
@@ -287,7 +287,7 @@ const styles: Record<string, CSSProperties> = {
   brandLogoBox: {
     position: "relative",
     zIndex: 1,
-    minHeight: 250,
+    minHeight: 220,
     display: "grid",
     placeItems: "center",
     borderRadius: 34,
@@ -350,9 +350,9 @@ const styles: Record<string, CSSProperties> = {
   h2: {
     margin: 0,
     color: colors.text,
-    fontSize: "clamp(34px, 4.2vw, 66px)",
-    lineHeight: 1,
-    letterSpacing: "-0.065em",
+    fontSize: "clamp(28px, 3.35vw, 52px)",
+    lineHeight: 1.04,
+    letterSpacing: "-0.052em",
   },
   servicesGrid: {
     display: "grid",
@@ -363,7 +363,7 @@ const styles: Record<string, CSSProperties> = {
     background: colors.panel,
     border: `1px solid ${colors.border}`,
     borderRadius: 32,
-    padding: 30,
+    padding: 26,
   },
   iconBox: {
     width: 60,
@@ -465,6 +465,24 @@ const styles: Record<string, CSSProperties> = {
     gridTemplateColumns: "1fr auto",
     gap: 28,
     alignItems: "center",
+  },
+  floatingWhatsapp: {
+    position: "fixed",
+    right: 22,
+    bottom: 22,
+    zIndex: 90,
+    borderRadius: 999,
+    padding: "16px 22px",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    fontWeight: 950,
+    color: "#fff",
+    textDecoration: "none",
+    background: "linear-gradient(135deg, #16a34a, #22c55e)",
+    boxShadow: "0 18px 54px rgba(34,197,94,0.34)",
+    border: "1px solid rgba(187,247,208,0.32)",
   },
   modalBackdrop: {
     position: "fixed",
@@ -587,7 +605,7 @@ function DetailList({ title, items }: { title: string; items?: string[] }) {
   return (
     <section style={styles.modalPanel}>
       <h3
-        style={{ margin: "0 0 14px", fontSize: 22, letterSpacing: "-0.035em" }}
+        style={{ margin: "0 0 14px", fontSize: 20, letterSpacing: "-0.03em" }}
       >
         {title}
       </h3>
@@ -793,8 +811,8 @@ function ProjectDetailsModal({
               <h3
                 style={{
                   margin: "0 0 10px",
-                  fontSize: 24,
-                  letterSpacing: "-0.04em",
+                  fontSize: 22,
+                  letterSpacing: "-0.035em",
                 }}
               >
                 Resumo do projeto
@@ -905,7 +923,7 @@ function ProjectDetailsModal({
             rel="noreferrer"
             style={styles.button}
           >
-            Quero este projeto <MessageCircle size={18} />
+            Quero orçamento deste projeto <MessageCircle size={18} />
           </a>
         </footer>
       </section>
@@ -1052,6 +1070,9 @@ export default function HomePage() {
   }, [projectSlides.length]);
 
   const visibleProjects = projectSlides[projectPage] || [];
+  const whatsappUrl = `https://wa.me/5521988359825?text=${encodeURIComponent(
+    "Olá, Tais! Vi seu portfólio da Defan e quero um orçamento para site, sistema ou automação.",
+  )}`;
 
   return (
     <main style={styles.page}>
@@ -1061,11 +1082,72 @@ export default function HomePage() {
           text-decoration: none;
         }
         .hover-up {
-          transition: 0.25s ease;
+          transition:
+            transform 0.28s ease,
+            border-color 0.28s ease,
+            box-shadow 0.28s ease;
         }
         .hover-up:hover {
-          transform: translateY(-7px);
+          transform: translateY(-6px);
           border-color: rgba(125, 211, 252, 0.36) !important;
+          box-shadow: 0 24px 70px rgba(14, 165, 233, 0.12);
+        }
+        .animate-fade-up {
+          animation: fadeUpInline 0.8s ease both;
+        }
+        .animate-float {
+          animation: floatInline 6s ease-in-out infinite;
+        }
+        .glow-button {
+          animation: softPulseInline 2.8s ease-in-out infinite;
+        }
+        .floating-whatsapp-inline {
+          animation: whatsappPulseInline 2.2s ease-in-out infinite;
+        }
+        .hero-card-inline::after {
+          content: "";
+          position: absolute;
+          inset: 18px;
+          border-radius: 32px;
+          pointer-events: none;
+          border: 1px solid rgba(125, 211, 252, 0.08);
+        }
+        @keyframes fadeUpInline {
+          from {
+            opacity: 0;
+            transform: translateY(18px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        @keyframes floatInline {
+          0%,
+          100% {
+            transform: translateY(0);
+          }
+          50% {
+            transform: translateY(-10px);
+          }
+        }
+        @keyframes softPulseInline {
+          0%,
+          100% {
+            box-shadow: 0 18px 44px rgba(14, 165, 233, 0.24);
+          }
+          50% {
+            box-shadow: 0 18px 60px rgba(14, 165, 233, 0.44);
+          }
+        }
+        @keyframes whatsappPulseInline {
+          0%,
+          100% {
+            transform: translateY(0) scale(1);
+          }
+          50% {
+            transform: translateY(-3px) scale(1.025);
+          }
         }
         .strip-track-inline {
           width: max-content;
@@ -1172,6 +1254,12 @@ export default function HomePage() {
           .hero-actions-inline a {
             width: 100% !important;
           }
+          .floating-whatsapp-inline {
+            right: 14px !important;
+            bottom: 14px !important;
+            padding: 14px 16px !important;
+            font-size: 14px !important;
+          }
           .section-inline {
             padding: 70px 0 !important;
           }
@@ -1207,12 +1295,13 @@ export default function HomePage() {
           </nav>
 
           <a
-            href="https://wa.me/5521988359825"
+            href={whatsappUrl}
             target="_blank"
             rel="noreferrer"
             style={styles.button}
+            className="glow-button"
           >
-            Orçamento <ArrowRight size={17} />
+            Orçamento agora <ArrowRight size={17} />
           </a>
         </div>
       </header>
@@ -1222,7 +1311,7 @@ export default function HomePage() {
           style={{ ...styles.container, ...styles.heroGrid }}
           className="container-inline hero-grid-inline"
         >
-          <div className="hero-copy-inline">
+          <div className="hero-copy-inline animate-fade-up">
             <span style={styles.badge}>
               <Sparkles size={16} /> Defan Soluções Digitais
             </span>
@@ -1237,12 +1326,13 @@ export default function HomePage() {
             </p>
             <div style={styles.heroActions} className="hero-actions-inline">
               <a
-                href="https://wa.me/5521988359825"
+                href={whatsappUrl}
                 target="_blank"
                 rel="noreferrer"
-                style={{ ...styles.button, padding: "16px 24px" }}
+                style={{ ...styles.button, padding: "15px 22px" }}
+                className="glow-button"
               >
-                Falar com a Tais <MessageCircle size={19} />
+                Pedir orçamento no WhatsApp <MessageCircle size={19} />
               </a>
               <a
                 href="/projetos"
@@ -1253,7 +1343,10 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div style={styles.heroCard} className="hero-card-inline">
+          <div
+            style={styles.heroCard}
+            className="hero-card-inline animate-float"
+          >
             <div
               style={{
                 position: "absolute",
@@ -1283,8 +1376,8 @@ export default function HomePage() {
                 style={{
                   display: "block",
                   marginTop: 6,
-                  fontSize: 26,
-                  letterSpacing: "-0.04em",
+                  fontSize: 22,
+                  letterSpacing: "-0.035em",
                 }}
               >
                 Landing pages, websites, sistemas e automações
@@ -1370,8 +1463,8 @@ export default function HomePage() {
                   <h3
                     style={{
                       margin: "26px 0 12px",
-                      fontSize: 26,
-                      letterSpacing: "-0.04em",
+                      fontSize: 22,
+                      letterSpacing: "-0.035em",
                     }}
                   >
                     {service.title}
@@ -1433,8 +1526,8 @@ export default function HomePage() {
             <h3
               style={{
                 margin: "16px 0",
-                fontSize: 36,
-                letterSpacing: "-0.05em",
+                fontSize: 30,
+                letterSpacing: "-0.045em",
               }}
             >
               Tais Defante
@@ -1458,7 +1551,7 @@ export default function HomePage() {
                 style={{ ...styles.card, padding: 28 }}
               >
                 <Icon size={25} color={colors.blue} />
-                <h3 style={{ margin: "26px 0 12px", fontSize: 26 }}>
+                <h3 style={{ margin: "26px 0 12px", fontSize: 22 }}>
                   {value.title}
                 </h3>
                 <p style={{ color: colors.muted, lineHeight: 1.68 }}>
@@ -1473,11 +1566,7 @@ export default function HomePage() {
       <section id="projetos" style={styles.section} className="section-inline">
         <div style={styles.container} className="container-inline">
           <div style={styles.projectsHead} className="projects-head-inline">
-            <SectionTitle
-              eyebrow="Projetos"
-              title="Projetos cadastrados no admin aparecem automaticamente aqui"
-              center={false}
-            />
+            <SectionTitle eyebrow="Projetos" title="" center={false} />
             <a href="/projetos" style={styles.outlineButton}>
               Ver catálogo completo <ArrowRight size={18} />
             </a>
@@ -1534,8 +1623,8 @@ export default function HomePage() {
                         <h3
                           style={{
                             margin: "0 0 12px",
-                            fontSize: 28,
-                            letterSpacing: "-0.045em",
+                            fontSize: 24,
+                            letterSpacing: "-0.04em",
                             minHeight: 68,
                             display: "flex",
                             alignItems: "flex-start",
@@ -1730,12 +1819,13 @@ export default function HomePage() {
               ))}
             </ul>
             <a
-              href="https://wa.me/5521988359825"
+              href={whatsappUrl}
               target="_blank"
               rel="noreferrer"
               style={styles.button}
+              className="glow-button"
             >
-              Solicitar orçamento
+              Quero uma proposta
             </a>
           </article>
         </div>
@@ -1793,7 +1883,7 @@ export default function HomePage() {
                 key={item.question}
                 style={{ ...styles.card, padding: 28 }}
               >
-                <h3 style={{ margin: "0 0 12px", fontSize: 23 }}>
+                <h3 style={{ margin: "0 0 12px", fontSize: 20 }}>
                   {item.question}
                 </h3>
                 <p style={{ color: colors.muted, lineHeight: 1.68 }}>
@@ -1840,16 +1930,29 @@ export default function HomePage() {
               Ver projetos
             </a>
             <a
-              href="https://wa.me/5521988359825"
+              href={whatsappUrl}
               target="_blank"
               rel="noreferrer"
               style={styles.button}
+              className="glow-button"
             >
-              Falar no WhatsApp
+              Pedir orçamento
             </a>
           </div>
         </div>
       </footer>
+
+      <a
+        href={whatsappUrl}
+        target="_blank"
+        rel="noreferrer"
+        style={styles.floatingWhatsapp}
+        className="floating-whatsapp-inline"
+        aria-label="Pedir orçamento pelo WhatsApp"
+      >
+        <MessageCircle size={20} />
+        Pedir orçamento
+      </a>
 
       {selectedProject && (
         <ProjectDetailsModal

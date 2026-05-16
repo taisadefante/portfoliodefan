@@ -53,7 +53,7 @@ const styles: Record<string, CSSProperties> = {
     color: colors.text,
     fontFamily: "Arial, Helvetica, sans-serif",
     background:
-      "radial-gradient(circle at 16% 0%, rgba(14,165,233,0.26), transparent 30%), radial-gradient(circle at 84% 12%, rgba(56,189,248,0.16), transparent 28%), linear-gradient(180deg, #020617 0%, #071426 48%, #020617 100%)",
+      "radial-gradient(circle at 18% 0%, rgba(14,165,233,0.16), transparent 30%), radial-gradient(circle at 84% 10%, rgba(56,189,248,0.1), transparent 26%), linear-gradient(180deg, #020617 0%, #061120 48%, #020617 100%)",
     overflowX: "hidden",
   },
   container: {
@@ -69,7 +69,7 @@ const styles: Record<string, CSSProperties> = {
     borderBottom: `1px solid ${colors.border}`,
   },
   nav: {
-    minHeight: 96,
+    minHeight: 82,
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
@@ -77,9 +77,9 @@ const styles: Record<string, CSSProperties> = {
   },
   logo: {
     width: "auto",
-    height: 76,
+    height: 64,
     objectFit: "contain",
-    filter: "drop-shadow(0 0 22px rgba(125,211,252,0.18))",
+    filter: "drop-shadow(0 0 16px rgba(125,211,252,0.14))",
   },
   navLinks: {
     display: "flex",
@@ -123,7 +123,7 @@ const styles: Record<string, CSSProperties> = {
     border: `1px solid ${colors.borderStrong}`,
   },
   hero: {
-    padding: "74px 0 38px",
+    padding: "54px 0 30px",
     textAlign: "center",
   },
   heroLogoBox: {
@@ -146,19 +146,19 @@ const styles: Record<string, CSSProperties> = {
     display: "inline-flex",
     alignItems: "center",
     gap: 8,
-    padding: "10px 15px",
+    padding: "9px 14px",
     borderRadius: 999,
     color: colors.lightBlue,
-    fontWeight: 950,
-    background: "rgba(14,165,233,0.12)",
-    border: `1px solid ${colors.borderStrong}`,
+    fontWeight: 900,
+    background: "rgba(14,165,233,0.1)",
+    border: `1px solid ${colors.border}`,
   },
   h1: {
-    maxWidth: 1040,
-    margin: "26px auto 0",
-    fontSize: "clamp(38px, 6vw, 82px)",
-    lineHeight: 0.98,
-    letterSpacing: "-0.075em",
+    maxWidth: 980,
+    margin: "22px auto 0",
+    fontSize: "clamp(34px, 5vw, 64px)",
+    lineHeight: 1.04,
+    letterSpacing: "-0.055em",
   },
   gradientText: {
     background: "linear-gradient(135deg, #7dd3fc, #ffffff)",
@@ -166,29 +166,30 @@ const styles: Record<string, CSSProperties> = {
     color: "transparent",
   },
   heroText: {
-    maxWidth: 820,
-    margin: "24px auto 0",
+    maxWidth: 760,
+    margin: "20px auto 0",
     color: colors.muted,
-    fontSize: "clamp(17px, 1.5vw, 22px)",
+    fontSize: "clamp(16px, 1.25vw, 19px)",
     lineHeight: 1.7,
   },
   statsGrid: {
+    width: "min(940px, 100%)",
     display: "grid",
     gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-    gap: 16,
-    marginTop: 34,
+    gap: 14,
+    margin: "30px auto 0",
   },
   statCard: {
-    padding: 22,
-    borderRadius: 26,
-    background: colors.panel,
+    padding: 18,
+    borderRadius: 22,
+    background: "rgba(15, 23, 42, 0.58)",
     border: `1px solid ${colors.border}`,
-    boxShadow: "0 20px 60px rgba(0,0,0,0.18)",
+    boxShadow: "0 14px 42px rgba(0,0,0,0.14)",
   },
   statNumber: {
     display: "block",
-    fontSize: 34,
-    letterSpacing: "-0.05em",
+    fontSize: 30,
+    letterSpacing: "-0.04em",
   },
   statLabel: {
     display: "block",
@@ -197,12 +198,12 @@ const styles: Record<string, CSSProperties> = {
     fontWeight: 800,
   },
   filtersTop: {
-    marginTop: 34,
-    padding: 22,
-    borderRadius: 30,
-    background: colors.panelStrong,
+    marginTop: 30,
+    padding: 20,
+    borderRadius: 26,
+    background: "rgba(15, 23, 42, 0.68)",
     border: `1px solid ${colors.border}`,
-    boxShadow: "0 24px 80px rgba(0,0,0,0.22)",
+    boxShadow: "0 18px 58px rgba(0,0,0,0.16)",
   },
   filtersGrid: {
     display: "grid",
@@ -246,14 +247,14 @@ const styles: Record<string, CSSProperties> = {
     padding: "13px 14px",
   },
   content: {
-    padding: "34px 0 86px",
+    padding: "28px 0 78px",
   },
   topResult: {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
     gap: 16,
-    marginBottom: 20,
+    marginBottom: 24,
   },
   kicker: {
     display: "block",
@@ -276,17 +277,17 @@ const styles: Record<string, CSSProperties> = {
   },
   card: {
     overflow: "hidden",
-    borderRadius: 32,
-    background: colors.panel,
+    borderRadius: 28,
+    background: "rgba(15, 23, 42, 0.7)",
     border: `1px solid ${colors.border}`,
-    boxShadow: "0 24px 80px rgba(0,0,0,0.22)",
+    boxShadow: "0 18px 60px rgba(0,0,0,0.18)",
     display: "flex",
     flexDirection: "column",
-    minHeight: 530,
+    minHeight: 500,
   },
   image: {
     width: "100%",
-    height: 220,
+    height: 210,
     objectFit: "cover",
     objectPosition: "top center",
     background: "rgba(8,47,73,0.42)",
@@ -301,12 +302,12 @@ const styles: Record<string, CSSProperties> = {
       "radial-gradient(circle at 30% 20%, rgba(56,189,248,0.22), transparent 40%), rgba(8,47,73,0.42)",
   },
   cardBody: {
-    padding: 24,
+    padding: 22,
     display: "flex",
     flexDirection: "column",
-    gap: 16,
+    gap: 14,
     flex: 1,
-    minHeight: 310,
+    minHeight: 290,
   },
   tags: {
     display: "flex",
@@ -338,16 +339,16 @@ const styles: Record<string, CSSProperties> = {
   },
   cardTitle: {
     margin: 0,
-    fontSize: 27,
-    lineHeight: 1.05,
-    letterSpacing: "-0.045em",
-    minHeight: 58,
+    fontSize: 25,
+    lineHeight: 1.08,
+    letterSpacing: "-0.04em",
+    minHeight: 54,
   },
   cardText: {
     margin: 0,
     color: colors.muted,
-    lineHeight: 1.62,
-    minHeight: 76,
+    lineHeight: 1.58,
+    minHeight: 72,
     display: "-webkit-box",
     WebkitLineClamp: 3,
     WebkitBoxOrient: "vertical",
@@ -1386,6 +1387,19 @@ export default function ProjetosPage() {
           to {
             transform: rotate(360deg);
           }
+        }
+
+        .projetos-grid article {
+          transition:
+            transform 0.22s ease,
+            border-color 0.22s ease,
+            box-shadow 0.22s ease;
+        }
+
+        .projetos-grid article:hover {
+          transform: translateY(-5px);
+          border-color: rgba(125, 211, 252, 0.3) !important;
+          box-shadow: 0 22px 70px rgba(0, 0, 0, 0.24) !important;
         }
 
         .project-modal-box-inline::-webkit-scrollbar {
