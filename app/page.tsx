@@ -155,419 +155,37 @@ const colors = {
   muted: "#cbd5e1",
   soft: "#94a3b8",
   blue: "#38bdf8",
-  blueDark: "#0ea5e9",
 };
 
-const styles: Record<string, CSSProperties> = {
-  page: {
-    minHeight: "100vh",
-    overflow: "hidden",
-    background:
-      "radial-gradient(circle at 18% 0%, rgba(14,165,233,0.22), transparent 31%), radial-gradient(circle at 82% 12%, rgba(56,189,248,0.12), transparent 28%), linear-gradient(180deg, #020617 0%, #071426 45%, #020617 100%)",
-    color: colors.text,
-    fontFamily: "Arial, Helvetica, sans-serif",
-  },
-  container: {
-    width: "min(1440px, calc(100% - 56px))",
-    margin: "0 auto",
-  },
-  header: {
-    position: "sticky",
-    top: 0,
-    zIndex: 50,
-    background: "rgba(2, 6, 23, 0.86)",
-    backdropFilter: "blur(22px)",
-    borderBottom: "1px solid rgba(125, 211, 252, 0.12)",
-  },
-  headerInner: {
-    minHeight: 86,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 24,
-  },
-  logo: {
-    width: "auto",
-    height: 74,
-    objectFit: "contain",
-    filter: "drop-shadow(0 0 22px rgba(125,211,252,0.18))",
-  },
-  nav: {
-    display: "flex",
-    alignItems: "center",
-    gap: 24,
-    color: colors.muted,
-    fontSize: 14,
-    fontWeight: 800,
-  },
-  button: {
-    borderRadius: 999,
-    padding: "14px 22px",
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 9,
-    fontWeight: 900,
-    cursor: "pointer",
-    whiteSpace: "nowrap",
-    border: 0,
-    color: "#fff",
-    background: "linear-gradient(135deg, #0ea5e9, #38bdf8)",
-    boxShadow: "0 18px 44px rgba(14,165,233,0.25)",
-    textDecoration: "none",
-  },
-  outlineButton: {
-    borderRadius: 999,
-    padding: "14px 22px",
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 9,
-    fontWeight: 900,
-    cursor: "pointer",
-    whiteSpace: "nowrap",
-    color: "#e0f2fe",
-    background: "rgba(15, 23, 42, 0.68)",
-    border: "1px solid rgba(125, 211, 252, 0.24)",
-    textDecoration: "none",
-  },
-  hero: {
-    padding: "74px 0 64px",
-  },
-  heroGrid: {
-    display: "grid",
-    gridTemplateColumns: "minmax(0, 0.95fr) minmax(420px, 0.78fr)",
-    gap: 58,
-    alignItems: "center",
-  },
-  badge: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 9,
-    padding: "10px 15px",
-    borderRadius: 999,
-    background: "rgba(14, 165, 233, 0.12)",
-    border: "1px solid rgba(125, 211, 252, 0.28)",
-    marginBottom: 26,
-    color: "#bae6fd",
-    fontSize: 14,
-    fontWeight: 950,
-  },
-  heroTitle: {
-    margin: 0,
-    maxWidth: 940,
-    fontSize: "clamp(34px, 4.35vw, 64px)",
-    lineHeight: 1.04,
-    letterSpacing: "-0.055em",
-  },
-  heroText: {
-    maxWidth: 720,
-    margin: "28px 0 0",
-    color: colors.muted,
-    fontSize: "clamp(16px, 1.15vw, 20px)",
-    lineHeight: 1.7,
-  },
-  heroActions: {
-    display: "flex",
-    gap: 14,
-    flexWrap: "wrap",
-    marginTop: 34,
-  },
-  heroCard: {
-    position: "relative",
-    minHeight: 500,
-    borderRadius: 38,
-    padding: 32,
-    overflow: "hidden",
-    background:
-      "radial-gradient(circle at 50% 0%, rgba(56,189,248,0.25), transparent 35%), linear-gradient(145deg, rgba(15,23,42,0.96), rgba(8,47,73,0.72))",
-    border: "1px solid rgba(125, 211, 252, 0.26)",
-    boxShadow: "0 44px 120px rgba(0,0,0,0.36)",
-  },
-  brandLogoBox: {
-    position: "relative",
-    zIndex: 1,
-    minHeight: 220,
-    display: "grid",
-    placeItems: "center",
-    borderRadius: 34,
-    background:
-      "radial-gradient(circle at 50% 50%, rgba(125,211,252,0.18), transparent 58%), rgba(2,6,23,0.34)",
-    border: "1px solid rgba(125, 211, 252, 0.14)",
-  },
-  heroLogo: {
-    width: "min(540px, 96%)",
-    height: "auto",
-    objectFit: "contain",
-    filter: "drop-shadow(0 0 34px rgba(255,255,255,0.24))",
-  },
-  brandPanel: {
-    position: "relative",
-    zIndex: 2,
-    marginTop: 24,
-    padding: 26,
-    borderRadius: 30,
-    background: "rgba(2, 6, 23, 0.32)",
-    border: "1px solid rgba(125, 211, 252, 0.14)",
-  },
-  brandStrip: {
-    width: "80%",
-    maxWidth: 1240,
-    margin: "0 auto 8px",
-    padding: "18px 0",
-    overflow: "hidden",
-    background: "rgba(15, 23, 42, 0.56)",
-    border: "1px solid rgba(125, 211, 252, 0.16)",
-    borderRadius: 999,
-  },
-  stripItem: {
-    flex: "0 0 auto",
-    padding: "10px 18px",
-    borderRadius: 999,
-    color: "#bae6fd",
-    fontWeight: 900,
-    background: "rgba(14, 165, 233, 0.1)",
-    border: "1px solid rgba(125, 211, 252, 0.13)",
-    fontSize: 14,
-  },
-  section: {
-    padding: "104px 0",
-  },
-  sectionTitle: {
-    maxWidth: 900,
-    margin: "0 auto 54px",
-    textAlign: "center",
-  },
-  eyebrow: {
-    display: "inline-flex",
-    color: colors.blue,
-    letterSpacing: "0.15em",
-    textTransform: "uppercase",
-    fontSize: 12,
-    fontWeight: 950,
-    marginBottom: 14,
-  },
-  h2: {
-    margin: 0,
-    color: colors.text,
-    fontSize: "clamp(28px, 3.35vw, 52px)",
-    lineHeight: 1.04,
-    letterSpacing: "-0.052em",
-  },
-  servicesGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(3, 1fr)",
-    gap: 22,
-  },
-  card: {
-    background: colors.panel,
-    border: `1px solid ${colors.border}`,
-    borderRadius: 32,
-    padding: 26,
-  },
-  iconBox: {
-    width: 60,
-    height: 60,
-    display: "grid",
-    placeItems: "center",
-    color: colors.blue,
-    borderRadius: 22,
-    background: "rgba(14, 165, 233, 0.12)",
-    border: "1px solid rgba(125, 211, 252, 0.14)",
-  },
-  projectsHead: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "end",
-    gap: 26,
-    marginBottom: 28,
-  },
-  projectsViewport: {
-    width: "100%",
-    overflow: "hidden",
-  },
-  projectsGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-    gap: 24,
-  },
-  projectCard: {
-    overflow: "hidden",
-    cursor: "pointer",
-    borderRadius: 32,
-    background: colors.panel,
-    border: `1px solid ${colors.border}`,
-    minHeight: 560,
-    height: "100%",
-    display: "flex",
-    flexDirection: "column",
-  },
-  projectImage: {
-    width: "100%",
-    height: 230,
-    objectFit: "cover",
-    objectPosition: "top center",
-    background: "#020617",
-  },
-  projectPlaceholder: {
-    width: "100%",
-    height: 230,
-    display: "grid",
-    placeItems: "center",
-    background:
-      "radial-gradient(circle at 30% 20%, rgba(56,189,248,0.22), transparent 40%), rgba(8,47,73,0.35)",
-  },
-  projectBody: {
-    padding: 26,
-    display: "flex",
-    flexDirection: "column",
-    flex: 1,
-  },
-  tags: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: 8,
-    marginBottom: 16,
-  },
-  tag: {
-    padding: "8px 11px",
-    borderRadius: 999,
-    color: "#bae6fd",
-    background: "rgba(14, 165, 233, 0.1)",
-    border: "1px solid rgba(125, 211, 252, 0.13)",
-    fontSize: 12,
-    fontWeight: 900,
-  },
-  priceRow: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: 10,
-    margin: "18px 0",
-  },
-  priceCard: {
-    padding: 14,
-    borderRadius: 18,
-    background: "rgba(2, 6, 23, 0.34)",
-    border: "1px solid rgba(125, 211, 252, 0.12)",
-  },
-  modelGrid: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: 26,
-  },
-  footer: {
-    padding: "58px 0",
-    borderTop: "1px solid rgba(125, 211, 252, 0.12)",
-    background: "rgba(2, 6, 23, 0.48)",
-  },
-  footerGrid: {
-    display: "grid",
-    gridTemplateColumns: "1fr auto",
-    gap: 28,
-    alignItems: "center",
-  },
-  floatingWhatsapp: {
-    position: "fixed",
-    right: 22,
-    bottom: 22,
-    zIndex: 90,
-    borderRadius: 999,
-    padding: "16px 22px",
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-    fontWeight: 950,
-    color: "#fff",
-    textDecoration: "none",
-    background: "linear-gradient(135deg, #16a34a, #22c55e)",
-    boxShadow: "0 18px 54px rgba(34,197,94,0.34)",
-    border: "1px solid rgba(187,247,208,0.32)",
-  },
-  modalBackdrop: {
-    position: "fixed",
-    inset: 0,
-    zIndex: 120,
-    background: "rgba(2, 6, 23, 0.82)",
-    backdropFilter: "blur(12px)",
-    display: "grid",
-    placeItems: "center",
-    padding: 18,
-  },
-  modalBox: {
-    width: "min(1180px, 100%)",
-    maxHeight: "92vh",
-    overflow: "auto",
-    borderRadius: 34,
-    background:
-      "radial-gradient(circle at 20% 0%, rgba(56,189,248,0.16), transparent 34%), linear-gradient(145deg, rgba(15,23,42,0.98), rgba(8,47,73,0.92))",
-    border: "1px solid rgba(125, 211, 252, 0.28)",
-    boxShadow: "0 44px 120px rgba(0,0,0,0.55)",
-  },
-  modalHeader: {
-    position: "sticky",
-    top: 0,
-    zIndex: 3,
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    gap: 18,
-    padding: 24,
-    background: "rgba(15, 23, 42, 0.92)",
-    borderBottom: "1px solid rgba(125, 211, 252, 0.14)",
-    backdropFilter: "blur(18px)",
-  },
-  closeButton: {
-    width: 44,
-    height: 44,
-    border: "1px solid rgba(125, 211, 252, 0.2)",
-    borderRadius: 14,
-    background: "rgba(2, 6, 23, 0.45)",
-    color: colors.text,
-    display: "grid",
-    placeItems: "center",
-    cursor: "pointer",
-  },
-  modalContent: {
-    display: "grid",
-    gridTemplateColumns: "1.03fr 0.97fr",
-    gap: 24,
-    padding: 24,
-  },
-  modalImage: {
-    width: "100%",
-    height: 420,
-    objectFit: "cover",
-    objectPosition: "top center",
-    borderRadius: 26,
-    border: "1px solid rgba(125, 211, 252, 0.16)",
-    background: "rgba(2, 6, 23, 0.5)",
-  },
-  modalPanel: {
-    padding: 22,
-    borderRadius: 26,
-    background: "rgba(2, 6, 23, 0.34)",
-    border: "1px solid rgba(125, 211, 252, 0.14)",
-  },
-  detailGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-    gap: 12,
-    marginTop: 16,
-  },
-  detailCard: {
-    padding: 15,
-    borderRadius: 18,
-    background: "rgba(15, 23, 42, 0.62)",
-    border: "1px solid rgba(125, 211, 252, 0.12)",
-  },
-};
+function useScreen() {
+  const [width, setWidth] = useState(1200);
+
+  useEffect(() => {
+    function update() {
+      setWidth(window.innerWidth);
+    }
+
+    update();
+    window.addEventListener("resize", update);
+
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
+  return {
+    width,
+    isMobile: width <= 560,
+    isTablet: width <= 860,
+    isNotebook: width <= 1180,
+  };
+}
 
 function getProjectImages(project: Project) {
   const images = Array.isArray(project.images)
     ? project.images.filter(Boolean)
     : [];
+
   if (images.length) return images;
+
   return project.imageUrl ? [project.imageUrl] : [];
 }
 
@@ -587,28 +205,66 @@ function SectionTitle({
   return (
     <div
       style={{
-        ...styles.sectionTitle,
-        marginInline: center ? "auto" : 0,
+        maxWidth: 900,
+        margin: center ? "0 auto 54px" : "0 0 28px",
         textAlign: center ? "center" : "left",
       }}
     >
-      <span style={styles.eyebrow}>{eyebrow}</span>
-      <h2 style={styles.h2}>{title}</h2>
+      <span
+        style={{
+          display: "inline-flex",
+          color: colors.blue,
+          letterSpacing: "0.15em",
+          textTransform: "uppercase",
+          fontSize: 12,
+          fontWeight: 950,
+          marginBottom: 14,
+        }}
+      >
+        {eyebrow}
+      </span>
+
+      {title && (
+        <h2
+          style={{
+            margin: 0,
+            color: colors.text,
+            fontSize: "clamp(28px, 3.35vw, 52px)",
+            lineHeight: 1.04,
+            letterSpacing: "-0.052em",
+          }}
+        >
+          {title}
+        </h2>
+      )}
     </div>
   );
 }
 
 function DetailList({ title, items }: { title: string; items?: string[] }) {
   const cleanItems = Array.isArray(items) ? items.filter(Boolean) : [];
+
   if (!cleanItems.length) return null;
 
   return (
-    <section style={styles.modalPanel}>
+    <section
+      style={{
+        padding: 22,
+        borderRadius: 26,
+        background: "rgba(2, 6, 23, 0.34)",
+        border: "1px solid rgba(125, 211, 252, 0.14)",
+      }}
+    >
       <h3
-        style={{ margin: "0 0 14px", fontSize: 20, letterSpacing: "-0.03em" }}
+        style={{
+          margin: "0 0 14px",
+          fontSize: 20,
+          letterSpacing: "-0.03em",
+        }}
       >
         {title}
       </h3>
+
       <div style={{ display: "grid", gap: 10 }}>
         {cleanItems.map((item, index) => (
           <div
@@ -642,6 +298,8 @@ function ProjectDetailsModal({
   project: Project;
   onClose: () => void;
 }) {
+  const { isTablet, isMobile } = useScreen();
+
   const images = getProjectImages(project);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [imageViewerOpen, setImageViewerOpen] = useState(false);
@@ -651,38 +309,134 @@ function ProjectDetailsModal({
     ?.toLowerCase()
     .includes("assinatura");
 
-  function openImageViewer(index: number) {
-    setSelectedImageIndex(index);
-    setImageViewerOpen(true);
-  }
-
   function previousImage(event?: React.MouseEvent<HTMLButtonElement>) {
     event?.stopPropagation();
+
     if (!images.length) return;
+
     setSelectedImageIndex((prev) => (prev - 1 + images.length) % images.length);
   }
 
   function nextImage(event?: React.MouseEvent<HTMLButtonElement>) {
     event?.stopPropagation();
+
     if (!images.length) return;
+
     setSelectedImageIndex((prev) => (prev + 1) % images.length);
   }
 
+  const buttonStyle: CSSProperties = {
+    borderRadius: 999,
+    padding: "14px 22px",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 9,
+    fontWeight: 900,
+    cursor: "pointer",
+    whiteSpace: "nowrap",
+    border: 0,
+    color: "#fff",
+    background: "linear-gradient(135deg, #0ea5e9, #38bdf8)",
+    boxShadow: "0 18px 44px rgba(14,165,233,0.25)",
+    textDecoration: "none",
+  };
+
+  const outlineButtonStyle: CSSProperties = {
+    borderRadius: 999,
+    padding: "14px 22px",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 9,
+    fontWeight: 900,
+    cursor: "pointer",
+    whiteSpace: "nowrap",
+    color: "#e0f2fe",
+    background: "rgba(15, 23, 42, 0.68)",
+    border: "1px solid rgba(125, 211, 252, 0.24)",
+    textDecoration: "none",
+  };
+
+  const tagStyle: CSSProperties = {
+    padding: "8px 11px",
+    borderRadius: 999,
+    color: "#bae6fd",
+    background: "rgba(14, 165, 233, 0.1)",
+    border: "1px solid rgba(125, 211, 252, 0.13)",
+    fontSize: 12,
+    fontWeight: 900,
+  };
+
+  const closeButtonStyle: CSSProperties = {
+    width: 44,
+    height: 44,
+    border: "1px solid rgba(125, 211, 252, 0.2)",
+    borderRadius: 14,
+    background: "rgba(2, 6, 23, 0.45)",
+    color: colors.text,
+    display: "grid",
+    placeItems: "center",
+    cursor: "pointer",
+  };
+
   return (
-    <div style={styles.modalBackdrop} onClick={onClose}>
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 120,
+        background: "rgba(2, 6, 23, 0.82)",
+        backdropFilter: "blur(12px)",
+        display: "grid",
+        placeItems: "center",
+        padding: 18,
+      }}
+      onClick={onClose}
+    >
       <section
-        style={styles.modalBox}
-        className="project-modal-box-inline"
+        style={{
+          width: "min(1180px, 100%)",
+          maxHeight: "92vh",
+          overflow: "auto",
+          borderRadius: 34,
+          background:
+            "radial-gradient(circle at 20% 0%, rgba(56,189,248,0.16), transparent 34%), linear-gradient(145deg, rgba(15,23,42,0.98), rgba(8,47,73,0.92))",
+          border: "1px solid rgba(125, 211, 252, 0.28)",
+          boxShadow: "0 44px 120px rgba(0,0,0,0.55)",
+        }}
         onClick={(event) => event.stopPropagation()}
       >
-        <header style={styles.modalHeader}>
+        <header
+          style={{
+            position: "sticky",
+            top: 0,
+            zIndex: 3,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            gap: 18,
+            padding: 24,
+            background: "rgba(15, 23, 42, 0.92)",
+            borderBottom: "1px solid rgba(125, 211, 252, 0.14)",
+            backdropFilter: "blur(18px)",
+          }}
+        >
           <div>
-            <div style={styles.tags}>
-              {project.type && <span style={styles.tag}>{project.type}</span>}
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 8,
+                marginBottom: 16,
+              }}
+            >
+              {project.type && <span style={tagStyle}>{project.type}</span>}
+
               {project.commercialModel && (
                 <span
                   style={{
-                    ...styles.tag,
+                    ...tagStyle,
                     color: isSubscription ? "#bbf7d0" : "#bfdbfe",
                     background: isSubscription
                       ? "rgba(34,197,94,0.12)"
@@ -695,12 +449,14 @@ function ProjectDetailsModal({
                   {project.commercialModel}
                 </span>
               )}
-              {project.niche && <span style={styles.tag}>{project.niche}</span>}
+
+              {project.niche && <span style={tagStyle}>{project.niche}</span>}
             </div>
+
             <h2
               style={{
                 margin: 0,
-                fontSize: "clamp(30px, 4vw, 54px)",
+                fontSize: isMobile ? 30 : "clamp(30px, 4vw, 54px)",
                 lineHeight: 1,
                 letterSpacing: "-0.06em",
               }}
@@ -712,7 +468,7 @@ function ProjectDetailsModal({
           <button
             type="button"
             onClick={onClose}
-            style={styles.closeButton}
+            style={closeButtonStyle}
             aria-label="Fechar detalhes do projeto"
           >
             <X size={22} />
@@ -720,14 +476,18 @@ function ProjectDetailsModal({
         </header>
 
         <div
-          style={styles.modalContent}
-          className="project-modal-content-inline"
+          style={{
+            display: "grid",
+            gridTemplateColumns: isTablet ? "1fr" : "1.03fr 0.97fr",
+            gap: 24,
+            padding: 24,
+          }}
         >
           <div style={{ display: "grid", gap: 14 }}>
             {selectedImage ? (
               <button
                 type="button"
-                onClick={() => openImageViewer(selectedImageIndex)}
+                onClick={() => setImageViewerOpen(true)}
                 style={{
                   border: 0,
                   padding: 0,
@@ -735,23 +495,32 @@ function ProjectDetailsModal({
                   cursor: "zoom-in",
                   textAlign: "left",
                 }}
-                title="Clique para ampliar a imagem"
               >
                 <img
                   src={selectedImage}
                   alt={project.name}
-                  style={styles.modalImage}
-                  className="project-modal-image-inline"
+                  style={{
+                    width: "100%",
+                    height: isMobile ? 260 : 420,
+                    objectFit: "cover",
+                    objectPosition: "top center",
+                    borderRadius: 26,
+                    border: "1px solid rgba(125, 211, 252, 0.16)",
+                    background: "rgba(2, 6, 23, 0.5)",
+                  }}
                 />
               </button>
             ) : (
               <div
                 style={{
-                  ...styles.modalImage,
+                  width: "100%",
+                  height: isMobile ? 260 : 420,
                   display: "grid",
                   placeItems: "center",
+                  borderRadius: 26,
+                  border: "1px solid rgba(125, 211, 252, 0.16)",
+                  background: "rgba(2, 6, 23, 0.5)",
                 }}
-                className="project-modal-image-inline"
               >
                 <Image
                   src="/logo-white.png"
@@ -767,7 +536,9 @@ function ProjectDetailsModal({
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+                  gridTemplateColumns: isMobile
+                    ? "repeat(2, minmax(0, 1fr))"
+                    : "repeat(4, minmax(0, 1fr))",
                   gap: 10,
                 }}
               >
@@ -776,14 +547,13 @@ function ProjectDetailsModal({
                     key={`${image}-${index}`}
                     type="button"
                     onClick={() => setSelectedImageIndex(index)}
-                    onDoubleClick={() => openImageViewer(index)}
+                    onDoubleClick={() => setImageViewerOpen(true)}
                     style={{
-                      border: "0",
+                      border: 0,
                       padding: 0,
                       background: "transparent",
                       cursor: "pointer",
                     }}
-                    title="Clique para trocar. Clique duas vezes para ampliar."
                   >
                     <img
                       src={image}
@@ -807,7 +577,14 @@ function ProjectDetailsModal({
           </div>
 
           <aside style={{ display: "grid", gap: 16, alignContent: "start" }}>
-            <section style={styles.modalPanel}>
+            <section
+              style={{
+                padding: 22,
+                borderRadius: 26,
+                background: "rgba(2, 6, 23, 0.34)",
+                border: "1px solid rgba(125, 211, 252, 0.14)",
+              }}
+            >
               <h3
                 style={{
                   margin: "0 0 10px",
@@ -817,6 +594,7 @@ function ProjectDetailsModal({
               >
                 Resumo do projeto
               </h3>
+
               <p style={{ color: colors.muted, lineHeight: 1.7, margin: 0 }}>
                 {project.fullDescription ||
                   project.cardSummary ||
@@ -824,11 +602,24 @@ function ProjectDetailsModal({
               </p>
 
               <div
-                style={styles.detailGrid}
-                className="project-detail-grid-inline"
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: isMobile
+                    ? "1fr"
+                    : "repeat(2, minmax(0, 1fr))",
+                  gap: 12,
+                  marginTop: 16,
+                }}
               >
                 {project.startingPrice && (
-                  <div style={styles.detailCard}>
+                  <div
+                    style={{
+                      padding: 15,
+                      borderRadius: 18,
+                      background: "rgba(15, 23, 42, 0.62)",
+                      border: "1px solid rgba(125, 211, 252, 0.12)",
+                    }}
+                  >
                     <small style={{ color: colors.soft, fontWeight: 900 }}>
                       Investimento inicial
                     </small>
@@ -839,8 +630,16 @@ function ProjectDetailsModal({
                     </strong>
                   </div>
                 )}
+
                 {project.monthlyPrice && (
-                  <div style={styles.detailCard}>
+                  <div
+                    style={{
+                      padding: 15,
+                      borderRadius: 18,
+                      background: "rgba(15, 23, 42, 0.62)",
+                      border: "1px solid rgba(125, 211, 252, 0.12)",
+                    }}
+                  >
                     <small style={{ color: colors.soft, fontWeight: 900 }}>
                       Mensalidade
                     </small>
@@ -855,7 +654,14 @@ function ProjectDetailsModal({
             </section>
 
             {!!project.technologies?.length && (
-              <section style={styles.modalPanel}>
+              <section
+                style={{
+                  padding: 22,
+                  borderRadius: 26,
+                  background: "rgba(2, 6, 23, 0.34)",
+                  border: "1px solid rgba(125, 211, 252, 0.14)",
+                }}
+              >
                 <h3
                   style={{
                     margin: "0 0 14px",
@@ -865,9 +671,10 @@ function ProjectDetailsModal({
                 >
                   Tecnologias
                 </h3>
+
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                   {project.technologies.map((tech) => (
-                    <span key={tech} style={styles.tag}>
+                    <span key={tech} style={tagStyle}>
                       {tech}
                     </span>
                   ))}
@@ -880,11 +687,10 @@ function ProjectDetailsModal({
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+            gridTemplateColumns: isTablet ? "1fr" : "repeat(2, minmax(0, 1fr))",
             gap: 16,
             padding: "0 24px 24px",
           }}
-          className="project-modal-lists-inline"
         >
           <DetailList title="Módulos disponíveis" items={project.modules} />
           <DetailList title="Integrações" items={project.integrations} />
@@ -910,18 +716,21 @@ function ProjectDetailsModal({
               href={project.link}
               target="_blank"
               rel="noreferrer"
-              style={styles.outlineButton}
+              style={outlineButtonStyle}
             >
               Abrir projeto <ExternalLink size={17} />
             </a>
           ) : (
             <span />
           )}
+
           <a
-            href={`https://wa.me/5521988359825?text=${encodeURIComponent(`Olá, tenho interesse no projeto: ${project.name}`)}`}
+            href={`https://wa.me/5521988359825?text=${encodeURIComponent(
+              `Olá, tenho interesse no projeto: ${project.name}`,
+            )}`}
             target="_blank"
             rel="noreferrer"
-            style={styles.button}
+            style={buttonStyle}
           >
             Quero orçamento deste projeto <MessageCircle size={18} />
           </a>
@@ -960,7 +769,7 @@ function ProjectDetailsModal({
               type="button"
               onClick={previousImage}
               style={{
-                ...styles.outlineButton,
+                ...outlineButtonStyle,
                 padding: "12px 16px",
                 borderRadius: 16,
               }}
@@ -987,7 +796,7 @@ function ProjectDetailsModal({
                 type="button"
                 onClick={nextImage}
                 style={{
-                  ...styles.outlineButton,
+                  ...outlineButtonStyle,
                   padding: "12px 16px",
                   borderRadius: 16,
                 }}
@@ -1002,7 +811,7 @@ function ProjectDetailsModal({
                   event.stopPropagation();
                   setImageViewerOpen(false);
                 }}
-                style={styles.closeButton}
+                style={closeButtonStyle}
                 aria-label="Fechar imagem ampliada"
               >
                 <X size={22} />
@@ -1040,9 +849,12 @@ function ProjectDetailsModal({
 }
 
 export default function HomePage() {
+  const { isMobile, isTablet, isNotebook } = useScreen();
+
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [projectPage, setProjectPage] = useState(0);
+  const [marqueeOffset, setMarqueeOffset] = useState(0);
 
   useEffect(() => {
     getProjects()
@@ -1053,290 +865,298 @@ export default function HomePage() {
       .catch(() => setProjects([]));
   }, []);
 
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setMarqueeOffset((prev) => (prev + 1) % 1400);
+    }, 30);
+
+    return () => window.clearInterval(interval);
+  }, []);
+
   const projectSlides = useMemo(() => {
     const slides: Project[][] = [];
+
     for (let index = 0; index < projects.length; index += 3) {
       slides.push(projects.slice(index, index + 3));
     }
+
     return slides;
   }, [projects]);
 
   useEffect(() => {
     if (projectSlides.length <= 1) return;
+
     const interval = window.setInterval(() => {
       setProjectPage((prev) => (prev + 1) % projectSlides.length);
     }, 5000);
+
     return () => window.clearInterval(interval);
   }, [projectSlides.length]);
 
   const visibleProjects = projectSlides[projectPage] || [];
+
   const whatsappUrl = `https://wa.me/5521988359825?text=${encodeURIComponent(
     "Olá, Tais! Vi seu portfólio da Defan e quero um orçamento para site, sistema ou automação.",
   )}`;
 
-  return (
-    <main style={styles.page}>
-      <style jsx>{`
-        a {
-          color: inherit;
-          text-decoration: none;
-        }
-        .hover-up {
-          transition:
-            transform 0.28s ease,
-            border-color 0.28s ease,
-            box-shadow 0.28s ease;
-        }
-        .hover-up:hover {
-          transform: translateY(-6px);
-          border-color: rgba(125, 211, 252, 0.36) !important;
-          box-shadow: 0 24px 70px rgba(14, 165, 233, 0.12);
-        }
-        .animate-fade-up {
-          animation: fadeUpInline 0.8s ease both;
-        }
-        .animate-float {
-          animation: floatInline 6s ease-in-out infinite;
-        }
-        .glow-button {
-          animation: softPulseInline 2.8s ease-in-out infinite;
-        }
-        .floating-whatsapp-inline {
-          animation: whatsappPulseInline 2.2s ease-in-out infinite;
-        }
-        .hero-card-inline::after {
-          content: "";
-          position: absolute;
-          inset: 18px;
-          border-radius: 32px;
-          pointer-events: none;
-          border: 1px solid rgba(125, 211, 252, 0.08);
-        }
-        @keyframes fadeUpInline {
-          from {
-            opacity: 0;
-            transform: translateY(18px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        @keyframes floatInline {
-          0%,
-          100% {
-            transform: translateY(0);
-          }
-          50% {
-            transform: translateY(-10px);
-          }
-        }
-        @keyframes softPulseInline {
-          0%,
-          100% {
-            box-shadow: 0 18px 44px rgba(14, 165, 233, 0.24);
-          }
-          50% {
-            box-shadow: 0 18px 60px rgba(14, 165, 233, 0.44);
-          }
-        }
-        @keyframes whatsappPulseInline {
-          0%,
-          100% {
-            transform: translateY(0) scale(1);
-          }
-          50% {
-            transform: translateY(-3px) scale(1.025);
-          }
-        }
-        .strip-track-inline {
-          width: max-content;
-          display: flex;
-          gap: 14px;
-          animation: marqueeServices 28s linear infinite;
-          padding-inline: 14px;
-        }
-        .strip-track-inline:hover {
-          animation-play-state: paused;
-        }
-        @keyframes marqueeServices {
-          from {
-            transform: translateX(0);
-          }
-          to {
-            transform: translateX(-50%);
-          }
-        }
-        .project-modal-box-inline::-webkit-scrollbar {
-          width: 10px;
-        }
-        .project-modal-box-inline::-webkit-scrollbar-track {
-          background: rgba(2, 6, 23, 0.5);
-        }
-        .project-modal-box-inline::-webkit-scrollbar-thumb {
-          background: rgba(56, 189, 248, 0.75);
-          border-radius: 999px;
-        }
-        @media (max-width: 1180px) {
-          .hero-grid-inline {
-            grid-template-columns: 1fr !important;
-            gap: 38px !important;
-          }
-          .hero-copy-inline {
-            text-align: center !important;
-          }
-          .hero-actions-inline {
-            justify-content: center !important;
-          }
-          .hero-card-inline {
-            width: min(720px, 100%) !important;
-            margin: 0 auto !important;
-          }
-          .services-grid-inline,
-          .projects-grid-inline {
-            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-          }
-          .project-modal-content-inline {
-            grid-template-columns: 1fr !important;
-          }
-        }
-        @media (max-width: 860px) {
-          .main-menu-inline {
-            display: none !important;
-          }
-          .header-inner-inline {
-            min-height: 82px !important;
-          }
-          .header-logo-inline {
-            height: 68px !important;
-          }
-          .brand-strip-inline {
-            width: min(92%, 760px) !important;
-            border-radius: 28px !important;
-          }
-          .projects-head-inline,
-          .footer-grid-inline {
-            grid-template-columns: 1fr !important;
-            display: grid !important;
-            align-items: start !important;
-          }
-          .services-grid-inline,
-          .projects-grid-inline,
-          .model-grid-inline,
-          .project-modal-lists-inline {
-            grid-template-columns: 1fr !important;
-          }
-          .project-detail-grid-inline {
-            grid-template-columns: 1fr !important;
-          }
-        }
-        @media (max-width: 560px) {
-          .container-inline {
-            width: min(100% - 28px, 1440px) !important;
-          }
-          .hero-inline {
-            padding: 56px 0 42px !important;
-          }
-          .hero-title-inline {
-            font-size: 42px !important;
-          }
-          .hero-card-inline {
-            min-height: auto !important;
-            padding: 22px !important;
-            border-radius: 30px !important;
-          }
-          .brand-logo-box-inline {
-            min-height: 170px !important;
-          }
-          .brand-panel-inline {
-            padding: 18px !important;
-          }
-          .hero-actions-inline a {
-            width: 100% !important;
-          }
-          .floating-whatsapp-inline {
-            right: 14px !important;
-            bottom: 14px !important;
-            padding: 14px 16px !important;
-            font-size: 14px !important;
-          }
-          .section-inline {
-            padding: 70px 0 !important;
-          }
-          .project-modal-image-inline {
-            height: 260px !important;
-          }
-        }
-      `}</style>
+  const containerStyle: CSSProperties = {
+    width: isMobile
+      ? "min(100% - 28px, 1440px)"
+      : "min(1440px, calc(100% - 56px))",
+    margin: "0 auto",
+  };
 
-      <header style={styles.header}>
+  const buttonStyle: CSSProperties = {
+    borderRadius: 999,
+    padding: "14px 22px",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 9,
+    fontWeight: 900,
+    cursor: "pointer",
+    whiteSpace: "nowrap",
+    border: 0,
+    color: "#fff",
+    background: "linear-gradient(135deg, #0ea5e9, #38bdf8)",
+    boxShadow: "0 18px 44px rgba(14,165,233,0.25)",
+    textDecoration: "none",
+  };
+
+  const outlineButtonStyle: CSSProperties = {
+    borderRadius: 999,
+    padding: "14px 22px",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 9,
+    fontWeight: 900,
+    cursor: "pointer",
+    whiteSpace: "nowrap",
+    color: "#e0f2fe",
+    background: "rgba(15, 23, 42, 0.68)",
+    border: "1px solid rgba(125, 211, 252, 0.24)",
+    textDecoration: "none",
+  };
+
+  const cardStyle: CSSProperties = {
+    background: colors.panel,
+    border: `1px solid ${colors.border}`,
+    borderRadius: 32,
+    padding: 26,
+  };
+
+  const tagStyle: CSSProperties = {
+    padding: "8px 11px",
+    borderRadius: 999,
+    color: "#bae6fd",
+    background: "rgba(14, 165, 233, 0.1)",
+    border: "1px solid rgba(125, 211, 252, 0.13)",
+    fontSize: 12,
+    fontWeight: 900,
+  };
+
+  const sectionStyle: CSSProperties = {
+    padding: isMobile ? "70px 0" : "104px 0",
+  };
+
+  return (
+    <main
+      style={{
+        minHeight: "100vh",
+        overflow: "hidden",
+        background:
+          "radial-gradient(circle at 18% 0%, rgba(14,165,233,0.22), transparent 31%), radial-gradient(circle at 82% 12%, rgba(56,189,248,0.12), transparent 28%), linear-gradient(180deg, #020617 0%, #071426 45%, #020617 100%)",
+        color: colors.text,
+        fontFamily: "Arial, Helvetica, sans-serif",
+      }}
+    >
+      <header
+        style={{
+          position: "sticky",
+          top: 0,
+          zIndex: 50,
+          background: "rgba(2, 6, 23, 0.86)",
+          backdropFilter: "blur(22px)",
+          borderBottom: "1px solid rgba(125, 211, 252, 0.12)",
+        }}
+      >
         <div
-          style={{ ...styles.container, ...styles.headerInner }}
-          className="container-inline header-inner-inline"
+          style={{
+            ...containerStyle,
+            minHeight: isTablet ? 82 : 86,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 24,
+          }}
         >
-          <a href="/">
+          <a href="/" style={{ textDecoration: "none" }}>
             <Image
               src="/logo-white.png"
               alt="Defan Soluções Digitais"
               width={420}
               height={140}
               priority
-              style={styles.logo}
-              className="header-logo-inline"
+              style={{
+                width: "auto",
+                height: isTablet ? 68 : 74,
+                objectFit: "contain",
+                filter: "drop-shadow(0 0 22px rgba(125,211,252,0.18))",
+              }}
             />
           </a>
 
-          <nav style={styles.nav} className="main-menu-inline">
-            <a href="#servicos">Serviços</a>
-            <a href="#sobre">Sobre</a>
-            <a href="/projetos">Projetos</a>
-            <a href="#depoimentos">Depoimentos</a>
-            <a href="#faq">FAQ</a>
-          </nav>
+          {!isTablet && (
+            <nav
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 24,
+                color: colors.muted,
+                fontSize: 14,
+                fontWeight: 800,
+              }}
+            >
+              <a
+                href="#servicos"
+                style={{ color: "inherit", textDecoration: "none" }}
+              >
+                Serviços
+              </a>
+              <a
+                href="#sobre"
+                style={{ color: "inherit", textDecoration: "none" }}
+              >
+                Sobre
+              </a>
+              <a
+                href="/projetos"
+                style={{ color: "inherit", textDecoration: "none" }}
+              >
+                Projetos
+              </a>
+              <a
+                href="#depoimentos"
+                style={{ color: "inherit", textDecoration: "none" }}
+              >
+                Depoimentos
+              </a>
+              <a
+                href="#faq"
+                style={{ color: "inherit", textDecoration: "none" }}
+              >
+                FAQ
+              </a>
+            </nav>
+          )}
 
           <a
             href={whatsappUrl}
             target="_blank"
             rel="noreferrer"
-            style={styles.button}
-            className="glow-button"
+            style={{
+              ...buttonStyle,
+              padding: isMobile ? "12px 14px" : "14px 22px",
+              fontSize: isMobile ? 13 : 15,
+            }}
           >
             Orçamento agora <ArrowRight size={17} />
           </a>
         </div>
       </header>
 
-      <section style={styles.hero} className="hero-inline">
+      <section
+        style={{
+          padding: isMobile ? "56px 0 42px" : "74px 0 64px",
+        }}
+      >
         <div
-          style={{ ...styles.container, ...styles.heroGrid }}
-          className="container-inline hero-grid-inline"
+          style={{
+            ...containerStyle,
+            display: "grid",
+            gridTemplateColumns: isNotebook
+              ? "1fr"
+              : "minmax(0, 0.95fr) minmax(420px, 0.78fr)",
+            gap: isNotebook ? 38 : 58,
+            alignItems: "center",
+          }}
         >
-          <div className="hero-copy-inline animate-fade-up">
-            <span style={styles.badge}>
+          <div style={{ textAlign: isNotebook ? "center" : "left" }}>
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 9,
+                padding: "10px 15px",
+                borderRadius: 999,
+                background: "rgba(14, 165, 233, 0.12)",
+                border: "1px solid rgba(125, 211, 252, 0.28)",
+                marginBottom: 26,
+                color: "#bae6fd",
+                fontSize: 14,
+                fontWeight: 950,
+              }}
+            >
               <Sparkles size={16} /> Defan Soluções Digitais
             </span>
-            <h1 style={styles.heroTitle} className="hero-title-inline">
+
+            <h1
+              style={{
+                margin: 0,
+                maxWidth: 940,
+                fontSize: isMobile ? 42 : "clamp(34px, 4.35vw, 64px)",
+                lineHeight: 1.04,
+                letterSpacing: "-0.055em",
+              }}
+            >
               Presença digital, sistemas e automações criados para sua empresa
               transmitir confiança.
             </h1>
-            <p style={styles.heroText}>
+
+            <p
+              style={{
+                maxWidth: 720,
+                margin: "28px 0 0",
+                color: colors.muted,
+                fontSize: "clamp(16px, 1.15vw, 20px)",
+                lineHeight: 1.7,
+              }}
+            >
               Projetos profissionais para empresas que precisam vender melhor,
               organizar processos e se apresentar com mais credibilidade no
               digital.
             </p>
-            <div style={styles.heroActions} className="hero-actions-inline">
+
+            <div
+              style={{
+                display: "flex",
+                gap: 14,
+                flexWrap: "wrap",
+                marginTop: 34,
+                justifyContent: isNotebook ? "center" : "flex-start",
+              }}
+            >
               <a
                 href={whatsappUrl}
                 target="_blank"
                 rel="noreferrer"
-                style={{ ...styles.button, padding: "15px 22px" }}
-                className="glow-button"
+                style={{
+                  ...buttonStyle,
+                  padding: "15px 22px",
+                  width: isMobile ? "100%" : "auto",
+                }}
               >
                 Pedir orçamento no WhatsApp <MessageCircle size={19} />
               </a>
+
               <a
                 href="/projetos"
-                style={{ ...styles.outlineButton, padding: "16px 24px" }}
+                style={{
+                  ...outlineButtonStyle,
+                  padding: "16px 24px",
+                  width: isMobile ? "100%" : "auto",
+                }}
               >
                 Ver soluções disponíveis <ArrowRight size={18} />
               </a>
@@ -1344,8 +1164,19 @@ export default function HomePage() {
           </div>
 
           <div
-            style={styles.heroCard}
-            className="hero-card-inline animate-float"
+            style={{
+              position: "relative",
+              minHeight: isMobile ? "auto" : 500,
+              borderRadius: isMobile ? 30 : 38,
+              padding: isMobile ? 22 : 32,
+              overflow: "hidden",
+              background:
+                "radial-gradient(circle at 50% 0%, rgba(56,189,248,0.25), transparent 35%), linear-gradient(145deg, rgba(15,23,42,0.96), rgba(8,47,73,0.72))",
+              border: "1px solid rgba(125, 211, 252, 0.26)",
+              boxShadow: "0 44px 120px rgba(0,0,0,0.36)",
+              width: isNotebook ? "min(720px, 100%)" : "auto",
+              margin: isNotebook ? "0 auto" : 0,
+            }}
           >
             <div
               style={{
@@ -1359,19 +1190,49 @@ export default function HomePage() {
                 filter: "blur(60px)",
               }}
             />
-            <div style={styles.brandLogoBox} className="brand-logo-box-inline">
+
+            <div
+              style={{
+                position: "relative",
+                zIndex: 1,
+                minHeight: isMobile ? 170 : 220,
+                display: "grid",
+                placeItems: "center",
+                borderRadius: 34,
+                background:
+                  "radial-gradient(circle at 50% 50%, rgba(125,211,252,0.18), transparent 58%), rgba(2,6,23,0.34)",
+                border: "1px solid rgba(125, 211, 252, 0.14)",
+              }}
+            >
               <Image
                 src="/logo-white.png"
                 alt="Defan Soluções Digitais"
                 width={560}
                 height={190}
-                style={styles.heroLogo}
+                style={{
+                  width: "min(540px, 96%)",
+                  height: "auto",
+                  objectFit: "contain",
+                  filter: "drop-shadow(0 0 34px rgba(255,255,255,0.24))",
+                }}
               />
             </div>
-            <div style={styles.brandPanel} className="brand-panel-inline">
+
+            <div
+              style={{
+                position: "relative",
+                zIndex: 2,
+                marginTop: 24,
+                padding: isMobile ? 18 : 26,
+                borderRadius: 30,
+                background: "rgba(2, 6, 23, 0.32)",
+                border: "1px solid rgba(125, 211, 252, 0.14)",
+              }}
+            >
               <span style={{ color: "#93c5fd", fontSize: 13 }}>
                 Criação estratégica
               </span>
+
               <strong
                 style={{
                   display: "block",
@@ -1382,44 +1243,40 @@ export default function HomePage() {
               >
                 Landing pages, websites, sistemas e automações
               </strong>
+
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
+                  gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
                   gap: 14,
                   marginTop: 24,
                 }}
               >
-                <div
-                  style={{
-                    padding: 18,
-                    borderRadius: 22,
-                    background: "rgba(15,23,42,0.58)",
-                    border: "1px solid rgba(125,211,252,0.12)",
-                  }}
-                >
-                  <strong>Assinatura mensal</strong>
-                  <span
-                    style={{ display: "block", color: "#93c5fd", fontSize: 13 }}
+                {[
+                  ["Assinatura mensal", "comece com menor investimento"],
+                  ["Projeto sob medida", "solução única para sua empresa"],
+                ].map(([title, text]) => (
+                  <div
+                    key={title}
+                    style={{
+                      padding: 18,
+                      borderRadius: 22,
+                      background: "rgba(15,23,42,0.58)",
+                      border: "1px solid rgba(125,211,252,0.12)",
+                    }}
                   >
-                    comece com menor investimento
-                  </span>
-                </div>
-                <div
-                  style={{
-                    padding: 18,
-                    borderRadius: 22,
-                    background: "rgba(15,23,42,0.58)",
-                    border: "1px solid rgba(125,211,252,0.12)",
-                  }}
-                >
-                  <strong>Projeto sob medida</strong>
-                  <span
-                    style={{ display: "block", color: "#93c5fd", fontSize: 13 }}
-                  >
-                    solução única para sua empresa
-                  </span>
-                </div>
+                    <strong>{title}</strong>
+                    <span
+                      style={{
+                        display: "block",
+                        color: "#93c5fd",
+                        fontSize: 13,
+                      }}
+                    >
+                      {text}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -1427,39 +1284,93 @@ export default function HomePage() {
       </section>
 
       <section
-        style={styles.brandStrip}
-        className="brand-strip-inline"
+        style={{
+          width: isTablet ? "min(92%, 760px)" : "80%",
+          maxWidth: 1240,
+          margin: "0 auto 8px",
+          padding: "18px 0",
+          overflow: "hidden",
+          background: "rgba(15, 23, 42, 0.56)",
+          border: "1px solid rgba(125, 211, 252, 0.16)",
+          borderRadius: isTablet ? 28 : 999,
+        }}
         aria-label="Serviços e tecnologias"
       >
-        <div style={{ width: "100%", overflow: "hidden" }}>
-          <div className="strip-track-inline">
-            {[...carouselItems, ...carouselItems].map((item, index) => (
-              <span key={`${item}-${index}`} style={styles.stripItem}>
+        <div
+          style={{
+            width: "max-content",
+            display: "flex",
+            gap: 14,
+            paddingInline: 14,
+            transform: `translateX(-${marqueeOffset}px)`,
+          }}
+        >
+          {[...carouselItems, ...carouselItems, ...carouselItems].map(
+            (item, index) => (
+              <span
+                key={`${item}-${index}`}
+                style={{
+                  flex: "0 0 auto",
+                  padding: "10px 18px",
+                  borderRadius: 999,
+                  color: "#bae6fd",
+                  fontWeight: 900,
+                  background: "rgba(14, 165, 233, 0.1)",
+                  border: "1px solid rgba(125, 211, 252, 0.13)",
+                  fontSize: 14,
+                }}
+              >
                 {item}
               </span>
-            ))}
-          </div>
+            ),
+          )}
         </div>
       </section>
 
-      <section id="servicos" style={styles.section} className="section-inline">
-        <div style={styles.container} className="container-inline">
+      <section id="servicos" style={sectionStyle}>
+        <div style={containerStyle}>
           <SectionTitle
             eyebrow="Serviços"
             title="Soluções digitais para empresas que querem se destacar"
           />
-          <div style={styles.servicesGrid} className="services-grid-inline">
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: isTablet
+                ? "1fr"
+                : isNotebook
+                  ? "repeat(2, 1fr)"
+                  : "repeat(3, 1fr)",
+              gap: 22,
+            }}
+          >
             {services.map((service) => {
               const Icon = service.icon;
+
               return (
                 <article
                   key={service.title}
-                  style={{ ...styles.card, minHeight: 280 }}
-                  className="hover-up"
+                  style={{
+                    ...cardStyle,
+                    minHeight: 280,
+                  }}
                 >
-                  <div style={styles.iconBox}>
+                  <div
+                    style={{
+                      width: 60,
+                      height: 60,
+                      display: "grid",
+                      placeItems: "center",
+                      color: colors.blue,
+                      borderRadius: 22,
+                      background: "rgba(14, 165, 233, 0.12)",
+                      border: "1px solid rgba(125, 211, 252, 0.14)",
+                    }}
+                  >
                     <Icon size={24} />
                   </div>
+
                   <h3
                     style={{
                       margin: "26px 0 12px",
@@ -1469,6 +1380,7 @@ export default function HomePage() {
                   >
                     {service.title}
                   </h3>
+
                   <p style={{ color: colors.muted, lineHeight: 1.68 }}>
                     {service.description}
                   </p>
@@ -1481,35 +1393,57 @@ export default function HomePage() {
 
       <section
         id="sobre"
-        style={{ ...styles.section, background: "rgba(15, 23, 42, 0.2)" }}
-        className="section-inline"
+        style={{ ...sectionStyle, background: "rgba(15, 23, 42, 0.2)" }}
       >
         <div
           style={{
-            ...styles.container,
+            ...containerStyle,
             display: "grid",
-            gridTemplateColumns: "1.1fr 0.9fr",
+            gridTemplateColumns: isTablet ? "1fr" : "1.1fr 0.9fr",
             gap: 26,
           }}
-          className="container-inline model-grid-inline"
         >
-          <article style={{ ...styles.card, padding: 38 }}>
-            <span style={styles.eyebrow}>Sobre a Defan</span>
-            <h2 style={{ ...styles.h2, margin: "18px 0" }}>
+          <article style={{ ...cardStyle, padding: isMobile ? 28 : 38 }}>
+            <span
+              style={{
+                display: "inline-flex",
+                color: colors.blue,
+                letterSpacing: "0.15em",
+                textTransform: "uppercase",
+                fontSize: 12,
+                fontWeight: 950,
+                marginBottom: 14,
+              }}
+            >
+              Sobre a Defan
+            </span>
+
+            <h2
+              style={{
+                margin: "18px 0",
+                color: colors.text,
+                fontSize: "clamp(28px, 3.35vw, 52px)",
+                lineHeight: 1.04,
+                letterSpacing: "-0.052em",
+              }}
+            >
               Cada projeto é tratado como único.
             </h2>
+
             <p style={{ color: colors.muted, lineHeight: 1.68 }}>
               A Defan Soluções Digitais nasceu para criar experiências digitais
               com aparência profissional, funcionamento prático e estratégia
               comercial.
             </p>
+
             <p style={{ color: colors.muted, lineHeight: 1.68 }}>
               O objetivo não é apenas entregar uma tela bonita. É construir uma
               solução que ajude a empresa a se posicionar melhor, vender com
               segurança e organizar sua operação.
             </p>
           </article>
-          <article style={{ ...styles.card, padding: 38 }}>
+
+          <article style={{ ...cardStyle, padding: isMobile ? 28 : 38 }}>
             <Image
               src="/logo-white.png"
               alt="Defan Soluções Digitais"
@@ -1522,7 +1456,21 @@ export default function HomePage() {
                 marginBottom: 18,
               }}
             />
-            <span style={styles.eyebrow}>Criado por</span>
+
+            <span
+              style={{
+                display: "inline-flex",
+                color: colors.blue,
+                letterSpacing: "0.15em",
+                textTransform: "uppercase",
+                fontSize: 12,
+                fontWeight: 950,
+                marginBottom: 14,
+              }}
+            >
+              Criado por
+            </span>
+
             <h3
               style={{
                 margin: "16px 0",
@@ -1532,6 +1480,7 @@ export default function HomePage() {
             >
               Tais Defante
             </h3>
+
             <p style={{ color: colors.muted, lineHeight: 1.68 }}>
               A Defan é conduzida por Tais Defante, com foco em desenvolvimento,
               design, automação, organização de processos e soluções digitais
@@ -1539,21 +1488,31 @@ export default function HomePage() {
             </p>
           </article>
         </div>
+
         <div
-          style={{ ...styles.container, ...styles.servicesGrid, marginTop: 26 }}
-          className="container-inline services-grid-inline"
+          style={{
+            ...containerStyle,
+            display: "grid",
+            gridTemplateColumns: isTablet
+              ? "1fr"
+              : isNotebook
+                ? "repeat(2, 1fr)"
+                : "repeat(3, 1fr)",
+            gap: 22,
+            marginTop: 26,
+          }}
         >
           {values.map((value) => {
             const Icon = value.icon;
+
             return (
-              <article
-                key={value.title}
-                style={{ ...styles.card, padding: 28 }}
-              >
+              <article key={value.title} style={{ ...cardStyle, padding: 28 }}>
                 <Icon size={25} color={colors.blue} />
+
                 <h3 style={{ margin: "26px 0 12px", fontSize: 22 }}>
                   {value.title}
                 </h3>
+
                 <p style={{ color: colors.muted, lineHeight: 1.68 }}>
                   {value.text}
                 </p>
@@ -1563,39 +1522,87 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section id="projetos" style={styles.section} className="section-inline">
-        <div style={styles.container} className="container-inline">
-          <div style={styles.projectsHead} className="projects-head-inline">
-            <SectionTitle eyebrow="Projetos" title="" center={false} />
-            <a href="/projetos" style={styles.outlineButton}>
+      <section id="projetos" style={sectionStyle}>
+        <div style={containerStyle}>
+          <div
+            style={{
+              display: isTablet ? "grid" : "flex",
+              justifyContent: "space-between",
+              alignItems: isTablet ? "start" : "end",
+              gap: 26,
+              marginBottom: 28,
+            }}
+          >
+            <SectionTitle
+              eyebrow="Projetos"
+              title="Projetos em destaque"
+              center={false}
+            />
+
+            <a href="/projetos" style={outlineButtonStyle}>
               Ver catálogo completo <ArrowRight size={18} />
             </a>
           </div>
 
           {visibleProjects.length > 0 ? (
-            <div style={styles.projectsViewport}>
-              <div style={styles.projectsGrid} className="projects-grid-inline">
+            <div style={{ width: "100%", overflow: "hidden" }}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: isTablet
+                    ? "1fr"
+                    : isNotebook
+                      ? "repeat(2, minmax(0, 1fr))"
+                      : "repeat(3, minmax(0, 1fr))",
+                  gap: 24,
+                }}
+              >
                 {visibleProjects.map((project, index) => {
                   const images = getProjectImages(project);
                   const image = images[0];
                   const isSubscription = project.commercialModel
                     ?.toLowerCase()
                     .includes("assinatura");
+
                   return (
                     <article
                       key={getProjectKey(project, index)}
-                      style={styles.projectCard}
-                      className="hover-up"
+                      style={{
+                        overflow: "hidden",
+                        cursor: "pointer",
+                        borderRadius: 32,
+                        background: colors.panel,
+                        border: `1px solid ${colors.border}`,
+                        minHeight: 560,
+                        height: "100%",
+                        display: "flex",
+                        flexDirection: "column",
+                      }}
                       onClick={() => setSelectedProject(project)}
                     >
                       {image ? (
                         <img
                           src={image}
                           alt={project.name}
-                          style={styles.projectImage}
+                          style={{
+                            width: "100%",
+                            height: 230,
+                            objectFit: "cover",
+                            objectPosition: "top center",
+                            background: "#020617",
+                          }}
                         />
                       ) : (
-                        <div style={styles.projectPlaceholder}>
+                        <div
+                          style={{
+                            width: "100%",
+                            height: 230,
+                            display: "grid",
+                            placeItems: "center",
+                            background:
+                              "radial-gradient(circle at 30% 20%, rgba(56,189,248,0.22), transparent 40%), rgba(8,47,73,0.35)",
+                          }}
+                        >
                           <Image
                             src="/logo-white.png"
                             alt="Defan Soluções Digitais"
@@ -1605,21 +1612,42 @@ export default function HomePage() {
                           />
                         </div>
                       )}
-                      <div style={styles.projectBody}>
-                        <div style={styles.tags}>
-                          <span style={styles.tag}>{project.type}</span>
-                          <span
-                            style={{
-                              ...styles.tag,
-                              color: isSubscription ? "#bbf7d0" : "#bfdbfe",
-                              background: isSubscription
-                                ? "rgba(34,197,94,0.12)"
-                                : "rgba(59,130,246,0.14)",
-                            }}
-                          >
-                            {project.commercialModel}
-                          </span>
+
+                      <div
+                        style={{
+                          padding: 26,
+                          display: "flex",
+                          flexDirection: "column",
+                          flex: 1,
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: 8,
+                            marginBottom: 16,
+                          }}
+                        >
+                          {project.type && (
+                            <span style={tagStyle}>{project.type}</span>
+                          )}
+
+                          {project.commercialModel && (
+                            <span
+                              style={{
+                                ...tagStyle,
+                                color: isSubscription ? "#bbf7d0" : "#bfdbfe",
+                                background: isSubscription
+                                  ? "rgba(34,197,94,0.12)"
+                                  : "rgba(59,130,246,0.14)",
+                              }}
+                            >
+                              {project.commercialModel}
+                            </span>
+                          )}
                         </div>
+
                         <h3
                           style={{
                             margin: "0 0 12px",
@@ -1632,6 +1660,7 @@ export default function HomePage() {
                         >
                           {project.name}
                         </h3>
+
                         <p
                           style={{
                             color: colors.muted,
@@ -1647,13 +1676,29 @@ export default function HomePage() {
                           {project.cardSummary ||
                             "Projeto cadastrado no portfólio Defan."}
                         </p>
+
                         {(project.startingPrice || project.monthlyPrice) && (
-                          <div style={styles.priceRow}>
+                          <div
+                            style={{
+                              display: "grid",
+                              gridTemplateColumns: "1fr 1fr",
+                              gap: 10,
+                              margin: "18px 0",
+                            }}
+                          >
                             {project.startingPrice && (
-                              <div style={styles.priceCard}>
+                              <div
+                                style={{
+                                  padding: 14,
+                                  borderRadius: 18,
+                                  background: "rgba(2, 6, 23, 0.34)",
+                                  border: "1px solid rgba(125, 211, 252, 0.12)",
+                                }}
+                              >
                                 <small style={{ color: colors.soft }}>
                                   Inicial
                                 </small>
+
                                 <strong
                                   style={{ display: "block", marginTop: 4 }}
                                 >
@@ -1661,11 +1706,20 @@ export default function HomePage() {
                                 </strong>
                               </div>
                             )}
+
                             {project.monthlyPrice && (
-                              <div style={styles.priceCard}>
+                              <div
+                                style={{
+                                  padding: 14,
+                                  borderRadius: 18,
+                                  background: "rgba(2, 6, 23, 0.34)",
+                                  border: "1px solid rgba(125, 211, 252, 0.12)",
+                                }}
+                              >
                                 <small style={{ color: colors.soft }}>
                                   Mensal
                                 </small>
+
                                 <strong
                                   style={{ display: "block", marginTop: 4 }}
                                 >
@@ -1675,25 +1729,32 @@ export default function HomePage() {
                             )}
                           </div>
                         )}
+
                         <div
                           style={{
-                            ...styles.tags,
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: 8,
+                            marginBottom: 16,
                             minHeight: 74,
                             alignContent: "flex-start",
                           }}
                         >
                           {project.niche && (
-                            <span style={styles.tag}>{project.niche}</span>
+                            <span style={tagStyle}>{project.niche}</span>
                           )}
+
                           {project.technologies?.slice(0, 2).map((tech) => (
-                            <span style={styles.tag} key={tech}>
+                            <span style={tagStyle} key={tech}>
                               {tech}
                             </span>
                           ))}
                         </div>
+
                         <button
+                          type="button"
                           style={{
-                            ...styles.outlineButton,
+                            ...outlineButtonStyle,
                             marginTop: "auto",
                             padding: "12px 16px",
                             width: "fit-content",
@@ -1708,39 +1769,59 @@ export default function HomePage() {
               </div>
             </div>
           ) : (
-            <div style={{ ...styles.card, width: "min(900px, 100%)" }}>
-              Cadastre seus projetos no painel admin para exibir automaticamente
-              nesta seção.
-            </div>
+            <div style={{ ...cardStyle, width: "min(900px, 100%)" }}></div>
           )}
         </div>
       </section>
 
-      <section
-        style={{ ...styles.section, paddingTop: 40 }}
-        className="section-inline"
-      >
+      <section style={{ ...sectionStyle, paddingTop: 40 }}>
         <div
-          style={{ ...styles.container, ...styles.modelGrid }}
-          className="container-inline model-grid-inline"
+          style={{
+            ...containerStyle,
+            display: "grid",
+            gridTemplateColumns: isTablet ? "1fr" : "1fr 1fr",
+            gap: 26,
+          }}
         >
           <article
             style={{
-              ...styles.card,
-              padding: 42,
+              ...cardStyle,
+              padding: isMobile ? 28 : 42,
               minHeight: 420,
               background:
                 "radial-gradient(circle at 20% 12%, rgba(56,189,248,0.2), transparent 36%), rgba(15,23,42,0.76)",
             }}
           >
-            <span style={styles.eyebrow}>Mais acessível</span>
-            <h2 style={{ ...styles.h2, margin: "24px 0 16px" }}>
+            <span
+              style={{
+                display: "inline-flex",
+                color: colors.blue,
+                letterSpacing: "0.15em",
+                textTransform: "uppercase",
+                fontSize: 12,
+                fontWeight: 950,
+              }}
+            >
+              Mais acessível
+            </span>
+
+            <h2
+              style={{
+                margin: "24px 0 16px",
+                color: colors.text,
+                fontSize: "clamp(28px, 3.35vw, 52px)",
+                lineHeight: 1.04,
+                letterSpacing: "-0.052em",
+              }}
+            >
               Projetos por assinatura mensal
             </h2>
+
             <p style={{ color: colors.muted, lineHeight: 1.68 }}>
               Uma alternativa para empresas que desejam começar com uma solução
               profissional pagando mensalmente.
             </p>
+
             <ul
               style={{
                 padding: 0,
@@ -1769,27 +1850,51 @@ export default function HomePage() {
                 </li>
               ))}
             </ul>
-            <a href="/projetos" style={styles.button}>
+
+            <a href="/projetos" style={buttonStyle}>
               Ver opções por assinatura
             </a>
           </article>
+
           <article
             style={{
-              ...styles.card,
-              padding: 42,
+              ...cardStyle,
+              padding: isMobile ? 28 : 42,
               minHeight: 420,
               background:
                 "radial-gradient(circle at 20% 12%, rgba(14,165,233,0.18), transparent 36%), rgba(8,47,73,0.62)",
             }}
           >
-            <span style={styles.eyebrow}>Sob medida</span>
-            <h2 style={{ ...styles.h2, margin: "24px 0 16px" }}>
+            <span
+              style={{
+                display: "inline-flex",
+                color: colors.blue,
+                letterSpacing: "0.15em",
+                textTransform: "uppercase",
+                fontSize: 12,
+                fontWeight: 950,
+              }}
+            >
+              Sob medida
+            </span>
+
+            <h2
+              style={{
+                margin: "24px 0 16px",
+                color: colors.text,
+                fontSize: "clamp(28px, 3.35vw, 52px)",
+                lineHeight: 1.04,
+                letterSpacing: "-0.052em",
+              }}
+            >
               Projetos personalizados
             </h2>
+
             <p style={{ color: colors.muted, lineHeight: 1.68 }}>
               Solução indicada para empresas que precisam de regras próprias,
               módulos específicos e integrações exclusivas.
             </p>
+
             <ul
               style={{
                 padding: 0,
@@ -1818,12 +1923,12 @@ export default function HomePage() {
                 </li>
               ))}
             </ul>
+
             <a
               href={whatsappUrl}
               target="_blank"
               rel="noreferrer"
-              style={styles.button}
-              className="glow-button"
+              style={buttonStyle}
             >
               Quero uma proposta
             </a>
@@ -1833,17 +1938,27 @@ export default function HomePage() {
 
       <section
         id="depoimentos"
-        style={{ ...styles.section, background: "rgba(15, 23, 42, 0.24)" }}
-        className="section-inline"
+        style={{ ...sectionStyle, background: "rgba(15, 23, 42, 0.24)" }}
       >
-        <div style={styles.container} className="container-inline">
+        <div style={containerStyle}>
           <SectionTitle
             eyebrow="Depoimentos"
             title="Clientes que valorizam uma presença digital mais profissional"
           />
-          <div style={styles.servicesGrid} className="services-grid-inline">
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: isTablet
+                ? "1fr"
+                : isNotebook
+                  ? "repeat(2, 1fr)"
+                  : "repeat(3, 1fr)",
+              gap: 22,
+            }}
+          >
             {testimonials.map((item) => (
-              <article key={item.name} style={styles.card}>
+              <article key={item.name} style={cardStyle}>
                 <div
                   style={{
                     display: "flex",
@@ -1856,12 +1971,15 @@ export default function HomePage() {
                     <Star key={i} size={17} fill="currentColor" />
                   ))}
                 </div>
+
                 <p style={{ color: colors.muted, lineHeight: 1.68 }}>
                   {item.text}
                 </p>
+
                 <strong style={{ display: "block", marginTop: 24 }}>
                   {item.name}
                 </strong>
+
                 <span style={{ color: "#93c5fd", fontSize: 14 }}>
                   {item.company}
                 </span>
@@ -1871,21 +1989,27 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section id="faq" style={styles.section} className="section-inline">
-        <div style={styles.container} className="container-inline">
+      <section id="faq" style={sectionStyle}>
+        <div style={containerStyle}>
           <SectionTitle eyebrow="FAQ" title="Dúvidas frequentes" />
+
           <div
-            style={{ ...styles.modelGrid, alignItems: "start" }}
-            className="model-grid-inline"
+            style={{
+              display: "grid",
+              gridTemplateColumns: isTablet ? "1fr" : "1fr 1fr",
+              gap: 26,
+              alignItems: "start",
+            }}
           >
             {faqs.map((item) => (
               <article
                 key={item.question}
-                style={{ ...styles.card, padding: 28 }}
+                style={{ ...cardStyle, padding: 28 }}
               >
                 <h3 style={{ margin: "0 0 12px", fontSize: 20 }}>
                   {item.question}
                 </h3>
+
                 <p style={{ color: colors.muted, lineHeight: 1.68 }}>
                   {item.answer}
                 </p>
@@ -1895,10 +2019,21 @@ export default function HomePage() {
         </div>
       </section>
 
-      <footer style={styles.footer}>
+      <footer
+        style={{
+          padding: "58px 0",
+          borderTop: "1px solid rgba(125, 211, 252, 0.12)",
+          background: "rgba(2, 6, 23, 0.48)",
+        }}
+      >
         <div
-          style={{ ...styles.container, ...styles.footerGrid }}
-          className="container-inline footer-grid-inline"
+          style={{
+            ...containerStyle,
+            display: "grid",
+            gridTemplateColumns: isTablet ? "1fr" : "1fr auto",
+            gap: 28,
+            alignItems: "center",
+          }}
         >
           <div>
             <Image
@@ -1913,28 +2048,30 @@ export default function HomePage() {
                 marginBottom: 16,
               }}
             />
+
             <p style={{ color: colors.muted, lineHeight: 1.68, margin: 0 }}>
               Defan Soluções Digitais — Landing pages, websites, sistemas e
               automações para empresas.
             </p>
           </div>
+
           <div
             style={{
               display: "flex",
               gap: 12,
               flexWrap: "wrap",
-              justifyContent: "flex-end",
+              justifyContent: isTablet ? "flex-start" : "flex-end",
             }}
           >
-            <a href="/projetos" style={styles.outlineButton}>
+            <a href="/projetos" style={outlineButtonStyle}>
               Ver projetos
             </a>
+
             <a
               href={whatsappUrl}
               target="_blank"
               rel="noreferrer"
-              style={styles.button}
-              className="glow-button"
+              style={buttonStyle}
             >
               Pedir orçamento
             </a>
@@ -1946,12 +2083,28 @@ export default function HomePage() {
         href={whatsappUrl}
         target="_blank"
         rel="noreferrer"
-        style={styles.floatingWhatsapp}
-        className="floating-whatsapp-inline"
+        style={{
+          position: "fixed",
+          right: isMobile ? 14 : 22,
+          bottom: isMobile ? 14 : 22,
+          zIndex: 90,
+          borderRadius: 999,
+          padding: isMobile ? "14px 16px" : "16px 22px",
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 10,
+          fontWeight: 950,
+          fontSize: isMobile ? 14 : 16,
+          color: "#fff",
+          textDecoration: "none",
+          background: "linear-gradient(135deg, #16a34a, #22c55e)",
+          boxShadow: "0 18px 54px rgba(34,197,94,0.34)",
+          border: "1px solid rgba(187,247,208,0.32)",
+        }}
         aria-label="Pedir orçamento pelo WhatsApp"
       >
         <MessageCircle size={20} />
-        Pedir orçamento
       </a>
 
       {selectedProject && (

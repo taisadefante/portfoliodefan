@@ -1050,7 +1050,6 @@ export default function AdminPage() {
                             onClick={() => openEditProject(item)}
                           >
                             <Edit3 size={15} />
-                            Editar
                           </button>
                           <button
                             type="button"
@@ -1058,7 +1057,6 @@ export default function AdminPage() {
                             onClick={() => handleDelete(item.id)}
                           >
                             <Trash2 size={15} />
-                            Excluir
                           </button>
                         </div>
                       </td>
@@ -1521,7 +1519,6 @@ export default function AdminPage() {
                         }}
                       >
                         <Edit3 size={15} />
-                        Editar
                       </button>
                     )}
                     <button
@@ -1530,7 +1527,6 @@ export default function AdminPage() {
                       onClick={() => deleteOption(index)}
                     >
                       <Trash2 size={15} />
-                      Excluir
                     </button>
                   </div>
                 </div>
