@@ -53,7 +53,7 @@ import {
   LeadOptionItem,
   leadOptionCategoryLabels,
 } from "@/lib/leadsTypes";
-import AdminMenu from "../../../components/admin/AdminMenu";
+import AdminMenu from "../../../components/admin/AdminMenu.tsx";
 
 const colors = {
   panel: "rgba(15, 23, 42, 0.78)",
