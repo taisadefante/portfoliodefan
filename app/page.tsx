@@ -1607,7 +1607,6 @@ export default function HomePage() {
                           "linear-gradient(180deg, rgba(15,23,42,0.84), rgba(8,47,73,0.5))",
                         border: `1px solid ${colors.border}`,
                         boxShadow: "0 24px 76px rgba(0,0,0,0.22)",
-                        minHeight: 520,
                         height: "100%",
                         display: "flex",
                         flexDirection: "column",
@@ -1618,7 +1617,7 @@ export default function HomePage() {
                         style={{
                           position: "relative",
                           width: "100%",
-                          height: 238,
+                          height: isMobile ? 260 : 320,
                           overflow: "hidden",
                           background: "#020617",
                         }}
@@ -1707,7 +1706,6 @@ export default function HomePage() {
                             fontSize: 25,
                             lineHeight: 1.08,
                             letterSpacing: "-0.045em",
-                            minHeight: 58,
                             display: "flex",
                             alignItems: "flex-start",
                           }}
@@ -1784,7 +1782,6 @@ export default function HomePage() {
                             flexWrap: "wrap",
                             gap: 8,
                             marginBottom: 16,
-                            minHeight: 74,
                             alignContent: "flex-start",
                           }}
                         >

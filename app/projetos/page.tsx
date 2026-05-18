@@ -307,23 +307,39 @@ const styles: Record<string, CSSProperties> = {
   },
   card: {
     overflow: "hidden",
-    borderRadius: 28,
-    background: "rgba(15, 23, 42, 0.7)",
+    position: "relative",
+    borderRadius: 32,
+    background:
+      "linear-gradient(180deg, rgba(15,23,42,0.82), rgba(8,47,73,0.52))",
     border: `1px solid ${colors.border}`,
-    boxShadow: "0 18px 60px rgba(0,0,0,0.18)",
+    boxShadow: "0 22px 70px rgba(0,0,0,0.22)",
     display: "flex",
     flexDirection: "column",
-    minHeight: 500,
+    height: "100%",
+  },
+  imageWrap: {
+    position: "relative",
+    height: 320,
+    overflow: "hidden",
+    background: "rgba(8,47,73,0.42)",
   },
   image: {
     width: "100%",
-    height: 210,
+    height: "100%",
     objectFit: "cover",
     objectPosition: "top center",
-    background: "rgba(8,47,73,0.42)",
+    display: "block",
+    transform: "scale(1.01)",
+  },
+  imageOverlay: {
+    position: "absolute",
+    inset: 0,
+    background:
+      "linear-gradient(180deg, rgba(2,6,23,0.04) 35%, rgba(2,6,23,0.84) 100%)",
+    pointerEvents: "none",
   },
   imageEmpty: {
-    height: 220,
+    height: "100%",
     display: "grid",
     placeItems: "center",
     color: colors.lightBlue,
@@ -332,29 +348,29 @@ const styles: Record<string, CSSProperties> = {
       "radial-gradient(circle at 30% 20%, rgba(56,189,248,0.22), transparent 40%), rgba(8,47,73,0.42)",
   },
   cardBody: {
-    padding: 22,
+    padding: 24,
     display: "flex",
     flexDirection: "column",
-    gap: 14,
+    gap: 16,
     flex: 1,
-    minHeight: 290,
   },
   tags: {
     display: "flex",
     flexWrap: "wrap",
     gap: 8,
-    minHeight: 34,
+    alignContent: "flex-start",
   },
   tag: {
     display: "inline-flex",
     alignItems: "center",
     width: "fit-content",
-    padding: "8px 11px",
+    padding: "7px 10px",
     borderRadius: 999,
     color: colors.lightBlue,
     background: "rgba(14,165,233,0.1)",
     border: `1px solid ${colors.border}`,
-    fontSize: 12,
+    fontSize: 11,
+    letterSpacing: "0.02em",
     fontWeight: 950,
   },
   tagGreen: {
@@ -371,24 +387,18 @@ const styles: Record<string, CSSProperties> = {
     margin: 0,
     fontSize: 25,
     lineHeight: 1.08,
-    letterSpacing: "-0.04em",
-    minHeight: 54,
+    letterSpacing: "-0.045em",
   },
-  cardText: {
-    margin: 0,
-    color: colors.muted,
-    lineHeight: 1.58,
-    minHeight: 72,
-    display: "-webkit-box",
-    WebkitLineClamp: 3,
-    WebkitBoxOrient: "vertical",
-    overflow: "hidden",
+  cardDivider: {
+    width: "100%",
+    height: 1,
+    background:
+      "linear-gradient(90deg, rgba(56,189,248,0.5), rgba(125,211,252,0.04))",
   },
   priceRow: {
     display: "grid",
     gridTemplateColumns: "1fr 1fr",
     gap: 10,
-    minHeight: 58,
   },
   priceCard: {
     padding: 13,
@@ -1263,15 +1273,18 @@ export default function ProjetosPage() {
 
             return (
               <article style={styles.card} key={project.id || project.name}>
-                {firstImage ? (
-                  <img
-                    src={firstImage}
-                    alt={project.name}
-                    style={styles.image}
-                  />
-                ) : (
-                  <div style={styles.imageEmpty}>Defan Soluções Digitais</div>
-                )}
+                <div style={styles.imageWrap}>
+                  {firstImage ? (
+                    <img
+                      src={firstImage}
+                      alt={project.name}
+                      style={styles.image}
+                    />
+                  ) : (
+                    <div style={styles.imageEmpty}>Defan Soluções Digitais</div>
+                  )}
+                  <div style={styles.imageOverlay} />
+                </div>
 
                 <div style={styles.cardBody}>
                   <div style={styles.tags}>
@@ -1293,6 +1306,7 @@ export default function ProjetosPage() {
                   </div>
 
                   <h3 style={styles.cardTitle}>{project.name}</h3>
+                  <div style={styles.cardDivider} />
                   <div style={styles.priceRow} className="projetos-price-row">
                     {project.startingPrice ? (
                       <div style={styles.priceCard}>
@@ -1333,6 +1347,9 @@ export default function ProjetosPage() {
                       ...styles.ghost,
                       width: "100%",
                       marginTop: "auto",
+                      background:
+                        "linear-gradient(135deg, rgba(14,165,233,0.22), rgba(56,189,248,0.12))",
+                      borderColor: "rgba(125, 211, 252, 0.34)",
                     }}
                     onClick={() => setSelectedProject(project)}
                   >
@@ -1423,9 +1440,14 @@ export default function ProjetosPage() {
         }
 
         .projetos-grid article:hover {
-          transform: translateY(-5px);
-          border-color: rgba(125, 211, 252, 0.3) !important;
-          box-shadow: 0 22px 70px rgba(0, 0, 0, 0.24) !important;
+          transform: translateY(-7px);
+          border-color: rgba(125, 211, 252, 0.38) !important;
+          box-shadow: 0 28px 84px rgba(14, 165, 233, 0.16) !important;
+        }
+
+        .projetos-grid article:hover img {
+          transform: scale(1.045) !important;
+          transition: transform 0.35s ease;
         }
 
         .project-modal-box-inline::-webkit-scrollbar {
