@@ -16,6 +16,8 @@ import {
   Eye,
   EyeOff,
   Globe,
+  Flame,
+  CalendarClock,
   Loader2,
   Lock,
   LogOut,
@@ -72,7 +74,8 @@ const styles: Record<string, CSSProperties> = {
     fontFamily: "Arial, Helvetica, sans-serif",
   },
   shell: {
-    width: "min(1500px, calc(100% - 40px))",
+    width: "calc(100vw - 32px)",
+    maxWidth: "none",
     margin: "0 auto",
     padding: "28px 0 70px",
   },
@@ -136,6 +139,9 @@ const styles: Record<string, CSSProperties> = {
     background: "rgba(239,68,68,0.92)",
   },
   card: {
+    width: "100%",
+    maxWidth: "100%",
+    overflow: "hidden",
     borderRadius: 30,
     padding: 24,
     background: colors.panel,
@@ -277,6 +283,53 @@ function normalizeText(value: string) {
     .replace(/[\u0300-\u036f]/g, "");
 }
 
+function normalizePhone(value?: string) {
+  return String(value || "").replace(/\D/g, "");
+}
+
+function normalizeEmail(value?: string) {
+  return String(value || "")
+    .trim()
+    .toLowerCase();
+}
+
+function findDuplicatePhone(leads: Lead[], currentLead: Lead) {
+  const currentId = currentLead.id || "";
+  const phonesToCheck = [
+    normalizePhone(currentLead.phone),
+    normalizePhone(currentLead.whatsapp),
+  ].filter(Boolean);
+
+  if (!phonesToCheck.length) return null;
+
+  return (
+    leads.find((item) => {
+      if (item.id && item.id === currentId) return false;
+
+      const itemPhones = [
+        normalizePhone(item.phone),
+        normalizePhone(item.whatsapp),
+      ].filter(Boolean);
+
+      return phonesToCheck.some((phone) => itemPhones.includes(phone));
+    }) || null
+  );
+}
+
+function findDuplicateEmail(leads: Lead[], currentLead: Lead) {
+  const currentId = currentLead.id || "";
+  const currentEmail = normalizeEmail(currentLead.email);
+
+  if (!currentEmail) return null;
+
+  return (
+    leads.find((item) => {
+      if (item.id && item.id === currentId) return false;
+      return normalizeEmail(item.email) === currentEmail;
+    }) || null
+  );
+}
+
 function createWhatsAppLink(phone?: string, message?: string) {
   const cleanPhone = String(phone || "").replace(/\D/g, "");
   if (!cleanPhone) return "";
@@ -354,6 +407,58 @@ function getLeadStatusLabel(status?: string) {
   );
 }
 
+function calculateLeadScore(lead: Lead) {
+  let score = 0;
+
+  if (lead.companyName) score += 5;
+  if (lead.contactName) score += 5;
+  if (lead.phone || lead.whatsapp) score += 20;
+  if (lead.email) score += 10;
+  if (lead.address) score += 5;
+  if (lead.instagram) score += 10;
+  if (lead.website) score += 5;
+
+  if (lead.siteStatus === "sem_site") score += 30;
+  if (lead.siteStatus === "site_desatualizado") score += 25;
+  if (lead.siteStatus === "so_instagram") score += 22;
+  if (lead.siteStatus === "nao_tem") score += 30;
+  if (lead.siteStatus === "tem_desatualizado") score += 25;
+
+  if (getLeadStatusValue(lead.status) === "interessado") score += 35;
+  if (getLeadStatusValue(lead.status) === "cliente") score += 45;
+  if (getLeadStatusValue(lead.status) === "sem_interesse") score -= 35;
+
+  return Math.max(0, Math.min(score, 100));
+}
+
+function getLeadTemperatureByScore(score: number) {
+  if (score >= 70) return "quente";
+  if (score >= 40) return "morno";
+  return "frio";
+}
+
+function getLeadTemperatureLabel(value?: string) {
+  if (value === "quente") return "Quente";
+  if (value === "morno") return "Morno";
+  return "Frio";
+}
+
+function getLeadEffectiveScore(lead: Lead) {
+  if (typeof lead.score === "number") return lead.score;
+  return calculateLeadScore(lead);
+}
+
+function getLeadEffectiveTemperature(lead: Lead) {
+  if (lead.temperature) return lead.temperature;
+  return getLeadTemperatureByScore(getLeadEffectiveScore(lead));
+}
+
+function isReturnTodayOrLate(date?: string) {
+  if (!date) return false;
+  const today = new Date().toISOString().slice(0, 10);
+  return date <= today;
+}
+
 export default function AdminLeadsPage() {
   const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL;
 
@@ -372,6 +477,7 @@ export default function AdminLeadsPage() {
   const [contacts, setContacts] = useState<LeadContact[]>([]);
   const [contactModalOpen, setContactModalOpen] = useState(false);
   const [contact, setContact] = useState<LeadContact>(emptyLeadContact);
+  const [contactNextDate, setContactNextDate] = useState("");
 
   const [options, setOptions] =
     useState<Record<LeadOptionCategory, LeadOptionItem[]>>(defaultLeadOptions);
@@ -390,6 +496,8 @@ export default function AdminLeadsPage() {
   const [statusFilter, setStatusFilter] = useState("nenhum");
   const [siteFilter, setSiteFilter] = useState("todos");
   const [nicheFilter, setNicheFilter] = useState("todos");
+  const [temperatureFilter, setTemperatureFilter] = useState("todos");
+  const [returnFilter, setReturnFilter] = useState("todos");
   const [message, setMessage] = useState("");
 
   const isAllowed = useMemo(() => {
@@ -406,6 +514,14 @@ export default function AdminLeadsPage() {
         siteFilter === "todos" || item.siteStatus === siteFilter;
       const matchesNiche =
         nicheFilter === "todos" || item.niche === nicheFilter;
+      const leadTemperature = getLeadEffectiveTemperature(item);
+      const matchesTemperature =
+        temperatureFilter === "todos" || leadTemperature === temperatureFilter;
+      const matchesReturn =
+        returnFilter === "todos" ||
+        (returnFilter === "hoje" &&
+          isReturnTodayOrLate(item.nextContactDate)) ||
+        (returnFilter === "sem_data" && !item.nextContactDate);
       const text = normalizeText(
         [
           item.companyName,
@@ -413,6 +529,7 @@ export default function AdminLeadsPage() {
           item.phone,
           item.whatsapp,
           item.email,
+          item.address,
           item.niche,
           item.website,
           item.linkedin,
@@ -425,10 +542,20 @@ export default function AdminLeadsPage() {
         matchesStatus &&
         matchesSite &&
         matchesNiche &&
+        matchesTemperature &&
+        matchesReturn &&
         (!term || text.includes(term))
       );
     });
-  }, [leads, search, statusFilter, siteFilter, nicheFilter]);
+  }, [
+    leads,
+    search,
+    statusFilter,
+    siteFilter,
+    nicheFilter,
+    temperatureFilter,
+    returnFilter,
+  ]);
 
   async function loadData() {
     const [leadList, optionList] = await Promise.all([
@@ -506,9 +633,34 @@ export default function AdminLeadsPage() {
   async function handleSave() {
     if (!lead.companyName.trim())
       return setMessage("Informe o nome da empresa.");
+
+    const duplicatePhone = findDuplicatePhone(leads, lead);
+    const duplicateEmail = findDuplicateEmail(leads, lead);
+
+    if (duplicatePhone) {
+      return setMessage(
+        `Telefone/WhatsApp já cadastrado no lead: ${duplicatePhone.companyName}.`,
+      );
+    }
+
+    if (duplicateEmail) {
+      return setMessage(
+        `E-mail já cadastrado no lead: ${duplicateEmail.companyName}.`,
+      );
+    }
+
     try {
       setSavingLead(true);
-      await saveLead({ ...lead, status: getLeadStatusValue(lead.status) });
+
+      const score = calculateLeadScore(lead);
+      const temperature = getLeadTemperatureByScore(score);
+
+      await saveLead({
+        ...lead,
+        status: getLeadStatusValue(lead.status),
+        score,
+        temperature,
+      });
       await loadData();
       setLead(emptyLead);
       setModalOpen(false);
@@ -525,7 +677,13 @@ export default function AdminLeadsPage() {
     if (!item.id) return;
 
     const normalizedStatus = getLeadStatusValue(status);
-    const updatedLead = { ...item, status: normalizedStatus };
+    const baseLead = { ...item, status: normalizedStatus };
+    const score = calculateLeadScore(baseLead);
+    const updatedLead = {
+      ...baseLead,
+      score,
+      temperature: getLeadTemperatureByScore(score),
+    };
 
     try {
       setLeads((prev) =>
@@ -657,6 +815,7 @@ export default function AdminLeadsPage() {
       companyName: item.companyName,
       contactDate: new Date().toISOString().slice(0, 10),
     });
+    setContactNextDate(item.nextContactDate || "");
     setContactModalOpen(true);
   }
 
@@ -665,6 +824,18 @@ export default function AdminLeadsPage() {
     if (!contact.contactDate || !contact.observation.trim())
       return setMessage("Informe a data e a observação do contato.");
     await saveLeadContact(contact);
+
+    if (lead.id === contact.leadId) {
+      const updatedLead = {
+        ...lead,
+        nextContactDate: contactNextDate,
+      };
+
+      await saveLead(updatedLead);
+      setLead(updatedLead);
+      await loadData();
+    }
+
     setContacts(await getLeadContacts(contact.leadId));
     setContact({
       ...emptyLeadContact,
@@ -947,6 +1118,33 @@ export default function AdminLeadsPage() {
               items={options.siteStatuses}
               onAdd={() => openOptionModal("siteStatuses")}
             />
+
+            <label style={styles.field}>
+              <span style={styles.label}>Temperatura</span>
+              <select
+                value={temperatureFilter}
+                onChange={(event) => setTemperatureFilter(event.target.value)}
+                style={styles.select}
+              >
+                <option value="todos">Todas</option>
+                <option value="quente">Quente</option>
+                <option value="morno">Morno</option>
+                <option value="frio">Frio</option>
+              </select>
+            </label>
+
+            <label style={styles.field}>
+              <span style={styles.label}>Retorno</span>
+              <select
+                value={returnFilter}
+                onChange={(event) => setReturnFilter(event.target.value)}
+                style={styles.select}
+              >
+                <option value="todos">Todos</option>
+                <option value="hoje">Hoje ou atrasado</option>
+                <option value="sem_data">Sem data</option>
+              </select>
+            </label>
           </div>
 
           <div className="kpi-grid">
@@ -999,8 +1197,12 @@ export default function AdminLeadsPage() {
                 <tr>
                   <th>Empresa / Pessoa</th>
                   <th>Contato</th>
+                  <th>Endereço</th>
                   <th>Nicho</th>
                   <th>Site</th>
+                  <th>Score</th>
+                  <th>Temperatura</th>
+                  <th>Próximo contato</th>
                   <th>Status</th>
                   <th>Observação</th>
                   <th>Ações</th>
@@ -1038,12 +1240,46 @@ export default function AdminLeadsPage() {
                           </a>
                         )}
                       </td>
+                      <td className="text-cell">
+                        <div className="clamped-text">
+                          {item.address || "-"}
+                        </div>
+                      </td>
                       <td>{optionLabel(options.niches, item.niche)}</td>
                       <td>
                         <span
                           className={`status-badge site-${item.siteStatus}`}
                         >
                           {optionLabel(options.siteStatuses, item.siteStatus)}
+                        </span>
+                      </td>
+                      <td>
+                        <span className="score-pill">
+                          {getLeadEffectiveScore(item)}%
+                        </span>
+                      </td>
+                      <td>
+                        <span
+                          className={`temperature-badge temperature-${getLeadEffectiveTemperature(
+                            item,
+                          )}`}
+                        >
+                          <Flame size={13} />
+                          {getLeadTemperatureLabel(
+                            getLeadEffectiveTemperature(item),
+                          )}
+                        </span>
+                      </td>
+                      <td>
+                        <span
+                          className={
+                            isReturnTodayOrLate(item.nextContactDate)
+                              ? "return-date urgent"
+                              : "return-date"
+                          }
+                        >
+                          <CalendarClock size={13} />
+                          {formatDate(item.nextContactDate)}
                         </span>
                       </td>
                       <td>
@@ -1119,7 +1355,7 @@ export default function AdminLeadsPage() {
                 })}
                 {!filteredLeads.length && (
                   <tr>
-                    <td colSpan={7}>Nenhum lead encontrado.</td>
+                    <td colSpan={11}>Nenhum lead encontrado.</td>
                   </tr>
                 )}
               </tbody>
@@ -1131,6 +1367,7 @@ export default function AdminLeadsPage() {
       {modalOpen && (
         <LeadModal
           lead={lead}
+          leads={leads}
           options={options}
           savingLead={savingLead}
           updateField={updateField}
@@ -1146,6 +1383,8 @@ export default function AdminLeadsPage() {
           lead={lead}
           contact={contact}
           contacts={contacts}
+          contactNextDate={contactNextDate}
+          setContactNextDate={setContactNextDate}
           setContact={setContact}
           close={() => setContactModalOpen(false)}
           saveContact={saveContact}
@@ -1216,6 +1455,7 @@ function FilterSelect({
 
 function LeadModal({
   lead,
+  leads,
   options,
   savingLead,
   updateField,
@@ -1225,6 +1465,7 @@ function LeadModal({
   openOptionModal,
 }: {
   lead: Lead;
+  leads: Lead[];
   options: Record<LeadOptionCategory, LeadOptionItem[]>;
   savingLead: boolean;
   updateField: <K extends keyof Lead>(field: K, value: Lead[K]) => void;
@@ -1234,6 +1475,9 @@ function LeadModal({
   openOptionModal: (category: LeadOptionCategory) => void;
   copyText: (text: string) => void;
 }) {
+  const duplicatePhone = findDuplicatePhone(leads, lead);
+  const duplicateEmail = findDuplicateEmail(leads, lead);
+
   return (
     <div style={styles.modalBackdrop}>
       <section style={styles.modal}>
@@ -1275,17 +1519,40 @@ function LeadModal({
             onChange={(v) => updateField("phone", v)}
             placeholder="(21) 99999-9999"
           />
+          <div style={styles.field}>
+            <Field
+              label="WhatsApp"
+              value={lead.whatsapp}
+              onChange={(v) => updateField("whatsapp", v)}
+              placeholder="(21) 99999-9999"
+            />
+            {duplicatePhone && (
+              <div className="duplicate-warning">
+                Este telefone/WhatsApp já está cadastrado em:{" "}
+                <strong>{duplicatePhone.companyName}</strong>
+              </div>
+            )}
+          </div>
+          <div style={styles.field}>
+            <Field
+              label="E-mail"
+              value={lead.email}
+              onChange={(v) => updateField("email", v)}
+              placeholder="contato@empresa.com.br"
+            />
+            {duplicateEmail && (
+              <div className="duplicate-warning">
+                Este e-mail já está cadastrado em:{" "}
+                <strong>{duplicateEmail.companyName}</strong>
+              </div>
+            )}
+          </div>
+
           <Field
-            label="WhatsApp"
-            value={lead.whatsapp}
-            onChange={(v) => updateField("whatsapp", v)}
-            placeholder="(21) 99999-9999"
-          />
-          <Field
-            label="E-mail"
-            value={lead.email}
-            onChange={(v) => updateField("email", v)}
-            placeholder="contato@empresa.com.br"
+            label="Endereço"
+            value={lead.address || ""}
+            onChange={(v) => updateField("address", v)}
+            placeholder="Rua, número, bairro, cidade..."
           />
 
           <label style={styles.field}>
@@ -1326,6 +1593,35 @@ function LeadModal({
               ))}
             </select>
           </label>
+
+          <label style={styles.field}>
+            <span style={styles.label}>Temperatura</span>
+            <select
+              value={
+                lead.temperature ||
+                getLeadTemperatureByScore(calculateLeadScore(lead))
+              }
+              onChange={(event) =>
+                updateField(
+                  "temperature",
+                  event.target.value as Lead["temperature"],
+                )
+              }
+              style={styles.select}
+            >
+              <option value="frio">Frio</option>
+              <option value="morno">Morno</option>
+              <option value="quente">Quente</option>
+            </select>
+          </label>
+
+          <Field
+            type="number"
+            label="Score do lead"
+            value={String(lead.score ?? calculateLeadScore(lead))}
+            onChange={(v) => updateField("score", Number(v) as Lead["score"])}
+            placeholder="0 a 100"
+          />
 
           <label style={styles.field}>
             <span style={styles.label}>Situação do site</span>
@@ -1395,7 +1691,9 @@ function LeadModal({
           <button
             style={styles.button}
             onClick={handleSave}
-            disabled={savingLead}
+            disabled={
+              savingLead || Boolean(duplicatePhone) || Boolean(duplicateEmail)
+            }
           >
             {savingLead ? (
               <>
@@ -1428,6 +1726,8 @@ function ContactModal({
   lead,
   contact,
   contacts,
+  contactNextDate,
+  setContactNextDate,
   setContact,
   close,
   saveContact,
@@ -1436,6 +1736,8 @@ function ContactModal({
   lead: Lead;
   contact: LeadContact;
   contacts: LeadContact[];
+  contactNextDate: string;
+  setContactNextDate: (value: string) => void;
   setContact: React.Dispatch<React.SetStateAction<LeadContact>>;
   close: () => void;
   saveContact: () => void;
@@ -1461,6 +1763,14 @@ function ContactModal({
             value={contact.contactDate}
             onChange={(v) => setContact((p) => ({ ...p, contactDate: v }))}
           />
+
+          <Field
+            type="date"
+            label="Próximo contato"
+            value={contactNextDate}
+            onChange={setContactNextDate}
+          />
+
           <label style={{ ...styles.field, gridColumn: "1 / -1" }}>
             <span style={styles.label}>Observação do contato</span>
             <textarea
@@ -1666,6 +1976,10 @@ function Field({
 function AdminLeadsGlobalStyle() {
   return (
     <style jsx global>{`
+      * {
+        box-sizing: border-box;
+      }
+
       a {
         text-decoration: none;
       }
@@ -1727,9 +2041,10 @@ function AdminLeadsGlobalStyle() {
       }
       .filters-grid {
         display: grid;
-        grid-template-columns: 1fr 250px 290px;
+        grid-template-columns: minmax(300px, 1fr) 220px 260px 190px 190px;
         gap: 14px;
         margin-bottom: 18px;
+        align-items: end;
       }
       .search-box {
         display: grid;
@@ -1774,13 +2089,32 @@ function AdminLeadsGlobalStyle() {
         font-weight: 900;
       }
       .table-wrap {
-        overflow: auto;
+        width: 100%;
+        max-width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
         border-radius: 22px;
         border: 1px solid rgba(125, 211, 252, 0.16);
+        padding-bottom: 8px;
+      }
+
+      .table-wrap::-webkit-scrollbar {
+        height: 10px;
+      }
+
+      .table-wrap::-webkit-scrollbar-track {
+        background: rgba(2, 6, 23, 0.45);
+        border-radius: 999px;
+      }
+
+      .table-wrap::-webkit-scrollbar-thumb {
+        background: #0ea5e9;
+        border-radius: 999px;
       }
       .admin-table {
         width: 100%;
-        min-width: 1240px;
+        min-width: 1860px;
+        table-layout: fixed;
         border-collapse: collapse;
         background: rgba(2, 6, 23, 0.32);
       }
@@ -1803,6 +2137,62 @@ function AdminLeadsGlobalStyle() {
         text-transform: uppercase;
         letter-spacing: 0.08em;
       }
+
+      .admin-table th:nth-child(1),
+      .admin-table td:nth-child(1) {
+        width: 210px;
+      }
+
+      .admin-table th:nth-child(2),
+      .admin-table td:nth-child(2) {
+        width: 160px;
+      }
+
+      .admin-table th:nth-child(3),
+      .admin-table td:nth-child(3) {
+        width: 220px;
+      }
+
+      .admin-table th:nth-child(4),
+      .admin-table td:nth-child(4) {
+        width: 130px;
+      }
+
+      .admin-table th:nth-child(5),
+      .admin-table td:nth-child(5) {
+        width: 150px;
+      }
+
+      .admin-table th:nth-child(6),
+      .admin-table td:nth-child(6) {
+        width: 100px;
+      }
+
+      .admin-table th:nth-child(7),
+      .admin-table td:nth-child(7) {
+        width: 145px;
+      }
+
+      .admin-table th:nth-child(8),
+      .admin-table td:nth-child(8) {
+        width: 160px;
+      }
+
+      .admin-table th:nth-child(9),
+      .admin-table td:nth-child(9) {
+        width: 170px;
+      }
+
+      .admin-table th:nth-child(10),
+      .admin-table td:nth-child(10) {
+        width: 220px;
+      }
+
+      .admin-table th:nth-child(11),
+      .admin-table td:nth-child(11) {
+        width: 170px;
+      }
+
       .admin-table td strong {
         color: #f8fafc;
       }
@@ -1829,7 +2219,7 @@ function AdminLeadsGlobalStyle() {
         text-underline-offset: 4px;
       }
       .text-cell {
-        max-width: 280px;
+        max-width: 230px;
         line-height: 1.55;
       }
       .clamped-text {
@@ -1971,6 +2361,58 @@ function AdminLeadsGlobalStyle() {
         color: #bae6fd;
         background: rgba(14, 165, 233, 0.2);
       }
+      .score-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 58px;
+        padding: 8px 10px;
+        border-radius: 999px;
+        color: #e0f2fe;
+        background: rgba(14, 165, 233, 0.16);
+        border: 1px solid rgba(125, 211, 252, 0.22);
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .temperature-badge,
+      .return-date {
+        display: inline-flex;
+        width: fit-content;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 900;
+        border: 1px solid rgba(125, 211, 252, 0.16);
+      }
+
+      .temperature-quente {
+        color: #fecaca;
+        background: rgba(239, 68, 68, 0.18);
+      }
+
+      .temperature-morno {
+        color: #fef3c7;
+        background: rgba(245, 158, 11, 0.16);
+      }
+
+      .temperature-frio {
+        color: #bae6fd;
+        background: rgba(14, 165, 233, 0.15);
+      }
+
+      .return-date {
+        color: #cbd5e1;
+        background: rgba(15, 23, 42, 0.62);
+      }
+
+      .return-date.urgent {
+        color: #fef3c7;
+        background: rgba(245, 158, 11, 0.18);
+      }
+
       .client-sale-banner {
         display: grid;
         gap: 4px;
@@ -1991,11 +2433,14 @@ function AdminLeadsGlobalStyle() {
         font-size: 20px;
       }
       .row-actions {
+        min-width: 145px;
         display: flex;
         flex-direction: column;
         gap: 8px;
       }
       .small-action {
+        width: 100%;
+        min-width: 130px;
         border: 0;
         border-radius: 12px;
         padding: 10px 12px;
@@ -2007,6 +2452,7 @@ function AdminLeadsGlobalStyle() {
         background: rgba(14, 165, 233, 0.16);
         cursor: pointer;
         font-weight: 900;
+        white-space: nowrap;
       }
       .small-action.whatsapp {
         color: #dcfce7;
@@ -2019,6 +2465,22 @@ function AdminLeadsGlobalStyle() {
       .small-action.danger {
         color: #fff;
         background: rgba(239, 68, 68, 0.82);
+      }
+
+      .duplicate-warning {
+        margin-top: 8px;
+        border-radius: 14px;
+        padding: 10px 12px;
+        color: #fecaca;
+        background: rgba(239, 68, 68, 0.14);
+        border: 1px solid rgba(248, 113, 113, 0.32);
+        font-size: 12px;
+        font-weight: 800;
+        line-height: 1.45;
+      }
+
+      .duplicate-warning strong {
+        color: #ffffff;
       }
       .message-box {
         border-radius: 24px;

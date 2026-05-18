@@ -7,6 +7,8 @@ export type LeadOptionItem = {
   messageImage?: string;
 };
 
+export type LeadTemperature = "frio" | "morno" | "quente";
+
 export type Lead = {
   id?: string;
   companyName: string;
@@ -14,6 +16,7 @@ export type Lead = {
   phone: string;
   whatsapp: string;
   email: string;
+  address: string;
   niche: string;
   status: string;
   siteStatus: string;
@@ -22,6 +25,10 @@ export type Lead = {
   facebook: string;
   instagram: string;
   observation: string;
+  score?: number;
+  temperature?: LeadTemperature;
+  nextContactDate?: string;
+  contactHistory?: unknown[];
   createdAt?: string;
   updatedAt?: string;
 };
@@ -114,6 +121,7 @@ export const emptyLead: Lead = {
   phone: "",
   whatsapp: "",
   email: "",
+  address: "",
   niche: "Outro",
   status: "nenhum",
   siteStatus: "sem_site",
@@ -122,6 +130,9 @@ export const emptyLead: Lead = {
   facebook: "",
   instagram: "",
   observation: "",
+  score: 0,
+  temperature: "frio",
+  nextContactDate: "",
 };
 
 export const emptyLeadContact: LeadContact = {
@@ -174,6 +185,7 @@ export const defaultLeadOptions: Record<LeadOptionCategory, LeadOptionItem[]> =
       { value: "loja", label: "Loja" },
       { value: "servicos", label: "Prestação de serviços" },
       { value: "restaurante", label: "Restaurante" },
+      { value: "eventos", label: "Eventos" },
       { value: "outro", label: "Outro" },
     ],
     statuses: [
