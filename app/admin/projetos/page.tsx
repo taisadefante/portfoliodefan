@@ -39,12 +39,35 @@ import {
   saveProject,
   saveProjectOptions,
 } from "@/lib/firestore";
+import { OptionCategory, Project } from "@/lib/types";
 import AdminMenu from "../../../components/admin/AdminMenu.tsx";
 
-type OptionCategory = "types" | "niches" | "technologies" | "commercialModels";
+type SeoFaqItem = {
+  question: string;
+  answer: string;
+};
 
-type Project = {
-  id?: string;
+type AdminProject = Omit<
+  Project,
+  | "name"
+  | "type"
+  | "niche"
+  | "commercialModel"
+  | "startingPrice"
+  | "monthlyPrice"
+  | "technologies"
+  | "link"
+  | "imageUrl"
+  | "images"
+  | "cardSummary"
+  | "fullDescription"
+  | "modules"
+  | "integrations"
+  | "indicatedBusinesses"
+  | "basicFlow"
+  | "highlight"
+  | "seoFaqs"
+> & {
   name: string;
   type: string;
   niche: string;
@@ -62,16 +85,6 @@ type Project = {
   indicatedBusinesses: string[];
   basicFlow: string[];
   highlight: boolean;
-  createdAt?: string;
-  updatedAt?: string;
-};
-
-type SeoFaqItem = {
-  question: string;
-  answer: string;
-};
-
-type AdminProject = Project & {
   seoTitle?: string;
   seoDescription?: string;
   seoKeywords?: string[];
