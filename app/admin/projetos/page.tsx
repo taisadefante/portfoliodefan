@@ -3,1522 +3,2005 @@
 import { CSSProperties, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import {
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signOut,
+  User,
+} from "firebase/auth";
+import {
+  ArrowLeft,
   ArrowRight,
-  CheckCircle2,
   ChevronLeft,
   ChevronRight,
-  ExternalLink,
+  Edit3,
+  Eye,
+  EyeOff,
+  FolderKanban,
+  ImagePlus,
   Loader2,
-  MessageCircle,
+  Lock,
+  LogOut,
+  Plus,
+  Save,
   Search,
   Sparkles,
+  Trash2,
+  UploadCloud,
   X,
 } from "lucide-react";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 
-import { getProjectOptions, getProjects } from "@/lib/firestore";
-type OptionCategory = "types" | "niches" | "technologies" | "commercialModels";
+import { auth, storage } from "@/lib/firebase";
+import {
+  getProjectOptions,
+  getProjects,
+  removeProject,
+  saveProject,
+  saveProjectOptions,
+} from "@/lib/firestore";
+import { OptionCategory, Project } from "@/lib/types";
+import AdminMenu from "../../../components/admin/AdminMenu.tsx";
 
-type Project = {
-  id?: string;
+type SeoFaqItem = {
+  question: string;
+  answer: string;
+};
+
+type AdminProject = Omit<
+  Project,
+  | "name"
+  | "type"
+  | "niche"
+  | "commercialModel"
+  | "startingPrice"
+  | "monthlyPrice"
+  | "technologies"
+  | "link"
+  | "imageUrl"
+  | "images"
+  | "fullDescription"
+  | "modules"
+  | "integrations"
+  | "indicatedBusinesses"
+  | "basicFlow"
+  | "highlight"
+  | "seoFaqs"
+> & {
   name: string;
   type: string;
   niche: string;
   commercialModel: string;
-  startingPrice?: string;
-  monthlyPrice?: string;
+  startingPrice: string;
+  monthlyPrice: string;
   technologies: string[];
-  link?: string;
-  imageUrl?: string;
-  images?: string[];
-  cardSummary?: string;
-  fullDescription?: string;
-  modules?: string[];
-  integrations?: string[];
-  indicatedBusinesses?: string[];
-  basicFlow?: string[];
-  highlight?: boolean;
+  link: string;
+  imageUrl: string;
+  images: string[];
+  fullDescription: string;
+  modules: string[];
+  integrations: string[];
+  indicatedBusinesses: string[];
+  basicFlow: string[];
+  highlight: boolean;
   seoTitle?: string;
   seoDescription?: string;
   seoKeywords?: string[];
   seoLocation?: string;
   seoText?: string;
-  seoFaqs?: {
-    question: string;
-    answer: string;
-  }[];
+  seoFaqs?: SeoFaqItem[];
 };
 
-type Filters = {
-  search: string;
-  type: string;
-  niche: string;
-  technology: string;
-  commercialModel: string;
+const emptyProject: AdminProject = {
+  name: "",
+  type: "Sistema",
+  niche: "Tecnologia",
+  commercialModel: "Assinatura mensal",
+  startingPrice: "",
+  monthlyPrice: "",
+  technologies: [],
+  link: "",
+  imageUrl: "",
+  images: [],
+  fullDescription: "",
+  modules: [],
+  integrations: [],
+  indicatedBusinesses: [],
+  basicFlow: [],
+  highlight: true,
+  seoTitle: "",
+  seoDescription: "",
+  seoKeywords: [],
+  seoLocation: "Campo Grande - MS",
+  seoText: "",
+  seoFaqs: [],
 };
 
-const initialFilters: Filters = {
-  search: "",
-  type: "Todos",
-  niche: "Todos",
-  technology: "Todos",
-  commercialModel: "Todos",
+const optionLabels: Record<OptionCategory, string> = {
+  types: "Tipos de projeto",
+  niches: "Nichos",
+  technologies: "Tecnologias",
+  commercialModels: "Modelos comerciais",
 };
 
 const colors = {
-  bg: "#020617",
-  panel: "rgba(15, 23, 42, 0.76)",
-  panelStrong: "rgba(15, 23, 42, 0.92)",
-  border: "rgba(125, 211, 252, 0.16)",
-  borderStrong: "rgba(125, 211, 252, 0.32)",
+  panel: "rgba(15, 23, 42, 0.78)",
+  panelStrong: "rgba(15, 23, 42, 0.94)",
+  border: "rgba(125, 211, 252, 0.18)",
+  borderStrong: "rgba(125, 211, 252, 0.34)",
   text: "#f8fafc",
   muted: "#cbd5e1",
   soft: "#94a3b8",
-  blue: "#38bdf8",
-  lightBlue: "#bae6fd",
 };
 
 const styles: Record<string, CSSProperties> = {
   page: {
     minHeight: "100vh",
+    background:
+      "radial-gradient(circle at 15% 0%, rgba(14,165,233,0.24), transparent 32%), radial-gradient(circle at 90% 8%, rgba(56,189,248,0.12), transparent 30%), linear-gradient(180deg, #020617 0%, #071426 50%, #020617 100%)",
     color: colors.text,
     fontFamily: "Arial, Helvetica, sans-serif",
-    background:
-      "radial-gradient(circle at 18% 0%, rgba(14,165,233,0.16), transparent 30%), radial-gradient(circle at 84% 10%, rgba(56,189,248,0.1), transparent 26%), linear-gradient(180deg, #020617 0%, #061120 48%, #020617 100%)",
-    overflowX: "hidden",
   },
-  container: {
-    width: "min(1440px, calc(100% - 44px))",
+  shell: {
+    width: "calc(100vw - 32px)",
+    maxWidth: "none",
     margin: "0 auto",
+    padding: "28px 0 70px",
   },
   header: {
-    position: "sticky",
-    top: 0,
-    zIndex: 40,
-    background: "rgba(2, 6, 23, 0.86)",
-    backdropFilter: "blur(20px)",
-    borderBottom: `1px solid ${colors.border}`,
-  },
-  nav: {
-    minHeight: 82,
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: 18,
-  },
-  logo: {
-    width: "auto",
-    height: 64,
-    objectFit: "contain",
-    filter: "drop-shadow(0 0 16px rgba(125,211,252,0.14))",
-  },
-  navLinks: {
-    display: "flex",
-    alignItems: "center",
-    gap: 14,
-    flexWrap: "wrap",
-  },
-  navLink: {
-    color: colors.muted,
-    textDecoration: "none",
-    fontWeight: 850,
-    fontSize: 14,
-  },
-  cta: {
-    border: 0,
-    borderRadius: 999,
-    padding: "13px 18px",
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    color: "#fff",
-    textDecoration: "none",
-    fontWeight: 950,
-    cursor: "pointer",
-    background: "linear-gradient(135deg, #0ea5e9, #38bdf8)",
-    boxShadow: "0 16px 40px rgba(14,165,233,0.22)",
-  },
-  ghost: {
-    borderRadius: 999,
-    padding: "13px 18px",
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    color: "#e0f2fe",
-    textDecoration: "none",
-    fontWeight: 950,
-    cursor: "pointer",
-    background: "rgba(15, 23, 42, 0.72)",
-    border: `1px solid ${colors.borderStrong}`,
-  },
-  hero: {
-    padding: "54px 0 30px",
-    textAlign: "center",
-  },
-  heroLogoBox: {
-    width: "min(360px, 76vw)",
-    margin: "0 auto 26px",
-    display: "grid",
-    placeItems: "center",
-    padding: 18,
+    gap: 22,
+    padding: 22,
     borderRadius: 30,
-    background:
-      "radial-gradient(circle at 50% 30%, rgba(56,189,248,0.18), transparent 60%), rgba(15,23,42,0.36)",
+    background: "rgba(15, 23, 42, 0.72)",
     border: `1px solid ${colors.border}`,
+    boxShadow: "0 24px 80px rgba(0,0,0,0.24)",
+    marginBottom: 22,
   },
-  heroLogo: {
-    width: "min(290px, 100%)",
-    height: "auto",
+  headerLogo: {
+    width: "auto",
+    height: 72,
     objectFit: "contain",
+    filter: "drop-shadow(0 0 20px rgba(125,211,252,0.18))",
   },
-  badge: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 8,
-    padding: "9px 14px",
-    borderRadius: 999,
-    color: colors.lightBlue,
-    fontWeight: 900,
-    background: "rgba(14,165,233,0.1)",
-    border: `1px solid ${colors.border}`,
-  },
-  h1: {
-    maxWidth: 980,
-    margin: "22px auto 0",
-    fontSize: "clamp(34px, 5vw, 64px)",
-    lineHeight: 1.04,
+  title: {
+    margin: 0,
+    fontSize: "clamp(26px, 3vw, 42px)",
     letterSpacing: "-0.055em",
   },
-  gradientText: {
-    background: "linear-gradient(135deg, #7dd3fc, #ffffff)",
-    WebkitBackgroundClip: "text",
-    color: "transparent",
-  },
-  heroText: {
-    maxWidth: 760,
-    margin: "20px auto 0",
-    color: colors.muted,
-    fontSize: "clamp(16px, 1.25vw, 19px)",
-    lineHeight: 1.7,
-  },
-  statsGrid: {
-    width: "min(940px, 100%)",
-    display: "grid",
-    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-    gap: 14,
-    margin: "30px auto 0",
-  },
-  statCard: {
-    padding: 18,
-    borderRadius: 22,
-    background: "rgba(15, 23, 42, 0.58)",
-    border: `1px solid ${colors.border}`,
-    boxShadow: "0 14px 42px rgba(0,0,0,0.14)",
-  },
-  statNumber: {
-    display: "block",
-    fontSize: 30,
-    letterSpacing: "-0.04em",
-  },
-  statLabel: {
-    display: "block",
-    marginTop: 4,
-    color: colors.soft,
-    fontWeight: 800,
-  },
-  filtersTop: {
-    marginTop: 30,
-    padding: 20,
-    borderRadius: 26,
-    background: "rgba(15, 23, 42, 0.68)",
-    border: `1px solid ${colors.border}`,
-    boxShadow: "0 18px 58px rgba(0,0,0,0.16)",
-  },
-  filtersGrid: {
-    display: "grid",
-    gridTemplateColumns: "1.4fr repeat(4, minmax(155px, 1fr)) auto",
-    gap: 12,
-    alignItems: "end",
-  },
-  field: {
-    display: "grid",
-    gap: 8,
-    color: "#dbeafe",
-    fontSize: 13,
-    fontWeight: 950,
-    textAlign: "left",
-  },
-  inputWrap: {
-    display: "grid",
-    gridTemplateColumns: "auto 1fr",
-    alignItems: "center",
-    gap: 9,
+  subText: { color: colors.muted, margin: "8px 0 0", lineHeight: 1.55 },
+  button: {
+    border: 0,
     borderRadius: 16,
-    padding: "0 13px",
-    background: "rgba(2, 6, 23, 0.46)",
+    padding: "13px 16px",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    fontWeight: 900,
+    cursor: "pointer",
+    color: "#fff",
+    background: "linear-gradient(135deg, #0ea5e9, #38bdf8)",
+    boxShadow: "0 16px 38px rgba(14,165,233,0.22)",
+  },
+  secondaryButton: {
+    borderRadius: 16,
+    padding: "13px 16px",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    fontWeight: 900,
+    cursor: "pointer",
+    color: "#e0f2fe",
+    background: "rgba(15,23,42,0.7)",
     border: `1px solid ${colors.border}`,
   },
+  dangerButton: {
+    border: 0,
+    borderRadius: 16,
+    padding: "13px 16px",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    fontWeight: 900,
+    cursor: "pointer",
+    color: "#fff",
+    background: "rgba(239,68,68,0.92)",
+  },
+  card: {
+    borderRadius: 30,
+    padding: 24,
+    background: colors.panel,
+    border: `1px solid ${colors.border}`,
+    boxShadow: "0 24px 80px rgba(0,0,0,0.2)",
+  },
+  cardTitle: { margin: "0 0 6px", fontSize: 26, letterSpacing: "-0.04em" },
+  cardSub: { margin: "0 0 22px", color: colors.soft, lineHeight: 1.55 },
   input: {
     width: "100%",
-    border: 0,
-    outline: "none",
-    color: colors.text,
-    background: "transparent",
-    padding: "13px 0",
-  },
-  select: {
-    width: "100%",
     border: `1px solid ${colors.border}`,
-    background: "rgba(2, 6, 23, 0.88)",
+    background: "rgba(2, 6, 23, 0.45)",
     color: colors.text,
     outline: "none",
     borderRadius: 16,
     padding: "13px 14px",
   },
-  content: {
-    padding: "28px 0 78px",
-  },
-  topResult: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 16,
-    marginBottom: 24,
-  },
-  kicker: {
-    display: "block",
-    color: colors.blue,
-    textTransform: "uppercase",
-    letterSpacing: "0.14em",
-    fontSize: 12,
-    fontWeight: 950,
-    marginBottom: 8,
-  },
-  h2: {
-    margin: 0,
-    fontSize: "clamp(26px, 3.2vw, 44px)",
-    letterSpacing: "-0.055em",
-  },
-  grid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-    gap: 22,
-  },
-  card: {
-    overflow: "hidden",
-    position: "relative",
-    borderRadius: 32,
-    background:
-      "linear-gradient(180deg, rgba(15,23,42,0.82), rgba(8,47,73,0.52))",
-    border: `1px solid ${colors.border}`,
-    boxShadow: "0 22px 70px rgba(0,0,0,0.22)",
-    display: "flex",
-    flexDirection: "column",
-    minHeight: 520,
-  },
-  imageWrap: {
-    position: "relative",
-    height: 236,
-    overflow: "hidden",
-    background: "rgba(8,47,73,0.42)",
-  },
-  image: {
+  textarea: {
     width: "100%",
-    height: "100%",
-    objectFit: "cover",
-    objectPosition: "top center",
-    display: "block",
-    transform: "scale(1.01)",
+    minHeight: 110,
+    resize: "vertical",
+    border: `1px solid ${colors.border}`,
+    background: "rgba(2, 6, 23, 0.45)",
+    color: colors.text,
+    outline: "none",
+    borderRadius: 16,
+    padding: "13px 14px",
   },
-  imageOverlay: {
-    position: "absolute",
-    inset: 0,
-    background:
-      "linear-gradient(180deg, rgba(2,6,23,0.04) 35%, rgba(2,6,23,0.84) 100%)",
-    pointerEvents: "none",
+  select: {
+    width: "100%",
+    border: `1px solid ${colors.border}`,
+    background: "rgba(2, 6, 23, 0.9)",
+    color: colors.text,
+    outline: "none",
+    borderRadius: 16,
+    padding: "13px 14px",
   },
-  imageEmpty: {
-    height: "100%",
+  label: { color: "#dbeafe", fontSize: 13, fontWeight: 900 },
+  field: { display: "grid", gap: 8 },
+  notice: {
+    borderRadius: 18,
+    padding: "14px 16px",
+    margin: "0 0 18px",
+    color: "#e0f2fe",
+    background: "rgba(14,165,233,0.12)",
+    border: `1px solid ${colors.borderStrong}`,
+  },
+  loginWrap: {
+    minHeight: "100vh",
     display: "grid",
     placeItems: "center",
-    color: colors.lightBlue,
-    fontWeight: 950,
-    background:
-      "radial-gradient(circle at 30% 20%, rgba(56,189,248,0.22), transparent 40%), rgba(8,47,73,0.42)",
+    padding: 22,
   },
-  cardBody: {
-    padding: 24,
+  loginCard: {
+    width: "min(1060px, 100%)",
+    display: "grid",
+    gridTemplateColumns: "1fr 0.9fr",
+    overflow: "hidden",
+    borderRadius: 36,
+    background: colors.panelStrong,
+    border: `1px solid ${colors.borderStrong}`,
+    boxShadow: "0 40px 120px rgba(0,0,0,0.38)",
+  },
+  loginBrand: {
+    padding: 46,
+    background:
+      "radial-gradient(circle at 30% 20%, rgba(56,189,248,0.26), transparent 38%), linear-gradient(145deg, rgba(8,47,73,0.92), rgba(15,23,42,0.82))",
     display: "flex",
     flexDirection: "column",
-    gap: 16,
-    flex: 1,
+    justifyContent: "space-between",
+    minHeight: 620,
   },
-  tags: {
+  loginForm: {
+    padding: 46,
     display: "flex",
-    flexWrap: "wrap",
-    gap: 8,
-    alignContent: "flex-start",
+    flexDirection: "column",
+    justifyContent: "center",
   },
-  tag: {
-    display: "inline-flex",
-    alignItems: "center",
-    width: "fit-content",
-    padding: "7px 10px",
-    borderRadius: 999,
-    color: colors.lightBlue,
-    background: "rgba(14,165,233,0.1)",
-    border: `1px solid ${colors.border}`,
-    fontSize: 11,
-    letterSpacing: "0.02em",
-    fontWeight: 950,
-  },
-  tagGreen: {
-    color: "#bbf7d0",
-    background: "rgba(34,197,94,0.12)",
-    border: "1px solid rgba(74,222,128,0.22)",
-  },
-  tagPurple: {
-    color: "#ddd6fe",
-    background: "rgba(124,58,237,0.16)",
-    border: "1px solid rgba(167,139,250,0.22)",
-  },
-  cardTitle: {
-    margin: 0,
-    fontSize: 25,
-    lineHeight: 1.08,
-    letterSpacing: "-0.045em",
-    minHeight: 58,
-  },
-  cardDivider: {
-    width: "100%",
-    height: 1,
-    background:
-      "linear-gradient(90deg, rgba(56,189,248,0.5), rgba(125,211,252,0.04))",
-  },
-  priceRow: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: 10,
-    minHeight: 58,
-  },
-  priceCard: {
-    padding: 13,
-    borderRadius: 18,
-    background: "rgba(2, 6, 23, 0.35)",
-    border: `1px solid ${colors.border}`,
-  },
-  priceSmall: {
-    display: "block",
-    color: colors.soft,
-    fontSize: 12,
-    fontWeight: 900,
-  },
-  priceStrong: {
-    display: "block",
-    marginTop: 3,
-    color: "#e0f2fe",
-    fontSize: 16,
-  },
-  empty: {
-    padding: 28,
-    borderRadius: 28,
-    background: colors.panel,
-    border: `1px solid ${colors.border}`,
-    color: colors.muted,
-    lineHeight: 1.65,
-  },
-  footer: {
-    padding: "58px 0",
-    borderTop: `1px solid ${colors.border}`,
-    background: "rgba(2, 6, 23, 0.52)",
-  },
-  footerGrid: {
+  passwordWrap: {
     display: "grid",
     gridTemplateColumns: "1fr auto",
-    gap: 28,
     alignItems: "center",
+    border: `1px solid ${colors.border}`,
+    background: "rgba(2, 6, 23, 0.45)",
+    borderRadius: 16,
+    overflow: "hidden",
   },
   modalBackdrop: {
     position: "fixed",
     inset: 0,
-    zIndex: 120,
-    background: "rgba(2, 6, 23, 0.82)",
-    backdropFilter: "blur(12px)",
+    zIndex: 90,
+    background: "rgba(2, 6, 23, 0.78)",
     display: "grid",
     placeItems: "center",
     padding: 18,
   },
-  modalBox: {
+  modal: {
     width: "min(1180px, 100%)",
     maxHeight: "92vh",
     overflow: "auto",
-    borderRadius: 34,
-    background:
-      "radial-gradient(circle at 20% 0%, rgba(56,189,248,0.16), transparent 34%), linear-gradient(145deg, rgba(15,23,42,0.98), rgba(8,47,73,0.92))",
-    border: "1px solid rgba(125, 211, 252, 0.28)",
-    boxShadow: "0 44px 120px rgba(0,0,0,0.55)",
+    borderRadius: 32,
+    padding: 24,
+    background: "#0f172a",
+    border: `1px solid ${colors.borderStrong}`,
+    boxShadow: "0 40px 120px rgba(0,0,0,0.5)",
+  },
+  smallModal: {
+    width: "min(720px, 100%)",
+    maxHeight: "88vh",
+    overflow: "auto",
+    borderRadius: 32,
+    padding: 24,
+    background: "#0f172a",
+    border: `1px solid ${colors.borderStrong}`,
+    boxShadow: "0 40px 120px rgba(0,0,0,0.5)",
   },
   modalHeader: {
-    position: "sticky",
-    top: 0,
-    zIndex: 3,
     display: "flex",
-    justifyContent: "space-between",
     alignItems: "flex-start",
-    gap: 18,
-    padding: 24,
-    background: "rgba(15, 23, 42, 0.92)",
-    borderBottom: "1px solid rgba(125, 211, 252, 0.14)",
-    backdropFilter: "blur(18px)",
+    justifyContent: "space-between",
+    gap: 16,
+    marginBottom: 20,
   },
-  closeButton: {
-    width: 44,
-    height: 44,
-    border: "1px solid rgba(125, 211, 252, 0.2)",
-    borderRadius: 14,
-    background: "rgba(2, 6, 23, 0.45)",
-    color: colors.text,
-    display: "grid",
-    placeItems: "center",
-    cursor: "pointer",
-  },
-  modalContent: {
-    display: "grid",
-    gridTemplateColumns: "1.03fr 0.97fr",
-    gap: 24,
-    padding: 24,
-  },
-  modalImage: {
-    width: "100%",
-    height: 420,
-    objectFit: "cover",
-    objectPosition: "top center",
-    borderRadius: 26,
-    border: "1px solid rgba(125, 211, 252, 0.16)",
-    background: "rgba(2, 6, 23, 0.5)",
-    cursor: "zoom-in",
-  },
-  modalPanel: {
-    padding: 22,
-    borderRadius: 26,
-    background: "rgba(2, 6, 23, 0.34)",
-    border: "1px solid rgba(125, 211, 252, 0.14)",
-  },
-  detailGrid: {
+  formGrid: {
     display: "grid",
     gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-    gap: 12,
-    marginTop: 16,
+    gap: 16,
   },
-  detailCard: {
-    padding: 15,
-    borderRadius: 18,
-    background: "rgba(15, 23, 42, 0.62)",
-    border: "1px solid rgba(125, 211, 252, 0.12)",
-  },
-  lightboxBackdrop: {
-    position: "fixed",
-    inset: 0,
-    zIndex: 160,
-    background: "rgba(0, 0, 0, 0.92)",
-    display: "grid",
-    gridTemplateRows: "auto 1fr",
-    padding: 18,
-  },
-  lightboxTop: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: 12,
-    padding: "0 0 14px",
-  },
-  lightboxImageWrap: {
-    position: "relative",
-    display: "grid",
-    placeItems: "center",
-    minHeight: 0,
-  },
-  lightboxImage: {
-    maxWidth: "min(1180px, 94vw)",
-    maxHeight: "calc(100vh - 120px)",
-    objectFit: "contain",
-    borderRadius: 22,
-    border: "1px solid rgba(125,211,252,0.2)",
-    boxShadow: "0 34px 100px rgba(0,0,0,0.55)",
-  },
-  lightboxArrow: {
-    position: "absolute",
-    top: "50%",
-    transform: "translateY(-50%)",
-    width: 52,
-    height: 52,
-    borderRadius: 999,
-    border: "1px solid rgba(125,211,252,0.24)",
-    background: "rgba(15,23,42,0.78)",
-    color: "#fff",
-    display: "grid",
-    placeItems: "center",
-    cursor: "pointer",
-  },
+  optionRow: { display: "grid", gridTemplateColumns: "1fr auto", gap: 8 },
+  actions: { display: "flex", flexWrap: "wrap", gap: 10, marginTop: 20 },
 };
 
-function safeLower(value?: string) {
-  return String(value || "").toLowerCase();
+function textToList(value: string) {
+  return value
+    .split("\n")
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
-function safeArray(value?: string[]) {
-  return Array.isArray(value) ? value : [];
+function listToText(value?: string[]) {
+  return Array.isArray(value) ? value.join("\n") : "";
+}
+
+function listToDisplay(value?: string[]) {
+  const items = Array.isArray(value) ? value.filter(Boolean) : [];
+  return items.length ? items.join(", ") : "-";
+}
+
+function faqListToText(value?: SeoFaqItem[]) {
+  if (!Array.isArray(value)) return "";
+  return value
+    .map((item) => `${item.question || ""} | ${item.answer || ""}`.trim())
+    .filter((item) => item !== "|")
+    .join("\n");
+}
+
+function textToFaqList(value: string): SeoFaqItem[] {
+  return value
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [question, ...answerParts] = line.split("|");
+      return {
+        question: (question || "").trim(),
+        answer: answerParts.join("|").trim(),
+      };
+    })
+    .filter((item) => item.question && item.answer);
 }
 
 function getProjectImages(project: Project) {
-  const images = Array.isArray(project.images)
+  const list = Array.isArray(project.images)
     ? project.images.filter(Boolean)
     : [];
-  if (images.length) return images;
+  if (list.length) return list;
   return project.imageUrl ? [project.imageUrl] : [];
 }
 
-function DetailList({ title, items }: { title: string; items?: string[] }) {
-  const cleanItems = safeArray(items).filter(Boolean);
-  if (!cleanItems.length) return null;
-
-  return (
-    <section style={styles.modalPanel}>
-      <h3 style={{ margin: "0 0 14px", fontSize: 22 }}>{title}</h3>
-      <div style={{ display: "grid", gap: 10 }}>
-        {cleanItems.map((item, index) => (
-          <div
-            key={`${title}-${item}-${index}`}
-            style={{
-              display: "grid",
-              gridTemplateColumns: "auto 1fr",
-              gap: 10,
-              alignItems: "flex-start",
-              color: colors.muted,
-              lineHeight: 1.55,
-            }}
-          >
-            <CheckCircle2
-              size={17}
-              color={colors.blue}
-              style={{ marginTop: 2 }}
-            />
-            <span>{item}</span>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function ProjectDetailsModal({
+function ProjectImageCell({
   project,
-  onClose,
+  index,
+  onPrev,
+  onNext,
 }: {
   project: Project;
-  onClose: () => void;
+  index: number;
+  onPrev: () => void;
+  onNext: () => void;
 }) {
   const images = getProjectImages(project);
-  const [activeImageIndex, setActiveImageIndex] = useState(0);
-  const [lightboxOpen, setLightboxOpen] = useState(false);
-  const activeImage = images[activeImageIndex] || images[0] || "";
-  const isSubscription = safeLower(project.commercialModel).includes(
-    "assinatura",
-  );
-
-  function previousImage() {
-    if (!images.length) return;
-    setActiveImageIndex((prev) => (prev - 1 + images.length) % images.length);
-  }
-
-  function nextImage() {
-    if (!images.length) return;
-    setActiveImageIndex((prev) => (prev + 1) % images.length);
-  }
+  const image = images[index] || images[0] || "";
 
   return (
-    <>
-      <div style={styles.modalBackdrop} onClick={onClose}>
-        <section
-          style={styles.modalBox}
-          className="project-modal-box-inline"
-          onClick={(event) => event.stopPropagation()}
-        >
-          <header style={styles.modalHeader}>
-            <div>
-              <div style={styles.tags}>
-                {project.type && <span style={styles.tag}>{project.type}</span>}
-                {project.commercialModel && (
-                  <span
-                    style={{
-                      ...styles.tag,
-                      ...(isSubscription ? styles.tagGreen : styles.tagPurple),
-                    }}
-                  >
-                    {project.commercialModel}
-                  </span>
-                )}
-                {project.niche && (
-                  <span style={styles.tag}>{project.niche}</span>
-                )}
-              </div>
-              <h2
-                style={{
-                  margin: "12px 0 0",
-                  fontSize: "clamp(30px, 4vw, 54px)",
-                  lineHeight: 1,
-                  letterSpacing: "-0.06em",
-                }}
-              >
-                {project.name}
-              </h2>
-            </div>
-
-            <button type="button" onClick={onClose} style={styles.closeButton}>
-              <X size={22} />
-            </button>
-          </header>
-
-          <div
-            style={styles.modalContent}
-            className="project-modal-content-inline"
-          >
-            <div style={{ display: "grid", gap: 14, alignContent: "start" }}>
-              {activeImage ? (
-                <img
-                  src={activeImage}
-                  alt={project.name}
-                  style={styles.modalImage}
-                  className="project-modal-image-inline"
-                  onClick={() => setLightboxOpen(true)}
-                />
-              ) : (
-                <div
-                  style={{
-                    ...styles.modalImage,
-                    cursor: "default",
-                    display: "grid",
-                    placeItems: "center",
-                  }}
-                  className="project-modal-image-inline"
-                >
-                  <Image
-                    src="/logo-white.png"
-                    alt="Defan Soluções Digitais"
-                    width={260}
-                    height={90}
-                    style={{ width: "auto", height: 86, objectFit: "contain" }}
-                  />
-                </div>
-              )}
-
-              {images.length > 1 && (
-                <>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: 10,
-                    }}
-                  >
-                    <button
-                      type="button"
-                      style={styles.ghost}
-                      onClick={previousImage}
-                    >
-                      <ChevronLeft size={17} />
-                      Anterior
-                    </button>
-                    <strong style={{ color: colors.lightBlue }}>
-                      {activeImageIndex + 1} / {images.length}
-                    </strong>
-                    <button
-                      type="button"
-                      style={styles.ghost}
-                      onClick={nextImage}
-                    >
-                      Próxima
-                      <ChevronRight size={17} />
-                    </button>
-                  </div>
-
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-                      gap: 10,
-                    }}
-                    className="project-thumbs-inline"
-                  >
-                    {images.map((image, index) => (
-                      <button
-                        key={`${image}-${index}`}
-                        type="button"
-                        onClick={() => setActiveImageIndex(index)}
-                        onDoubleClick={() => {
-                          setActiveImageIndex(index);
-                          setLightboxOpen(true);
-                        }}
-                        style={{
-                          border:
-                            index === activeImageIndex
-                              ? "2px solid #38bdf8"
-                              : "1px solid rgba(125, 211, 252, 0.16)",
-                          padding: 0,
-                          overflow: "hidden",
-                          cursor: "pointer",
-                          borderRadius: 16,
-                          background: "transparent",
-                        }}
-                      >
-                        <img
-                          src={image}
-                          alt={`${project.name} ${index + 1}`}
-                          style={{
-                            width: "100%",
-                            height: 84,
-                            objectFit: "cover",
-                            objectPosition: "top center",
-                            display: "block",
-                          }}
-                        />
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-
-            <aside style={{ display: "grid", gap: 16, alignContent: "start" }}>
-              <section style={styles.modalPanel}>
-                <h3 style={{ margin: "0 0 10px", fontSize: 24 }}>
-                  Resumo do projeto
-                </h3>
-                <p style={{ color: colors.muted, lineHeight: 1.7, margin: 0 }}>
-                  {project.fullDescription ||
-                    "Projeto cadastrado no portfólio Defan."}
-                </p>
-
-                <div
-                  style={styles.detailGrid}
-                  className="project-detail-grid-inline"
-                >
-                  {project.startingPrice && (
-                    <div style={styles.detailCard}>
-                      <small style={{ color: colors.soft, fontWeight: 900 }}>
-                        Investimento inicial
-                      </small>
-                      <strong
-                        style={{ display: "block", marginTop: 6, fontSize: 18 }}
-                      >
-                        {project.startingPrice}
-                      </strong>
-                    </div>
-                  )}
-                  {project.monthlyPrice && (
-                    <div style={styles.detailCard}>
-                      <small style={{ color: colors.soft, fontWeight: 900 }}>
-                        Mensalidade
-                      </small>
-                      <strong
-                        style={{ display: "block", marginTop: 6, fontSize: 18 }}
-                      >
-                        {project.monthlyPrice}
-                      </strong>
-                    </div>
-                  )}
-                </div>
-              </section>
-
-              {!!project.technologies?.length && (
-                <section style={styles.modalPanel}>
-                  <h3 style={{ margin: "0 0 14px", fontSize: 22 }}>
-                    Tecnologias
-                  </h3>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                    {project.technologies.map((tech) => (
-                      <span key={tech} style={styles.tag}>
-                        {tech}
-                      </span>
-                    ))}
-                  </div>
-                </section>
-              )}
-            </aside>
-          </div>
-
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-              gap: 16,
-              padding: "0 24px 24px",
-            }}
-            className="project-modal-lists-inline"
-          >
-            <DetailList title="Módulos disponíveis" items={project.modules} />
-            <DetailList title="Integrações" items={project.integrations} />
-            <DetailList
-              title="Indicado para"
-              items={project.indicatedBusinesses}
-            />
-            <DetailList title="Fluxo básico de uso" items={project.basicFlow} />
-          </div>
-
-          <footer
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              gap: 12,
-              flexWrap: "wrap",
-              padding: 24,
-              borderTop: "1px solid rgba(125, 211, 252, 0.14)",
-            }}
-          >
-            {project.link ? (
-              <a
-                href={project.link}
-                target="_blank"
-                rel="noreferrer"
-                style={styles.ghost}
-              >
-                Abrir projeto <ExternalLink size={17} />
-              </a>
-            ) : (
-              <span />
-            )}
-            <a
-              href={`https://wa.me/5521988359825?text=${encodeURIComponent(
-                `Olá, tenho interesse no projeto: ${project.name}`,
-              )}`}
-              target="_blank"
-              rel="noreferrer"
-              style={styles.cta}
-            >
-              Quero este projeto <MessageCircle size={18} />
-            </a>
-          </footer>
-        </section>
-      </div>
-
-      {lightboxOpen && activeImage && (
-        <div
-          style={styles.lightboxBackdrop}
-          onClick={() => setLightboxOpen(false)}
-        >
-          <div
-            style={styles.lightboxTop}
-            onClick={(event) => event.stopPropagation()}
-          >
-            <button type="button" style={styles.ghost} onClick={previousImage}>
-              <ChevronLeft size={18} />
-              Anterior
-            </button>
-            <strong>
-              {activeImageIndex + 1} / {images.length}
-            </strong>
-            <button
-              type="button"
-              style={styles.closeButton}
-              onClick={() => setLightboxOpen(false)}
-            >
-              <X size={22} />
-            </button>
-          </div>
-
-          <div
-            style={styles.lightboxImageWrap}
-            onClick={(event) => event.stopPropagation()}
-          >
-            {images.length > 1 && (
-              <button
-                type="button"
-                style={{ ...styles.lightboxArrow, left: 18 }}
-                onClick={previousImage}
-              >
-                <ChevronLeft size={28} />
-              </button>
-            )}
-            <img
-              src={activeImage}
-              alt={project.name}
-              style={styles.lightboxImage}
-            />
-            {images.length > 1 && (
-              <button
-                type="button"
-                style={{ ...styles.lightboxArrow, right: 18 }}
-                onClick={nextImage}
-              >
-                <ChevronRight size={28} />
-              </button>
-            )}
-          </div>
+    <div className="image-cell">
+      {image ? (
+        <img src={image} alt={project.name} />
+      ) : (
+        <div className="image-empty">
+          <ImagePlus size={24} />
         </div>
       )}
-    </>
+      {images.length > 1 && (
+        <div className="image-arrows">
+          <button type="button" onClick={onPrev}>
+            <ChevronLeft size={16} />
+          </button>
+          <span>
+            {(index || 0) + 1}/{images.length}
+          </span>
+          <button type="button" onClick={onNext}>
+            <ChevronRight size={16} />
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 
-export default function ProjetosPage() {
+function CollapsibleCell({
+  text,
+  emptyText = "-",
+}: {
+  text?: string;
+  emptyText?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const cleanText = String(text || "").trim();
+
+  if (!cleanText) {
+    return <span className="collapsed-text-empty">{emptyText}</span>;
+  }
+
+  return (
+    <div className={open ? "collapsed-text open" : "collapsed-text"}>
+      <div className="collapsed-text-content">{cleanText}</div>
+      {cleanText.length > 120 && (
+        <button
+          type="button"
+          className="collapsed-text-button"
+          onClick={() => setOpen((prev) => !prev)}
+        >
+          {open ? "Recolher" : "Ler mais"}
+        </button>
+      )}
+    </div>
+  );
+}
+
+export default function AdminProjetosPage() {
+  const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL;
+
+  const [user, setUser] = useState<User | null>(null);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [loggingIn, setLoggingIn] = useState(false);
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [savingProject, setSavingProject] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  const [optionModalOpen, setOptionModalOpen] = useState(false);
+  const [activeOptionCategory, setActiveOptionCategory] =
+    useState<OptionCategory>("types");
+  const [newOptionValue, setNewOptionValue] = useState("");
+  const [editingOptionIndex, setEditingOptionIndex] = useState<number | null>(
+    null,
+  );
+  const [editingOptionValue, setEditingOptionValue] = useState("");
+
+  const [project, setProject] = useState<AdminProject>(emptyProject);
   const [projects, setProjects] = useState<Project[]>([]);
-  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [filters, setFilters] = useState<Filters>(initialFilters);
+  const [search, setSearch] = useState("");
+  const [imageIndexes, setImageIndexes] = useState<Record<string, number>>({});
   const [options, setOptions] = useState<Record<OptionCategory, string[]>>({
     types: [],
     niches: [],
     technologies: [],
     commercialModels: [],
   });
-  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState("");
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const [projectList, optionList] = await Promise.all([
-          getProjects(),
-          getProjectOptions(),
-        ]);
-        setProjects(projectList as Project[]);
-        setOptions(optionList as Record<OptionCategory, string[]>);
-      } catch (error) {
-        console.error("Erro ao carregar projetos:", error);
-        setProjects([]);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    load();
-  }, []);
+  const isAllowed = useMemo(() => {
+    if (!user?.email || !adminEmail) return false;
+    return user.email.toLowerCase() === adminEmail.toLowerCase();
+  }, [user, adminEmail]);
 
   const filteredProjects = useMemo(() => {
-    const search = filters.search.trim().toLowerCase();
+    const term = search.trim().toLowerCase();
+    if (!term) return projects;
+    return projects.filter(
+      (item) =>
+        item.name.toLowerCase().includes(term) ||
+        item.type.toLowerCase().includes(term) ||
+        item.niche.toLowerCase().includes(term) ||
+        item.commercialModel.toLowerCase().includes(term) ||
+        String((item as AdminProject).seoTitle || "")
+          .toLowerCase()
+          .includes(term) ||
+        String((item as AdminProject).seoDescription || "")
+          .toLowerCase()
+          .includes(term),
+    );
+  }, [projects, search]);
 
-    return projects.filter((project) => {
-      const technologies = safeArray(project.technologies);
-
-      const matchSearch =
-        !search ||
-        safeLower(project.name).includes(search) ||
-        safeLower(project.fullDescription).includes(search) ||
-        safeLower(project.niche).includes(search) ||
-        safeLower(project.type).includes(search) ||
-        technologies.some((tech) => safeLower(tech).includes(search));
-
-      const matchType =
-        filters.type === "Todos" || project.type === filters.type;
-      const matchNiche =
-        filters.niche === "Todos" || project.niche === filters.niche;
-      const matchTechnology =
-        filters.technology === "Todos" ||
-        technologies.includes(filters.technology);
-      const matchCommercialModel =
-        filters.commercialModel === "Todos" ||
-        project.commercialModel === filters.commercialModel;
-
-      return (
-        matchSearch &&
-        matchType &&
-        matchNiche &&
-        matchTechnology &&
-        matchCommercialModel
-      );
-    });
-  }, [projects, filters]);
-
-  const subscriptionCount = projects.filter((project) =>
-    safeLower(project.commercialModel).includes("assinatura"),
-  ).length;
-
-  const customCount = projects.filter((project) =>
-    safeLower(project.commercialModel).includes("personalizado"),
-  ).length;
-
-  function updateFilter<K extends keyof Filters>(field: K, value: Filters[K]) {
-    setFilters((prev) => ({ ...prev, [field]: value }));
+  async function loadData() {
+    const [projectList, optionList] = await Promise.all([
+      getProjects(),
+      getProjectOptions(),
+    ]);
+    setProjects(projectList);
+    setOptions(optionList);
   }
 
-  function clearFilters() {
-    setFilters(initialFilters);
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      setUser(currentUser);
+      setCheckingAuth(false);
+      if (currentUser) await loadData();
+    });
+    return () => unsubscribe();
+  }, []);
+
+  async function login(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setMessage("");
+    if (!loginEmail.trim() || !loginPassword.trim()) {
+      setMessage("Informe o e-mail e a senha.");
+      return;
+    }
+    try {
+      setLoggingIn(true);
+      await signInWithEmailAndPassword(auth, loginEmail.trim(), loginPassword);
+    } catch (error) {
+      console.error(error);
+      setMessage(
+        "E-mail ou senha inválidos. Verifique os dados cadastrados no Firebase.",
+      );
+    } finally {
+      setLoggingIn(false);
+    }
+  }
+
+  async function logout() {
+    await signOut(auth);
+  }
+
+  function updateField<K extends keyof AdminProject>(
+    field: K,
+    value: AdminProject[K],
+  ) {
+    setProject((prev) => ({ ...prev, [field]: value }));
+  }
+
+  function openNewProject() {
+    setProject(emptyProject);
+    setMessage("");
+    setModalOpen(true);
+  }
+
+  function openEditProject(item: Project) {
+    const editableItem = item as AdminProject;
+    setProject({
+      ...editableItem,
+      images: getProjectImages(editableItem),
+      imageUrl: getProjectImages(editableItem)[0] || "",
+      seoTitle: editableItem.seoTitle || "",
+      seoDescription: editableItem.seoDescription || "",
+      seoKeywords: editableItem.seoKeywords || [],
+      seoLocation: editableItem.seoLocation || "Campo Grande - MS",
+      seoText: editableItem.seoText || "",
+      seoFaqs: editableItem.seoFaqs || [],
+    });
+    setMessage("");
+    setModalOpen(true);
+  }
+
+  function closeModal() {
+    if (savingProject || uploading) return;
+    setModalOpen(false);
+    setProject(emptyProject);
+  }
+
+  function openOptionModal(category: OptionCategory) {
+    setActiveOptionCategory(category);
+    setNewOptionValue("");
+    setEditingOptionIndex(null);
+    setEditingOptionValue("");
+    setOptionModalOpen(true);
+  }
+
+  async function persistOptions(category: OptionCategory, values: string[]) {
+    await saveProjectOptions(category, values);
+    setOptions((prev) => ({ ...prev, [category]: values }));
+  }
+
+  async function handleAddOption() {
+    const clean = newOptionValue.trim();
+    if (!clean) return;
+    const current = options[activeOptionCategory] || [];
+    const values = Array.from(new Set([...current, clean])).sort();
+    await persistOptions(activeOptionCategory, values);
+    setNewOptionValue("");
+    setMessage("Opção adicionada com sucesso.");
+  }
+
+  async function confirmEditOption() {
+    if (editingOptionIndex === null) return;
+    const clean = editingOptionValue.trim();
+    if (!clean) return;
+    const values = [...(options[activeOptionCategory] || [])];
+    values[editingOptionIndex] = clean;
+    await persistOptions(
+      activeOptionCategory,
+      Array.from(new Set(values)).sort(),
+    );
+    setEditingOptionIndex(null);
+    setEditingOptionValue("");
+    setMessage("Opção editada com sucesso.");
+  }
+
+  async function deleteOption(index: number) {
+    const value = options[activeOptionCategory][index];
+    const confirmed = window.confirm(`Deseja excluir "${value}"?`);
+    if (!confirmed) return;
+    const values = options[activeOptionCategory].filter(
+      (_, itemIndex) => itemIndex !== index,
+    );
+    await persistOptions(activeOptionCategory, values);
+    setMessage("Opção excluída com sucesso.");
+  }
+
+  async function handleUploadImages(files: FileList | null) {
+    if (!files?.length) return;
+    try {
+      setUploading(true);
+      setMessage("");
+      const uploadedUrls: string[] = [];
+      for (const file of Array.from(files)) {
+        if (!file.type.startsWith("image/")) continue;
+        const extension = file.name.split(".").pop() || "png";
+        const safeName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${extension}`;
+        const storageRef = ref(storage, `portfolio-projects/${safeName}`);
+        await uploadBytes(storageRef, file);
+        const url = await getDownloadURL(storageRef);
+        uploadedUrls.push(url);
+      }
+      if (uploadedUrls.length) {
+        setProject((prev) => {
+          const images = [...(prev.images || []), ...uploadedUrls];
+          return { ...prev, images, imageUrl: images[0] || "" };
+        });
+        setMessage("Imagem anexada com sucesso.");
+      }
+    } catch (error) {
+      console.error(error);
+      setMessage(
+        "Erro ao anexar imagem. Verifique as permissões do Firebase Storage.",
+      );
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  function removeImage(url: string) {
+    setProject((prev) => {
+      const images = (prev.images || []).filter((item) => item !== url);
+      return { ...prev, images, imageUrl: images[0] || "" };
+    });
+  }
+
+  async function handleSave() {
+    try {
+      setSavingProject(true);
+      const images = project.images || [];
+
+      await saveProject({
+        ...project,
+        name: project.name || "",
+        type: project.type || "",
+        niche: project.niche || "",
+        commercialModel: project.commercialModel || "",
+        startingPrice: project.startingPrice || "",
+        monthlyPrice: project.monthlyPrice || "",
+        technologies: project.technologies || [],
+        link: project.link || "",
+        images,
+        imageUrl: images[0] || project.imageUrl || "",
+        fullDescription: project.fullDescription || "",
+        modules: project.modules || [],
+        integrations: project.integrations || [],
+        indicatedBusinesses: project.indicatedBusinesses || [],
+        basicFlow: project.basicFlow || [],
+        highlight: project.highlight ?? false,
+        seoTitle:
+          project.seoTitle?.trim() ||
+          (project.name ? `${project.name} | Defan Soluções Digitais` : ""),
+        seoDescription:
+          project.seoDescription?.trim() ||
+          project.fullDescription?.trim() ||
+          "",
+        seoKeywords: project.seoKeywords || [],
+        seoLocation: project.seoLocation?.trim() || "",
+        seoText: project.seoText?.trim() || "",
+        seoFaqs: project.seoFaqs || [],
+      } as AdminProject);
+
+      setProject(emptyProject);
+      setModalOpen(false);
+      await loadData();
+      setMessage("Projeto salvo com sucesso.");
+    } catch (error) {
+      console.error(error);
+      setMessage("Erro ao salvar projeto.");
+    } finally {
+      setSavingProject(false);
+    }
+  }
+
+  async function handleDelete(id?: string) {
+    if (!id) return;
+    const confirmed = window.confirm("Deseja realmente excluir este projeto?");
+    if (!confirmed) return;
+    await removeProject(id);
+    await loadData();
+    setMessage("Projeto excluído com sucesso.");
+  }
+
+  function changeImageIndex(projectId: string, direction: "prev" | "next") {
+    const item = projects.find((projectItem) => projectItem.id === projectId);
+    if (!item) return;
+    const images = getProjectImages(item);
+    if (!images.length) return;
+    setImageIndexes((prev) => {
+      const current = prev[projectId] || 0;
+      const next =
+        direction === "next"
+          ? (current + 1) % images.length
+          : (current - 1 + images.length) % images.length;
+      return { ...prev, [projectId]: next };
+    });
+  }
+
+  if (checkingAuth) {
+    return (
+      <main style={styles.page}>
+        <div style={styles.loginWrap}>
+          <div
+            style={{
+              ...styles.card,
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+            }}
+          >
+            <Loader2 className="spin" size={20} /> Carregando painel...
+          </div>
+        </div>
+        <AdminGlobalStyle />
+      </main>
+    );
+  }
+
+  if (!user) {
+    return (
+      <main style={styles.page}>
+        <div style={styles.loginWrap}>
+          <section style={styles.loginCard} className="admin-login-card">
+            <div style={styles.loginBrand}>
+              <div>
+                <Image
+                  src="/logo-white.png"
+                  alt="Defan Soluções Digitais"
+                  width={380}
+                  height={130}
+                  priority
+                  style={{ width: "auto", height: 104, objectFit: "contain" }}
+                />
+                <h1
+                  style={{
+                    margin: "28px 0 14px",
+                    fontSize: "clamp(34px, 4vw, 58px)",
+                    lineHeight: 1,
+                    letterSpacing: "-0.07em",
+                  }}
+                >
+                  Painel administrativo Defan
+                </h1>
+                <p
+                  style={{
+                    color: colors.muted,
+                    lineHeight: 1.7,
+                    fontSize: 17,
+                    margin: 0,
+                  }}
+                >
+                  Acesse com o e-mail e senha cadastrados no Firebase para
+                  gerenciar projetos, imagens, tecnologias, nichos e destaques
+                  do portfólio.
+                </p>
+              </div>
+              <div style={{ display: "grid", gap: 12, marginTop: 34 }}>
+                <span className="admin-badge">
+                  <Sparkles size={15} /> Portfólio profissional
+                </span>
+                <span className="admin-badge">
+                  <FolderKanban size={15} /> Gestão de projetos
+                </span>
+                <span className="admin-badge">
+                  <Lock size={15} /> Acesso protegido
+                </span>
+              </div>
+            </div>
+            <form style={styles.loginForm} onSubmit={login}>
+              <a
+                href="/"
+                style={{
+                  ...styles.secondaryButton,
+                  width: "fit-content",
+                  marginBottom: 24,
+                }}
+              >
+                <ArrowLeft size={17} /> Voltar ao site
+              </a>
+              <h2 style={{ ...styles.cardTitle, fontSize: 34 }}>
+                Entrar no painel
+              </h2>
+              <p style={styles.cardSub}>
+                Use o e-mail autorizado em{" "}
+                <strong>NEXT_PUBLIC_ADMIN_EMAIL</strong>.
+              </p>
+              {message && <div style={styles.notice}>{message}</div>}
+              <div style={{ display: "grid", gap: 16 }}>
+                <label style={styles.field}>
+                  <span style={styles.label}>E-mail</span>
+                  <input
+                    type="email"
+                    value={loginEmail}
+                    onChange={(event) => setLoginEmail(event.target.value)}
+                    placeholder="seuemail@gmail.com"
+                    style={styles.input}
+                    autoComplete="email"
+                  />
+                </label>
+                <label style={styles.field}>
+                  <span style={styles.label}>Senha</span>
+                  <div style={styles.passwordWrap}>
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={loginPassword}
+                      onChange={(event) => setLoginPassword(event.target.value)}
+                      placeholder="Digite sua senha"
+                      style={{
+                        border: 0,
+                        background: "transparent",
+                        color: colors.text,
+                        outline: "none",
+                        padding: "13px 14px",
+                        width: "100%",
+                      }}
+                      autoComplete="current-password"
+                    />
+                    <button
+                      type="button"
+                      className="icon-password-button"
+                      onClick={() => setShowPassword((prev) => !prev)}
+                    >
+                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  </div>
+                </label>
+                <button
+                  type="submit"
+                  style={styles.button}
+                  disabled={loggingIn}
+                >
+                  {loggingIn ? (
+                    <>
+                      <Loader2 className="spin" size={18} />
+                      Entrando...
+                    </>
+                  ) : (
+                    <>
+                      Entrar com e-mail e senha
+                      <ArrowRight size={18} />
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+        <AdminGlobalStyle />
+      </main>
+    );
+  }
+
+  if (!isAllowed) {
+    return (
+      <main style={styles.page}>
+        <div style={styles.loginWrap}>
+          <section style={{ ...styles.card, width: "min(560px, 100%)" }}>
+            <Image
+              src="/logo-white.png"
+              alt="Defan Soluções Digitais"
+              width={260}
+              height={90}
+              style={{
+                width: "auto",
+                height: 80,
+                objectFit: "contain",
+                marginBottom: 18,
+              }}
+            />
+            <h1 style={styles.cardTitle}>Acesso não autorizado</h1>
+            <p style={styles.cardSub}>
+              Você entrou com <strong>{user.email}</strong>, mas o e-mail
+              permitido é definido em <strong>NEXT_PUBLIC_ADMIN_EMAIL</strong>.
+            </p>
+            <button style={styles.secondaryButton} onClick={logout}>
+              <LogOut size={17} />
+              Sair
+            </button>
+          </section>
+        </div>
+      </main>
+    );
   }
 
   return (
     <main style={styles.page}>
-      <header style={styles.header}>
-        <div
-          style={{ ...styles.container, ...styles.nav }}
-          className="container-inline"
-        >
-          <a href="/" aria-label="Voltar para a home">
+      <div style={styles.shell}>
+        <header style={styles.header} className="admin-top-header">
+          <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
             <Image
               src="/logo-white.png"
               alt="Defan Soluções Digitais"
-              width={330}
-              height={110}
-              priority
-              style={styles.logo}
-              className="header-logo-inline"
+              width={300}
+              height={100}
+              style={styles.headerLogo}
             />
-          </a>
-
-          <nav style={styles.navLinks} className="nav-links-inline">
-            <a href="/" style={styles.navLink}>
-              Início
-            </a>
-            <a href="/projetos" style={styles.navLink}>
-              Projetos
-            </a>
-            <a
-              href="https://wa.me/5521988359825"
-              target="_blank"
-              rel="noreferrer"
-              style={styles.cta}
-            >
-              <MessageCircle size={17} />
-              WhatsApp
-            </a>
-          </nav>
-        </div>
-      </header>
-
-      <section
-        style={{ ...styles.container, ...styles.hero }}
-        className="container-inline"
-      >
-        <span style={styles.badge}>
-          <Sparkles size={16} />
-          Catálogo completo de soluções digitais
-        </span>
-
-        <h1 style={styles.h1}>
-          Encontre o projeto ideal para sua empresa.
-          <span style={styles.gradientText}>
-            {" "}
-            Por assinatura ou personalizado.
-          </span>
-        </h1>
-
-        <p style={styles.heroText}>
-          Projetos por assinatura são ideais para clientes que querem começar
-          gastando menos. Projetos personalizados são indicados quando a empresa
-          precisa de algo exclusivo.
-        </p>
-
-        <div style={styles.statsGrid} className="projetos-stats-grid">
-          <div style={styles.statCard}>
-            <strong style={styles.statNumber}>{projects.length}</strong>
-            <span style={styles.statLabel}>projetos cadastrados</span>
+            <div>
+              <h1 style={styles.title}>Painel Admin</h1>
+              <p style={styles.subText}>
+                Cadastre projetos em uma modal e gerencie a lista completa do
+                portfólio.
+              </p>
+            </div>
           </div>
-          <div style={styles.statCard}>
-            <strong style={styles.statNumber}>{subscriptionCount}</strong>
-            <span style={styles.statLabel}>opções por assinatura</span>
-          </div>
-          <div style={styles.statCard}>
-            <strong style={styles.statNumber}>{customCount}</strong>
-            <span style={styles.statLabel}>opções personalizadas</span>
-          </div>
-        </div>
-
-        <section style={styles.filtersTop}>
           <div
             style={{
               display: "flex",
               alignItems: "center",
-              justifyContent: "space-between",
-              gap: 12,
-              marginBottom: 16,
+              gap: 10,
               flexWrap: "wrap",
             }}
           >
-            <div>
-              <span style={styles.kicker}>Filtros</span>
-              <h2
-                style={{ ...styles.h2, fontSize: "clamp(22px, 2.2vw, 32px)" }}
-              >
-                Filtrar projetos
-              </h2>
-            </div>
-            <button type="button" style={styles.ghost} onClick={clearFilters}>
-              Limpar filtros
+            <a href="/" style={styles.secondaryButton}>
+              <ArrowLeft size={17} />
+              Ver site
+            </a>
+            <button style={styles.secondaryButton} onClick={logout}>
+              <LogOut size={17} />
+              Sair
             </button>
           </div>
+        </header>
 
-          <div style={styles.filtersGrid} className="filters-grid-inline">
-            <label style={styles.field}>
-              Buscar
-              <div style={styles.inputWrap}>
-                <Search size={18} color={colors.soft} />
+        <AdminMenu />
+
+        {message && <div style={styles.notice}>{message}</div>}
+
+        <section style={styles.card}>
+          <div className="list-toolbar">
+            <div>
+              <h2 style={styles.cardTitle}>Projetos cadastrados</h2>
+              <p style={styles.cardSub}>
+                {projects.length} projeto(s) no portfólio.
+              </p>
+            </div>
+            <button style={styles.button} onClick={openNewProject}>
+              <Plus size={18} />
+              Novo cadastro
+            </button>
+          </div>
+          <label style={{ ...styles.field, marginBottom: 18 }}>
+            <span style={styles.label}>Buscar projeto</span>
+            <div className="search-box">
+              <Search size={18} color={colors.soft} />
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Nome, tipo, nicho ou modelo comercial..."
+              />
+            </div>
+          </label>
+          <div className="table-wrap">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Imagem</th>
+                  <th>Projeto</th>
+                  <th>Tipo</th>
+                  <th>Nicho</th>
+                  <th>Modelo</th>
+                  <th>Valores</th>
+                  <th>Tecnologias</th>
+                  <th>Detalhes</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredProjects.map((item) => {
+                  const projectId = item.id || item.name;
+                  const imageIndex = imageIndexes[projectId] || 0;
+                  return (
+                    <tr key={projectId}>
+                      <td>
+                        <ProjectImageCell
+                          project={item}
+                          index={imageIndex}
+                          onPrev={() => changeImageIndex(projectId, "prev")}
+                          onNext={() => changeImageIndex(projectId, "next")}
+                        />
+                      </td>
+                      <td>
+                        <strong>{item.name}</strong>
+                        {item.link && (
+                          <a href={item.link} target="_blank" rel="noreferrer">
+                            Abrir projeto
+                          </a>
+                        )}
+                        {item.highlight && (
+                          <span className="mini-badge">Destaque</span>
+                        )}
+                      </td>
+                      <td>{item.type}</td>
+                      <td>{item.niche}</td>
+                      <td>{item.commercialModel}</td>
+                      <td>
+                        {item.startingPrice && (
+                          <span>{item.startingPrice}</span>
+                        )}
+                        {item.monthlyPrice && <span>{item.monthlyPrice}</span>}
+                        {!item.startingPrice && !item.monthlyPrice && (
+                          <span>-</span>
+                        )}
+                      </td>
+                      <td>
+                        <div className="chip-list">
+                          {item.technologies.map((tech) => (
+                            <span key={tech}>{tech}</span>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="text-cell">
+                        <CollapsibleCell
+                          text={`Módulos: ${listToDisplay(item.modules)}\nIntegrações: ${listToDisplay(item.integrations)}\nIndicado: ${listToDisplay(item.indicatedBusinesses)}`}
+                        />
+                      </td>
+                      <td>
+                        <div className="row-actions">
+                          <button
+                            type="button"
+                            className="small-action"
+                            onClick={() => openEditProject(item)}
+                          >
+                            <Edit3 size={15} />
+                          </button>
+                          <button
+                            type="button"
+                            className="small-action danger"
+                            onClick={() => handleDelete(item.id)}
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {!filteredProjects.length && (
+                  <tr>
+                    <td colSpan={10}>Nenhum projeto encontrado.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      {modalOpen && (
+        <div style={styles.modalBackdrop}>
+          <section style={styles.modal}>
+            <header style={styles.modalHeader}>
+              <div>
+                <h2 style={styles.cardTitle}>
+                  {project.id ? "Editar projeto" : "Novo cadastro de projeto"}
+                </h2>
+                <p style={styles.cardSub}>
+                  Preencha os dados, anexe imagens e salve para exibir no
+                  portfólio.
+                </p>
+              </div>
+              <button
+                type="button"
+                style={styles.secondaryButton}
+                onClick={closeModal}
+              >
+                <X size={18} />
+                Fechar
+              </button>
+            </header>
+            <div style={styles.formGrid} className="admin-form-grid">
+              <div style={styles.field}>
+                <label style={styles.label}>Nome do projeto</label>
                 <input
-                  value={filters.search}
-                  onChange={(event) =>
-                    updateFilter("search", event.target.value)
-                  }
-                  placeholder="Nome, nicho, tecnologia..."
+                  value={project.name}
+                  onChange={(event) => updateField("name", event.target.value)}
+                  placeholder="Ex: Sistema de cobrança"
                   style={styles.input}
                 />
               </div>
-            </label>
-
-            <label style={styles.field}>
-              Modelo comercial
-              <select
-                value={filters.commercialModel}
-                onChange={(event) =>
-                  updateFilter("commercialModel", event.target.value)
-                }
-                style={styles.select}
-              >
-                <option>Todos</option>
-                {options.commercialModels.map((item) => (
-                  <option key={item}>{item}</option>
-                ))}
-              </select>
-            </label>
-
-            <label style={styles.field}>
-              Tipo
-              <select
-                value={filters.type}
-                onChange={(event) => updateFilter("type", event.target.value)}
-                style={styles.select}
-              >
-                <option>Todos</option>
-                {options.types.map((item) => (
-                  <option key={item}>{item}</option>
-                ))}
-              </select>
-            </label>
-
-            <label style={styles.field}>
-              Nicho
-              <select
-                value={filters.niche}
-                onChange={(event) => updateFilter("niche", event.target.value)}
-                style={styles.select}
-              >
-                <option>Todos</option>
-                {options.niches.map((item) => (
-                  <option key={item}>{item}</option>
-                ))}
-              </select>
-            </label>
-
-            <label style={styles.field}>
-              Tecnologia
-              <select
-                value={filters.technology}
-                onChange={(event) =>
-                  updateFilter("technology", event.target.value)
-                }
-                style={styles.select}
-              >
-                <option>Todos</option>
-                {options.technologies.map((item) => (
-                  <option key={item}>{item}</option>
-                ))}
-              </select>
-            </label>
-          </div>
-        </section>
-      </section>
-
-      <section
-        style={{ ...styles.container, ...styles.content }}
-        className="container-inline"
-      >
-        <div style={styles.topResult} className="projetos-top-result">
-          <div>
-            <span style={styles.kicker}>Resultado</span>
-            <h2 style={styles.h2}>
-              {filteredProjects.length} projetos encontrados
-            </h2>
-          </div>
-          <a
-            style={styles.cta}
-            href="https://wa.me/5521988359825"
-            target="_blank"
-            rel="noreferrer"
-          >
-            Quero uma indicação
-            <ArrowRight size={17} />
-          </a>
-        </div>
-
-        {loading && (
-          <div style={styles.empty}>
-            <Loader2 size={18} className="spin-local" /> Carregando projetos...
-          </div>
-        )}
-
-        {!loading && filteredProjects.length === 0 && (
-          <div style={styles.empty}>
-            <h3 style={{ margin: "0 0 8px", color: colors.text }}>
-              Nenhum projeto encontrado
-            </h3>
-            <p style={{ margin: 0 }}>
-              Limpe os filtros ou fale no WhatsApp para receber uma indicação.
-            </p>
-          </div>
-        )}
-
-        <div style={styles.grid} className="projetos-grid">
-          {filteredProjects.map((project) => {
-            const isSubscription = safeLower(project.commercialModel).includes(
-              "assinatura",
-            );
-            const technologies = safeArray(project.technologies);
-            const images = getProjectImages(project);
-            const firstImage = images[0];
-
-            return (
-              <article style={styles.card} key={project.id || project.name}>
-                <div style={styles.imageWrap}>
-                  {firstImage ? (
-                    <img
-                      src={firstImage}
-                      alt={project.name}
-                      style={styles.image}
-                    />
-                  ) : (
-                    <div style={styles.imageEmpty}>Defan Soluções Digitais</div>
-                  )}
-                  <div style={styles.imageOverlay} />
-                </div>
-
-                <div style={styles.cardBody}>
-                  <div style={styles.tags}>
-                    {project.type && (
-                      <span style={styles.tag}>{project.type}</span>
-                    )}
-                    {project.commercialModel && (
-                      <span
-                        style={{
-                          ...styles.tag,
-                          ...(isSubscription
-                            ? styles.tagGreen
-                            : styles.tagPurple),
-                        }}
-                      >
-                        {project.commercialModel}
-                      </span>
-                    )}
-                  </div>
-
-                  <h3 style={styles.cardTitle}>{project.name}</h3>
-                  <div style={styles.cardDivider} />
-                  <div style={styles.priceRow} className="projetos-price-row">
-                    {project.startingPrice ? (
-                      <div style={styles.priceCard}>
-                        <small style={styles.priceSmall}>Inicial</small>
-                        <strong style={styles.priceStrong}>
-                          {project.startingPrice}
-                        </strong>
-                      </div>
-                    ) : (
-                      <div style={{ visibility: "hidden" }} />
-                    )}
-                    {project.monthlyPrice ? (
-                      <div style={styles.priceCard}>
-                        <small style={styles.priceSmall}>Mensal</small>
-                        <strong style={styles.priceStrong}>
-                          {project.monthlyPrice}
-                        </strong>
-                      </div>
-                    ) : (
-                      <div style={{ visibility: "hidden" }} />
-                    )}
-                  </div>
-
-                  <div style={styles.tags}>
-                    {project.niche && (
-                      <span style={styles.tag}>{project.niche}</span>
-                    )}
-                    {technologies.slice(0, 3).map((tech) => (
-                      <span style={styles.tag} key={tech}>
-                        {tech}
-                      </span>
-                    ))}
-                  </div>
-
-                  <button
-                    type="button"
-                    style={{
-                      ...styles.ghost,
-                      width: "100%",
-                      marginTop: "auto",
-                      background:
-                        "linear-gradient(135deg, rgba(14,165,233,0.22), rgba(56,189,248,0.12))",
-                      borderColor: "rgba(125, 211, 252, 0.34)",
-                    }}
-                    onClick={() => setSelectedProject(project)}
+              <div style={styles.field}>
+                <label style={styles.label}>Link do projeto</label>
+                <input
+                  value={project.link}
+                  onChange={(event) => updateField("link", event.target.value)}
+                  placeholder="https://..."
+                  style={styles.input}
+                />
+              </div>
+              <div style={styles.field}>
+                <label style={styles.label}>Tipo</label>
+                <div style={styles.optionRow}>
+                  <select
+                    value={project.type}
+                    onChange={(event) =>
+                      updateField("type", event.target.value)
+                    }
+                    style={styles.select}
                   >
-                    Ver detalhes
-                    <ArrowRight size={16} />
+                    {options.types.map((item) => (
+                      <option key={item}>{item}</option>
+                    ))}
+                  </select>
+                  <button
+                    style={styles.button}
+                    type="button"
+                    onClick={() => openOptionModal("types")}
+                    title="Gerenciar tipos"
+                  >
+                    <Plus size={16} />
                   </button>
                 </div>
-              </article>
-            );
-          })}
+              </div>
+              <div style={styles.field}>
+                <label style={styles.label}>Modelo comercial</label>
+                <div style={styles.optionRow}>
+                  <select
+                    value={project.commercialModel}
+                    onChange={(event) =>
+                      updateField("commercialModel", event.target.value)
+                    }
+                    style={styles.select}
+                  >
+                    {options.commercialModels.map((item) => (
+                      <option key={item}>{item}</option>
+                    ))}
+                  </select>
+                  <button
+                    style={styles.button}
+                    type="button"
+                    onClick={() => openOptionModal("commercialModels")}
+                    title="Gerenciar modelos"
+                  >
+                    <Plus size={16} />
+                  </button>
+                </div>
+              </div>
+              <div style={styles.field}>
+                <label style={styles.label}>Nicho</label>
+                <div style={styles.optionRow}>
+                  <select
+                    value={project.niche}
+                    onChange={(event) =>
+                      updateField("niche", event.target.value)
+                    }
+                    style={styles.select}
+                  >
+                    {options.niches.map((item) => (
+                      <option key={item}>{item}</option>
+                    ))}
+                  </select>
+                  <button
+                    style={styles.button}
+                    type="button"
+                    onClick={() => openOptionModal("niches")}
+                    title="Gerenciar nichos"
+                  >
+                    <Plus size={16} />
+                  </button>
+                </div>
+              </div>
+              <div style={styles.field}>
+                <label style={styles.label}>Investimento inicial</label>
+                <input
+                  value={project.startingPrice}
+                  onChange={(event) =>
+                    updateField("startingPrice", event.target.value)
+                  }
+                  placeholder="Ex: A partir de R$ 399,00"
+                  style={styles.input}
+                />
+              </div>
+              <div style={styles.field}>
+                <label style={styles.label}>Mensalidade</label>
+                <input
+                  value={project.monthlyPrice}
+                  onChange={(event) =>
+                    updateField("monthlyPrice", event.target.value)
+                  }
+                  placeholder="Ex: R$ 99,00/mês"
+                  style={styles.input}
+                />
+              </div>
+              <div style={{ ...styles.field, gridColumn: "1 / -1" }}>
+                <label style={styles.label}>Imagens do projeto</label>
+                <label className="upload-box">
+                  <UploadCloud size={24} />
+                  <strong>
+                    {uploading
+                      ? "Enviando imagem..."
+                      : "Clique para anexar imagem"}
+                  </strong>
+                  <span>
+                    Você pode selecionar uma ou várias imagens do computador.
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={(event) => handleUploadImages(event.target.files)}
+                    disabled={uploading}
+                  />
+                </label>
+                {!!project.images.length && (
+                  <div className="preview-images">
+                    {project.images.map((url) => (
+                      <div key={url} className="preview-image-card">
+                        <img src={url} alt="Imagem do projeto" />
+                        <button type="button" onClick={() => removeImage(url)}>
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div style={{ ...styles.field, gridColumn: "1 / -1" }}>
+                <label style={styles.label}>Tecnologias utilizadas</label>
+                <div style={styles.optionRow}>
+                  <select
+                    multiple
+                    value={project.technologies}
+                    onChange={(event) => {
+                      const values = Array.from(
+                        event.target.selectedOptions,
+                      ).map((item) => item.value);
+                      updateField("technologies", values);
+                    }}
+                    style={{ ...styles.select, minHeight: 132 }}
+                  >
+                    {options.technologies.map((item) => (
+                      <option key={item}>{item}</option>
+                    ))}
+                  </select>
+                  <button
+                    style={styles.button}
+                    type="button"
+                    onClick={() => openOptionModal("technologies")}
+                    title="Gerenciar tecnologias"
+                  >
+                    <Plus size={16} />
+                  </button>
+                </div>
+              </div>
+              <div style={{ ...styles.field, gridColumn: "1 / -1" }}>
+                <label style={styles.label}>Descrição completa</label>
+                <textarea
+                  value={project.fullDescription}
+                  onChange={(event) =>
+                    updateField("fullDescription", event.target.value)
+                  }
+                  placeholder="Descrição completa para o modal de detalhes."
+                  style={styles.textarea}
+                />
+              </div>
+              <div style={styles.field}>
+                <label style={styles.label}>
+                  Módulos disponíveis, um por linha
+                </label>
+                <textarea
+                  value={listToText(project.modules)}
+                  onChange={(event) =>
+                    updateField("modules", textToList(event.target.value))
+                  }
+                  style={styles.textarea}
+                />
+              </div>
+              <div style={styles.field}>
+                <label style={styles.label}>
+                  Integrações disponíveis, uma por linha
+                </label>
+                <textarea
+                  value={listToText(project.integrations)}
+                  onChange={(event) =>
+                    updateField("integrations", textToList(event.target.value))
+                  }
+                  style={styles.textarea}
+                />
+              </div>
+              <div style={styles.field}>
+                <label style={styles.label}>
+                  Negócios indicados, um por linha
+                </label>
+                <textarea
+                  value={listToText(project.indicatedBusinesses)}
+                  onChange={(event) =>
+                    updateField(
+                      "indicatedBusinesses",
+                      textToList(event.target.value),
+                    )
+                  }
+                  style={styles.textarea}
+                />
+              </div>
+              <div style={styles.field}>
+                <label style={styles.label}>
+                  Fluxo básico de uso, um passo por linha
+                </label>
+                <textarea
+                  value={listToText(project.basicFlow)}
+                  onChange={(event) =>
+                    updateField("basicFlow", textToList(event.target.value))
+                  }
+                  style={styles.textarea}
+                />
+              </div>
+              <div style={{ ...styles.field, gridColumn: "1 / -1" }}>
+                <label style={styles.label}>SEO Title</label>
+                <input
+                  value={project.seoTitle || ""}
+                  onChange={(event) =>
+                    updateField("seoTitle", event.target.value)
+                  }
+                  placeholder="Ex: Sistema de cobrança para empresas | Defan Soluções Digitais"
+                  style={styles.input}
+                />
+              </div>
+
+              <div style={{ ...styles.field, gridColumn: "1 / -1" }}>
+                <label style={styles.label}>SEO Description</label>
+                <textarea
+                  value={project.seoDescription || ""}
+                  onChange={(event) =>
+                    updateField("seoDescription", event.target.value)
+                  }
+                  placeholder="Descrição curta para o Google. Ex: Sistema de cobrança online com clientes, parcelas, juros, relatórios e automações."
+                  style={{ ...styles.textarea, minHeight: 86 }}
+                />
+              </div>
+
+              <div style={styles.field}>
+                <label style={styles.label}>SEO Keywords, uma por linha</label>
+                <textarea
+                  value={listToText(project.seoKeywords)}
+                  onChange={(event) =>
+                    updateField("seoKeywords", textToList(event.target.value))
+                  }
+                  placeholder={
+                    "sistema de cobrança\nsistema financeiro\nautomação de cobranças\nsoftware para empresas"
+                  }
+                  style={styles.textarea}
+                />
+              </div>
+
+              <div style={styles.field}>
+                <label style={styles.label}>Cidade/Localização SEO</label>
+                <input
+                  value={project.seoLocation || ""}
+                  onChange={(event) =>
+                    updateField("seoLocation", event.target.value)
+                  }
+                  placeholder="Ex: Campo Grande - MS"
+                  style={styles.input}
+                />
+              </div>
+
+              <div style={{ ...styles.field, gridColumn: "1 / -1" }}>
+                <label style={styles.label}>Texto SEO completo</label>
+                <textarea
+                  value={project.seoText || ""}
+                  onChange={(event) =>
+                    updateField("seoText", event.target.value)
+                  }
+                  placeholder="Texto mais completo usando palavras-chave reais. Ex: Este projeto é indicado para empresas que precisam organizar cobranças, clientes, pagamentos e relatórios em um painel profissional."
+                  style={{ ...styles.textarea, minHeight: 150 }}
+                />
+              </div>
+
+              <div style={{ ...styles.field, gridColumn: "1 / -1" }}>
+                <label style={styles.label}>
+                  FAQ SEO, uma pergunta por linha no formato: Pergunta |
+                  Resposta
+                </label>
+                <textarea
+                  value={faqListToText(project.seoFaqs)}
+                  onChange={(event) =>
+                    updateField("seoFaqs", textToFaqList(event.target.value))
+                  }
+                  placeholder={
+                    "Esse projeto funciona no celular? | Sim, o projeto é responsivo e funciona em celular, tablet e computador.\nPosso personalizar esse sistema? | Sim, os módulos podem ser adaptados conforme a necessidade da empresa."
+                  }
+                  style={{ ...styles.textarea, minHeight: 130 }}
+                />
+              </div>
+
+              <label className="highlight-check">
+                <input
+                  type="checkbox"
+                  checked={project.highlight}
+                  onChange={(event) =>
+                    updateField("highlight", event.target.checked)
+                  }
+                />
+                Destacar na página inicial
+              </label>
+            </div>
+            <div style={styles.actions}>
+              <button
+                style={styles.button}
+                onClick={handleSave}
+                disabled={savingProject}
+              >
+                {savingProject ? (
+                  <>
+                    <Loader2 className="spin" size={16} />
+                    Salvando...
+                  </>
+                ) : (
+                  <>
+                    <Save size={16} />
+                    Salvar projeto
+                  </>
+                )}
+              </button>
+              <button style={styles.secondaryButton} onClick={closeModal}>
+                Cancelar
+              </button>
+            </div>
+          </section>
         </div>
-      </section>
-
-      <footer style={styles.footer}>
-        <div
-          style={{ ...styles.container, ...styles.footerGrid }}
-          className="container-inline footer-grid-inline"
-        >
-          <div>
-            <a href="/" aria-label="Voltar para a home">
-              <Image
-                src="/logo-white.png"
-                alt="Defan Soluções Digitais"
-                width={260}
-                height={90}
-                style={{
-                  width: "auto",
-                  height: 76,
-                  objectFit: "contain",
-                  marginBottom: 16,
-                }}
-              />
-            </a>
-            <p style={{ color: colors.muted, lineHeight: 1.68, margin: 0 }}>
-              Defan Soluções Digitais — landing pages, websites, sistemas e
-              automações para empresas.
-            </p>
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              gap: 12,
-              flexWrap: "wrap",
-              justifyContent: "flex-end",
-            }}
-          >
-            <a href="/" style={styles.ghost}>
-              Voltar para home
-            </a>
-            <a
-              href="https://wa.me/5521988359825"
-              target="_blank"
-              rel="noreferrer"
-              style={styles.cta}
-            >
-              Falar no WhatsApp
-            </a>
-          </div>
-        </div>
-      </footer>
-
-      {selectedProject && (
-        <ProjectDetailsModal
-          project={selectedProject}
-          onClose={() => setSelectedProject(null)}
-        />
       )}
 
-      <style jsx>{`
-        .spin-local {
-          animation: spinLocal 1s linear infinite;
-          vertical-align: middle;
-          margin-right: 8px;
-        }
+      {optionModalOpen && (
+        <div style={styles.modalBackdrop}>
+          <section style={styles.smallModal}>
+            <header style={styles.modalHeader}>
+              <div>
+                <h2 style={styles.cardTitle}>
+                  {optionLabels[activeOptionCategory]}
+                </h2>
+                <p style={styles.cardSub}>
+                  Cadastre, edite ou exclua as opções exibidas nos selects.
+                </p>
+              </div>
+              <button
+                type="button"
+                style={styles.secondaryButton}
+                onClick={() => setOptionModalOpen(false)}
+              >
+                <X size={18} />
+                Fechar
+              </button>
+            </header>
+            <div className="option-add-box">
+              <input
+                value={newOptionValue}
+                onChange={(event) => setNewOptionValue(event.target.value)}
+                placeholder="Nova opção"
+              />
+              <button type="button" onClick={handleAddOption}>
+                <Plus size={16} />
+                Adicionar
+              </button>
+            </div>
+            <div className="option-list-box">
+              {(options[activeOptionCategory] || []).map((item, index) => (
+                <div className="option-list-item" key={`${item}-${index}`}>
+                  {editingOptionIndex === index ? (
+                    <input
+                      value={editingOptionValue}
+                      onChange={(event) =>
+                        setEditingOptionValue(event.target.value)
+                      }
+                    />
+                  ) : (
+                    <strong>{item}</strong>
+                  )}
+                  <div>
+                    {editingOptionIndex === index ? (
+                      <button type="button" onClick={confirmEditOption}>
+                        <Save size={15} />
+                        Salvar
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingOptionIndex(index);
+                          setEditingOptionValue(item);
+                        }}
+                      >
+                        <Edit3 size={15} />
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className="danger"
+                      onClick={() => deleteOption(index)}
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {!options[activeOptionCategory]?.length && (
+                <p className="empty-option-list">Nenhuma opção cadastrada.</p>
+              )}
+            </div>
+          </section>
+        </div>
+      )}
 
-        @keyframes spinLocal {
-          to {
-            transform: rotate(360deg);
-          }
-        }
-
-        .projetos-grid article {
-          transition:
-            transform 0.22s ease,
-            border-color 0.22s ease,
-            box-shadow 0.22s ease;
-        }
-
-        .projetos-grid article:hover {
-          transform: translateY(-7px);
-          border-color: rgba(125, 211, 252, 0.38) !important;
-          box-shadow: 0 28px 84px rgba(14, 165, 233, 0.16) !important;
-        }
-
-        .projetos-grid article:hover img {
-          transform: scale(1.045) !important;
-          transition: transform 0.35s ease;
-        }
-
-        .project-modal-box-inline::-webkit-scrollbar {
-          width: 10px;
-        }
-
-        .project-modal-box-inline::-webkit-scrollbar-track {
-          background: rgba(2, 6, 23, 0.5);
-        }
-
-        .project-modal-box-inline::-webkit-scrollbar-thumb {
-          background: rgba(56, 189, 248, 0.75);
-          border-radius: 999px;
-        }
-
-        @media (max-width: 1180px) {
-          .filters-grid-inline {
-            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-          }
-
-          .projetos-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-          }
-
-          .project-modal-content-inline {
-            grid-template-columns: 1fr !important;
-          }
-        }
-
-        @media (max-width: 760px) {
-          .container-inline {
-            width: min(100% - 28px, 1440px) !important;
-          }
-
-          .nav-links-inline {
-            display: none !important;
-          }
-
-          .header-logo-inline {
-            height: 64px !important;
-          }
-
-          .projetos-stats-grid,
-          .projetos-grid,
-          .filters-grid-inline,
-          .project-modal-lists-inline,
-          .project-detail-grid-inline,
-          .footer-grid-inline {
-            grid-template-columns: 1fr !important;
-          }
-
-          .projetos-top-result {
-            align-items: flex-start !important;
-            flex-direction: column !important;
-          }
-
-          .projetos-price-row {
-            grid-template-columns: 1fr !important;
-          }
-
-          .project-modal-image-inline {
-            height: 260px !important;
-          }
-
-          .project-thumbs-inline {
-            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-          }
-        }
-      `}</style>
+      <AdminGlobalStyle />
     </main>
+  );
+}
+
+function AdminGlobalStyle() {
+  return (
+    <style jsx global>{`
+      a {
+        text-decoration: none;
+      }
+      .spin {
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .admin-badge {
+        display: inline-flex;
+        width: fit-content;
+        align-items: center;
+        gap: 7px;
+        padding: 8px 11px;
+        border-radius: 999px;
+        background: rgba(14, 165, 233, 0.12);
+        border: 1px solid rgba(125, 211, 252, 0.18);
+        color: #bae6fd;
+        font-size: 12px;
+        font-weight: 900;
+      }
+      .icon-password-button {
+        border: 0;
+        background: transparent;
+        color: #94a3b8;
+        cursor: pointer;
+        padding: 0 14px;
+        height: 100%;
+        display: grid;
+        place-items: center;
+      }
+      .list-toolbar {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 18px;
+        margin-bottom: 18px;
+      }
+      .search-box {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid rgba(125, 211, 252, 0.18);
+        background: rgba(2, 6, 23, 0.45);
+        border-radius: 16px;
+        padding: 0 13px;
+      }
+      .search-box input {
+        border: 0;
+        outline: 0;
+        color: #f8fafc;
+        background: transparent;
+        padding: 13px 0;
+      }
+      .table-wrap {
+        width: 100%;
+        max-width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+        border-radius: 22px;
+        border: 1px solid rgba(125, 211, 252, 0.16);
+        padding-bottom: 8px;
+      }
+
+      .table-wrap::-webkit-scrollbar {
+        height: 10px;
+      }
+
+      .table-wrap::-webkit-scrollbar-track {
+        background: rgba(2, 6, 23, 0.45);
+        border-radius: 999px;
+      }
+
+      .table-wrap::-webkit-scrollbar-thumb {
+        background: #0ea5e9;
+        border-radius: 999px;
+      }
+
+      .admin-table {
+        width: 100%;
+        min-width: 1900px;
+        table-layout: fixed;
+        border-collapse: collapse;
+        background: rgba(2, 6, 23, 0.32);
+      }
+      .admin-table th,
+      .admin-table td {
+        padding: 14px;
+        border-bottom: 1px solid rgba(125, 211, 252, 0.1);
+        text-align: left;
+        vertical-align: top;
+        color: #cbd5e1;
+        font-size: 14px;
+      }
+      .admin-table th {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background: #0f172a;
+        color: #e0f2fe;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .admin-table th:nth-child(1),
+      .admin-table td:nth-child(1) {
+        width: 170px;
+      }
+
+      .admin-table th:nth-child(2),
+      .admin-table td:nth-child(2) {
+        width: 250px;
+      }
+
+      .admin-table th:nth-child(3),
+      .admin-table td:nth-child(3) {
+        width: 160px;
+      }
+
+      .admin-table th:nth-child(4),
+      .admin-table td:nth-child(4) {
+        width: 180px;
+      }
+
+      .admin-table th:nth-child(5),
+      .admin-table td:nth-child(5) {
+        width: 220px;
+      }
+
+      .admin-table th:nth-child(6),
+      .admin-table td:nth-child(6) {
+        width: 180px;
+      }
+
+      .admin-table th:nth-child(7),
+      .admin-table td:nth-child(7) {
+        width: 280px;
+      }
+
+      .admin-table th:nth-child(8),
+      .admin-table td:nth-child(8) {
+        width: 340px;
+      }
+
+      .admin-table th:nth-child(9),
+      .admin-table td:nth-child(9) {
+        width: 360px;
+      }
+
+      .admin-table th:nth-child(10),
+      .admin-table td:nth-child(10) {
+        width: 130px;
+      }
+
+      .admin-table td strong {
+        color: #f8fafc;
+      }
+      .admin-table td a {
+        display: block;
+        color: #7dd3fc;
+        margin-top: 6px;
+        font-size: 13px;
+      }
+      .admin-table td > span {
+        display: block;
+        margin-bottom: 4px;
+      }
+      .text-cell {
+        max-width: 440px;
+        line-height: 1.55;
+      }
+      .collapsed-text {
+        max-width: 440px;
+      }
+      .collapsed-text-content {
+        color: #cbd5e1;
+        line-height: 1.55;
+        white-space: pre-wrap;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 4;
+        -webkit-box-orient: vertical;
+      }
+      .collapsed-text.open .collapsed-text-content {
+        display: block;
+        overflow: visible;
+        -webkit-line-clamp: unset;
+      }
+      .collapsed-text-button {
+        margin-top: 8px;
+        border: 0;
+        border-radius: 999px;
+        padding: 7px 11px;
+        background: rgba(14, 165, 233, 0.16);
+        color: #bae6fd;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 900;
+      }
+      .collapsed-text-empty {
+        color: #94a3b8;
+      }
+      .chip-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        max-width: 250px;
+      }
+      .chip-list span,
+      .mini-badge {
+        display: inline-flex;
+        width: fit-content;
+        padding: 6px 8px;
+        border-radius: 999px;
+        color: #bae6fd;
+        background: rgba(14, 165, 233, 0.12);
+        border: 1px solid rgba(125, 211, 252, 0.16);
+        font-size: 12px;
+        font-weight: 900;
+      }
+      .mini-badge {
+        margin-top: 8px;
+        color: #bbf7d0;
+        background: rgba(34, 197, 94, 0.12);
+      }
+      .image-cell {
+        width: 118px;
+      }
+      .image-cell img,
+      .image-empty {
+        width: 112px;
+        height: 78px;
+        border-radius: 14px;
+        object-fit: cover;
+        background: rgba(15, 23, 42, 0.9);
+        border: 1px solid rgba(125, 211, 252, 0.16);
+      }
+      .image-empty {
+        display: grid;
+        place-items: center;
+        color: #7dd3fc;
+      }
+      .image-arrows {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        margin-top: 8px;
+      }
+      .image-arrows button {
+        width: 26px;
+        height: 26px;
+        border: 0;
+        border-radius: 8px;
+        color: #e0f2fe;
+        background: rgba(14, 165, 233, 0.18);
+        cursor: pointer;
+        display: grid;
+        place-items: center;
+      }
+      .image-arrows span {
+        color: #94a3b8;
+        font-size: 12px;
+        font-weight: 900;
+      }
+      .row-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .small-action {
+        border: 0;
+        border-radius: 12px;
+        padding: 10px 12px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        color: #e0f2fe;
+        background: rgba(14, 165, 233, 0.16);
+        cursor: pointer;
+        font-weight: 900;
+      }
+      .small-action.danger {
+        color: #fff;
+        background: rgba(239, 68, 68, 0.82);
+      }
+      .upload-box {
+        border: 1px dashed rgba(125, 211, 252, 0.36);
+        border-radius: 22px;
+        padding: 24px;
+        background: rgba(2, 6, 23, 0.36);
+        display: grid;
+        place-items: center;
+        gap: 8px;
+        color: #cbd5e1;
+        cursor: pointer;
+        text-align: center;
+      }
+      .upload-box svg {
+        color: #7dd3fc;
+      }
+      .upload-box strong {
+        color: #f8fafc;
+      }
+      .upload-box span {
+        color: #94a3b8;
+        font-size: 13px;
+      }
+      .upload-box input {
+        display: none;
+      }
+      .preview-images {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 12px;
+      }
+      .preview-image-card {
+        position: relative;
+        width: 130px;
+        height: 92px;
+        border-radius: 16px;
+        overflow: hidden;
+        border: 1px solid rgba(125, 211, 252, 0.18);
+      }
+      .preview-image-card img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .preview-image-card button {
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        width: 28px;
+        height: 28px;
+        border: 0;
+        border-radius: 50%;
+        background: rgba(239, 68, 68, 0.94);
+        color: white;
+        display: grid;
+        place-items: center;
+        cursor: pointer;
+      }
+      .highlight-check {
+        grid-column: 1 / -1;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: #cbd5e1;
+        font-weight: 900;
+      }
+      .option-add-box {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 10px;
+        margin-bottom: 18px;
+      }
+      .option-add-box input,
+      .option-list-item input {
+        width: 100%;
+        border: 1px solid rgba(125, 211, 252, 0.18);
+        background: rgba(2, 6, 23, 0.45);
+        color: #f8fafc;
+        outline: none;
+        border-radius: 16px;
+        padding: 13px 14px;
+      }
+      .option-add-box button,
+      .option-list-item button {
+        border: 0;
+        border-radius: 14px;
+        padding: 11px 13px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        color: white;
+        background: linear-gradient(135deg, #0ea5e9, #38bdf8);
+        cursor: pointer;
+        font-weight: 900;
+      }
+      .option-list-box {
+        display: grid;
+        gap: 10px;
+      }
+      .option-list-item {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 10px;
+        align-items: center;
+        padding: 12px;
+        border-radius: 18px;
+        background: rgba(2, 6, 23, 0.35);
+        border: 1px solid rgba(125, 211, 252, 0.12);
+      }
+      .option-list-item > div {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .option-list-item .danger {
+        background: rgba(239, 68, 68, 0.9);
+      }
+      .empty-option-list {
+        color: #94a3b8;
+      }
+      @media (max-width: 1080px) {
+        .admin-top-header,
+        .list-toolbar {
+          align-items: flex-start !important;
+          flex-direction: column !important;
+        }
+      }
+      @media (max-width: 900px) {
+        .admin-login-card {
+          grid-template-columns: 1fr !important;
+        }
+      }
+      @media (max-width: 760px) {
+        .admin-form-grid {
+          grid-template-columns: 1fr !important;
+        }
+        .option-add-box,
+        .option-list-item {
+          grid-template-columns: 1fr !important;
+        }
+      }
+    `}</style>
   );
 }

@@ -1673,6 +1673,29 @@ export default function HomePage() {
                           flex: 1,
                         }}
                       >
+                        <h3
+                          style={{
+                            margin: "0 0 12px",
+                            fontSize: 25,
+                            lineHeight: 1.08,
+                            letterSpacing: "-0.045em",
+                            display: "flex",
+                            alignItems: "flex-start",
+                          }}
+                        >
+                          {project.name}
+                        </h3>
+
+                        <div
+                          style={{
+                            width: "100%",
+                            height: 1,
+                            background:
+                              "linear-gradient(90deg, rgba(56,189,248,0.5), rgba(125,211,252,0.04))",
+                            margin: "2px 0 14px",
+                          }}
+                        />
+
                         <div
                           style={{
                             display: "flex",
@@ -1698,30 +1721,11 @@ export default function HomePage() {
                               {project.commercialModel}
                             </span>
                           )}
+
+                          {project.niche && (
+                            <span style={tagStyle}>{project.niche}</span>
+                          )}
                         </div>
-
-                        <h3
-                          style={{
-                            margin: "0 0 12px",
-                            fontSize: 25,
-                            lineHeight: 1.08,
-                            letterSpacing: "-0.045em",
-                            display: "flex",
-                            alignItems: "flex-start",
-                          }}
-                        >
-                          {project.name}
-                        </h3>
-
-                        <div
-                          style={{
-                            width: "100%",
-                            height: 1,
-                            background:
-                              "linear-gradient(90deg, rgba(56,189,248,0.5), rgba(125,211,252,0.04))",
-                            margin: "2px 0 4px",
-                          }}
-                        />
 
                         {(project.startingPrice || project.monthlyPrice) && (
                           <div
@@ -1776,25 +1780,23 @@ export default function HomePage() {
                           </div>
                         )}
 
-                        <div
-                          style={{
-                            display: "flex",
-                            flexWrap: "wrap",
-                            gap: 8,
-                            marginBottom: 16,
-                            alignContent: "flex-start",
-                          }}
-                        >
-                          {project.niche && (
-                            <span style={tagStyle}>{project.niche}</span>
-                          )}
-
-                          {project.technologies?.slice(0, 2).map((tech) => (
-                            <span style={tagStyle} key={tech}>
-                              {tech}
-                            </span>
-                          ))}
-                        </div>
+                        {!!project.technologies?.length && (
+                          <div
+                            style={{
+                              display: "flex",
+                              flexWrap: "wrap",
+                              gap: 8,
+                              marginBottom: 16,
+                              alignContent: "flex-start",
+                            }}
+                          >
+                            {project.technologies.slice(0, 2).map((tech) => (
+                              <span style={tagStyle} key={tech}>
+                                {tech}
+                              </span>
+                            ))}
+                          </div>
+                        )}
 
                         <button
                           type="button"
