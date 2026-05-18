@@ -115,6 +115,69 @@ export type LeadSale = {
   updatedAt?: string;
 };
 
+/* =========================
+   PROJETOS
+========================= */
+
+export type OptionCategory =
+  | "types"
+  | "niches"
+  | "technologies"
+  | "commercialModels";
+
+export type Project = {
+  id?: string;
+
+  name: string;
+
+  type: string;
+
+  niche: string;
+
+  commercialModel: string;
+
+  startingPrice?: string;
+
+  monthlyPrice?: string;
+
+  technologies: string[];
+
+  link?: string;
+
+  imageUrl?: string;
+
+  images?: string[];
+
+  cardSummary?: string;
+
+  fullDescription?: string;
+
+  modules?: string[];
+
+  integrations?: string[];
+
+  indicatedBusinesses?: string[];
+
+  basicFlow?: string[];
+
+  highlight?: boolean;
+
+  seoTitle?: string;
+
+  seoDescription?: string;
+
+  seoKeywords?: string[];
+
+  seoLocation?: string;
+
+  seoText?: string;
+
+  seoFaqs?: {
+    question: string;
+    answer: string;
+  }[];
+};
+
 export const emptyLead: Lead = {
   companyName: "",
   contactName: "",
@@ -160,6 +223,7 @@ export const emptyLeadSale: LeadSale = {
   includedItems: "",
   accessInfo: "",
   notes: "",
+
   isInstallment: false,
   installmentsTotal: "",
   firstInstallmentDueDate: "",
@@ -188,31 +252,35 @@ export const defaultLeadOptions: Record<LeadOptionCategory, LeadOptionItem[]> =
       { value: "eventos", label: "Eventos" },
       { value: "outro", label: "Outro" },
     ],
+
     statuses: [
       { value: "nenhum", label: "Nenhum" },
       { value: "interessado", label: "Interessado" },
       { value: "sem_interesse", label: "Sem interesse" },
       { value: "cliente", label: "Cliente" },
     ],
+
     siteStatuses: [
       {
         value: "sem_site",
         label: "Não possui site",
         messageText:
-          "Olá, tudo bem? Vi que a {empresa} ainda não possui um site profissional. Hoje, muitos clientes pesquisam no Google antes de comprar ou entrar em contato. Posso criar uma landing page moderna, rápida e preparada para gerar contatos pelo WhatsApp, com investimento acessível e entrega ágil.",
+          "Olá, tudo bem? Vi que a {empresa} ainda não possui um site profissional.",
       },
+
       {
         value: "site_desatualizado",
         label: "Site desatualizado",
-        messageText:
-          "Olá, tudo bem? Analisei a presença digital da {empresa} e percebi que o site atual pode ser modernizado para transmitir mais confiança, carregar melhor no celular e converter mais visitantes em clientes. Posso te mostrar uma proposta simples para renovar essa presença online.",
+        messageText: "Olá, tudo bem? Analisei a presença digital da {empresa}.",
       },
+
       {
         value: "so_instagram",
         label: "Só tem Instagram",
         messageText:
-          "Olá, tudo bem? Vi que a {empresa} usa bastante as redes sociais. Isso é ótimo, mas ter um site profissional aumenta a confiança, facilita aparecer no Google e centraliza informações, serviços e WhatsApp em um único lugar. Posso criar uma página objetiva para transformar visitantes em contatos.",
+          "Olá, tudo bem? Vi que a {empresa} usa bastante as redes sociais.",
       },
+
       {
         value: "site_bom",
         label: "Site bom",
