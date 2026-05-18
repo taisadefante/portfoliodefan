@@ -39,7 +39,9 @@ import {
   saveProject,
   saveProjectOptions,
 } from "@/lib/firestore";
-import { OptionCategory, Project } from "@/lib/types";
+import { Project } from "@/lib/types";
+
+type OptionCategory = "types" | "niches" | "technologies" | "commercialModels";
 import AdminMenu from "../../../components/admin/AdminMenu.tsx";
 
 type SeoFaqItem = {
@@ -108,7 +110,8 @@ const styles: Record<string, CSSProperties> = {
     fontFamily: "Arial, Helvetica, sans-serif",
   },
   shell: {
-    width: "min(1500px, calc(100% - 40px))",
+    width: "calc(100vw - 32px)",
+    maxWidth: "none",
     margin: "0 auto",
     padding: "28px 0 70px",
   },
@@ -1609,13 +1612,33 @@ function AdminGlobalStyle() {
         padding: 13px 0;
       }
       .table-wrap {
-        overflow: auto;
+        width: 100%;
+        max-width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
         border-radius: 22px;
         border: 1px solid rgba(125, 211, 252, 0.16);
+        padding-bottom: 8px;
       }
+
+      .table-wrap::-webkit-scrollbar {
+        height: 10px;
+      }
+
+      .table-wrap::-webkit-scrollbar-track {
+        background: rgba(2, 6, 23, 0.45);
+        border-radius: 999px;
+      }
+
+      .table-wrap::-webkit-scrollbar-thumb {
+        background: #0ea5e9;
+        border-radius: 999px;
+      }
+
       .admin-table {
         width: 100%;
-        min-width: 1320px;
+        min-width: 1900px;
+        table-layout: fixed;
         border-collapse: collapse;
         background: rgba(2, 6, 23, 0.32);
       }
@@ -1638,6 +1661,57 @@ function AdminGlobalStyle() {
         text-transform: uppercase;
         letter-spacing: 0.08em;
       }
+
+      .admin-table th:nth-child(1),
+      .admin-table td:nth-child(1) {
+        width: 170px;
+      }
+
+      .admin-table th:nth-child(2),
+      .admin-table td:nth-child(2) {
+        width: 250px;
+      }
+
+      .admin-table th:nth-child(3),
+      .admin-table td:nth-child(3) {
+        width: 160px;
+      }
+
+      .admin-table th:nth-child(4),
+      .admin-table td:nth-child(4) {
+        width: 180px;
+      }
+
+      .admin-table th:nth-child(5),
+      .admin-table td:nth-child(5) {
+        width: 220px;
+      }
+
+      .admin-table th:nth-child(6),
+      .admin-table td:nth-child(6) {
+        width: 180px;
+      }
+
+      .admin-table th:nth-child(7),
+      .admin-table td:nth-child(7) {
+        width: 280px;
+      }
+
+      .admin-table th:nth-child(8),
+      .admin-table td:nth-child(8) {
+        width: 340px;
+      }
+
+      .admin-table th:nth-child(9),
+      .admin-table td:nth-child(9) {
+        width: 360px;
+      }
+
+      .admin-table th:nth-child(10),
+      .admin-table td:nth-child(10) {
+        width: 130px;
+      }
+
       .admin-table td strong {
         color: #f8fafc;
       }
@@ -1652,11 +1726,11 @@ function AdminGlobalStyle() {
         margin-bottom: 4px;
       }
       .text-cell {
-        max-width: 310px;
+        max-width: 440px;
         line-height: 1.55;
       }
       .collapsed-text {
-        max-width: 310px;
+        max-width: 440px;
       }
       .collapsed-text-content {
         color: #cbd5e1;
