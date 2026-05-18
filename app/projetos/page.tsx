@@ -16,7 +16,37 @@ import {
 } from "lucide-react";
 
 import { getProjectOptions, getProjects } from "@/lib/firestore";
-import { OptionCategory, Project } from "@/lib/types";
+type OptionCategory = "types" | "niches" | "technologies" | "commercialModels";
+
+type Project = {
+  id?: string;
+  name: string;
+  type: string;
+  niche: string;
+  commercialModel: string;
+  startingPrice?: string;
+  monthlyPrice?: string;
+  technologies: string[];
+  link?: string;
+  imageUrl?: string;
+  images?: string[];
+  cardSummary?: string;
+  fullDescription?: string;
+  modules?: string[];
+  integrations?: string[];
+  indicatedBusinesses?: string[];
+  basicFlow?: string[];
+  highlight?: boolean;
+  seoTitle?: string;
+  seoDescription?: string;
+  seoKeywords?: string[];
+  seoLocation?: string;
+  seoText?: string;
+  seoFaqs?: {
+    question: string;
+    answer: string;
+  }[];
+};
 
 type Filters = {
   search: string;
@@ -940,8 +970,8 @@ export default function ProjetosPage() {
           getProjects(),
           getProjectOptions(),
         ]);
-        setProjects(projectList);
-        setOptions(optionList);
+        setProjects(projectList as Project[]);
+        setOptions(optionList as Record<OptionCategory, string[]>);
       } catch (error) {
         console.error("Erro ao carregar projetos:", error);
         setProjects([]);
