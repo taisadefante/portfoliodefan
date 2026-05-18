@@ -39,10 +39,32 @@ import {
   saveProject,
   saveProjectOptions,
 } from "@/lib/firestore";
-import { Project } from "@/lib/types";
+import AdminMenu from "../../../components/admin/AdminMenu.tsx";
 
 type OptionCategory = "types" | "niches" | "technologies" | "commercialModels";
-import AdminMenu from "../../../components/admin/AdminMenu.tsx";
+
+type Project = {
+  id?: string;
+  name: string;
+  type: string;
+  niche: string;
+  commercialModel: string;
+  startingPrice: string;
+  monthlyPrice: string;
+  technologies: string[];
+  link: string;
+  imageUrl: string;
+  images: string[];
+  cardSummary: string;
+  fullDescription: string;
+  modules: string[];
+  integrations: string[];
+  indicatedBusinesses: string[];
+  basicFlow: string[];
+  highlight: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+};
 
 type SeoFaqItem = {
   question: string;
