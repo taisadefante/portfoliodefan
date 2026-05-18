@@ -53,7 +53,7 @@ import {
   LeadOptionItem,
   leadOptionCategoryLabels,
 } from "@/lib/leadsTypes";
-import AdminMenu from "../../../components/admin/AdminMenu.tsx";
+import AdminMenu from "../../../components/admin/AdminMenu";
 
 const colors = {
   panel: "rgba(15, 23, 42, 0.78)",
@@ -376,6 +376,9 @@ async function fileToDataUrl(file?: File | null) {
   });
 }
 
+type LeadStatusValue = NonNullable<Lead["status"]>;
+type LeadTemperatureValue = NonNullable<Lead["temperature"]>;
+
 const salesStatusOptions: LeadOptionItem[] = [
   { value: "nenhum", label: "Nenhum" },
   { value: "interessado", label: "Interessado" },
@@ -385,19 +388,22 @@ const salesStatusOptions: LeadOptionItem[] = [
 
 const salesStatusTabs = salesStatusOptions;
 
-function getLeadStatusValue(status?: string) {
+function getLeadStatusValue(status?: string): LeadStatusValue {
   const clean = String(status || "").trim();
 
-  if (["interessado"].includes(clean)) return "interessado";
+  if (["interessado"].includes(clean)) return "interessado" as LeadStatusValue;
   if (
     ["sem_interesse", "sem interesse", "perdido", "sem_interesse_"].includes(
       clean,
     )
-  )
-    return "sem_interesse";
-  if (["cliente", "fechado", "finalizado"].includes(clean)) return "cliente";
+  ) {
+    return "sem_interesse" as LeadStatusValue;
+  }
+  if (["cliente", "fechado", "finalizado"].includes(clean)) {
+    return "cliente" as LeadStatusValue;
+  }
 
-  return "nenhum";
+  return "nenhum" as LeadStatusValue;
 }
 
 function getLeadStatusLabel(status?: string) {
@@ -431,10 +437,16 @@ function calculateLeadScore(lead: Lead) {
   return Math.max(0, Math.min(score, 100));
 }
 
-function getLeadTemperatureByScore(score: number) {
-  if (score >= 70) return "quente";
-  if (score >= 40) return "morno";
-  return "frio";
+function getLeadTemperatureByScore(score: number): LeadTemperatureValue {
+  if (score >= 70) return "quente" as LeadTemperatureValue;
+  if (score >= 40) return "morno" as LeadTemperatureValue;
+  return "frio" as LeadTemperatureValue;
+}
+
+function normalizeLeadTemperature(value?: string): LeadTemperatureValue {
+  if (value === "quente") return "quente" as LeadTemperatureValue;
+  if (value === "morno") return "morno" as LeadTemperatureValue;
+  return "frio" as LeadTemperatureValue;
 }
 
 function getLeadTemperatureLabel(value?: string) {
@@ -448,8 +460,9 @@ function getLeadEffectiveScore(lead: Lead) {
   return calculateLeadScore(lead);
 }
 
-function getLeadEffectiveTemperature(lead: Lead) {
-  if (lead.temperature) return lead.temperature;
+function getLeadEffectiveTemperature(lead: Lead): LeadTemperatureValue {
+  if (lead.temperature)
+    return normalizeLeadTemperature(String(lead.temperature));
   return getLeadTemperatureByScore(getLeadEffectiveScore(lead));
 }
 
@@ -655,12 +668,14 @@ export default function AdminLeadsPage() {
       const score = calculateLeadScore(lead);
       const temperature = getLeadTemperatureByScore(score);
 
-      await saveLead({
+      const leadToSave: Lead = {
         ...lead,
         status: getLeadStatusValue(lead.status),
         score,
         temperature,
-      });
+      };
+
+      await saveLead(leadToSave);
       await loadData();
       setLead(emptyLead);
       setModalOpen(false);
@@ -677,16 +692,16 @@ export default function AdminLeadsPage() {
     if (!item.id) return;
 
     const normalizedStatus = getLeadStatusValue(status);
-    const baseLead = { ...item, status: normalizedStatus };
+    const baseLead: Lead = { ...item, status: normalizedStatus };
     const score = calculateLeadScore(baseLead);
-    const updatedLead = {
+    const updatedLead: Lead = {
       ...baseLead,
       score,
       temperature: getLeadTemperatureByScore(score),
     };
 
     try {
-      setLeads((prev) =>
+      setLeads((prev): Lead[] =>
         prev.map((leadItem) =>
           leadItem.id === item.id ? updatedLead : leadItem,
         ),
@@ -826,7 +841,7 @@ export default function AdminLeadsPage() {
     await saveLeadContact(contact);
 
     if (lead.id === contact.leadId) {
-      const updatedLead = {
+      const updatedLead: Lead = {
         ...lead,
         nextContactDate: contactNextDate,
       };
@@ -1583,7 +1598,9 @@ function LeadModal({
             <span style={styles.label}>Status da venda</span>
             <select
               value={getLeadStatusValue(lead.status)}
-              onChange={(event) => updateField("status", event.target.value)}
+              onChange={(event) =>
+                updateField("status", getLeadStatusValue(event.target.value))
+              }
               style={styles.select}
             >
               {salesStatusOptions.map((item) => (
@@ -1604,7 +1621,7 @@ function LeadModal({
               onChange={(event) =>
                 updateField(
                   "temperature",
-                  event.target.value as Lead["temperature"],
+                  normalizeLeadTemperature(event.target.value),
                 )
               }
               style={styles.select}
