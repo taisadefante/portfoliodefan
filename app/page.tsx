@@ -1597,55 +1597,78 @@ export default function HomePage() {
                   return (
                     <article
                       key={getProjectKey(project, index)}
+                      className="home-project-card"
                       style={{
                         overflow: "hidden",
                         cursor: "pointer",
-                        borderRadius: 32,
-                        background: colors.panel,
+                        position: "relative",
+                        borderRadius: 34,
+                        background:
+                          "linear-gradient(180deg, rgba(15,23,42,0.84), rgba(8,47,73,0.5))",
                         border: `1px solid ${colors.border}`,
-                        minHeight: 560,
+                        boxShadow: "0 24px 76px rgba(0,0,0,0.22)",
+                        minHeight: 520,
                         height: "100%",
                         display: "flex",
                         flexDirection: "column",
                       }}
                       onClick={() => setSelectedProject(project)}
                     >
-                      {image ? (
-                        <img
-                          src={image}
-                          alt={project.name}
-                          style={{
-                            width: "100%",
-                            height: 230,
-                            objectFit: "cover",
-                            objectPosition: "top center",
-                            background: "#020617",
-                          }}
-                        />
-                      ) : (
+                      <div
+                        style={{
+                          position: "relative",
+                          width: "100%",
+                          height: 238,
+                          overflow: "hidden",
+                          background: "#020617",
+                        }}
+                      >
+                        {image ? (
+                          <img
+                            src={image}
+                            alt={project.name}
+                            style={{
+                              width: "100%",
+                              height: "100%",
+                              objectFit: "cover",
+                              objectPosition: "top center",
+                              display: "block",
+                              transform: "scale(1.01)",
+                            }}
+                          />
+                        ) : (
+                          <div
+                            style={{
+                              width: "100%",
+                              height: "100%",
+                              display: "grid",
+                              placeItems: "center",
+                              background:
+                                "radial-gradient(circle at 30% 20%, rgba(56,189,248,0.22), transparent 40%), rgba(8,47,73,0.35)",
+                            }}
+                          >
+                            <Image
+                              src="/logo-white.png"
+                              alt="Defan Soluções Digitais"
+                              width={210}
+                              height={76}
+                              style={{ width: "auto", height: 76 }}
+                            />
+                          </div>
+                        )}
                         <div
                           style={{
-                            width: "100%",
-                            height: 230,
-                            display: "grid",
-                            placeItems: "center",
+                            position: "absolute",
+                            inset: 0,
                             background:
-                              "radial-gradient(circle at 30% 20%, rgba(56,189,248,0.22), transparent 40%), rgba(8,47,73,0.35)",
+                              "linear-gradient(180deg, rgba(2,6,23,0.02) 35%, rgba(2,6,23,0.86) 100%)",
                           }}
-                        >
-                          <Image
-                            src="/logo-white.png"
-                            alt="Defan Soluções Digitais"
-                            width={210}
-                            height={76}
-                            style={{ width: "auto", height: 76 }}
-                          />
-                        </div>
-                      )}
+                        />
+                      </div>
 
                       <div
                         style={{
-                          padding: 26,
+                          padding: 24,
                           display: "flex",
                           flexDirection: "column",
                           flex: 1,
@@ -1681,15 +1704,26 @@ export default function HomePage() {
                         <h3
                           style={{
                             margin: "0 0 12px",
-                            fontSize: 24,
-                            letterSpacing: "-0.04em",
-                            minHeight: 68,
+                            fontSize: 25,
+                            lineHeight: 1.08,
+                            letterSpacing: "-0.045em",
+                            minHeight: 58,
                             display: "flex",
                             alignItems: "flex-start",
                           }}
                         >
                           {project.name}
                         </h3>
+
+                        <div
+                          style={{
+                            width: "100%",
+                            height: 1,
+                            background:
+                              "linear-gradient(90deg, rgba(56,189,248,0.5), rgba(125,211,252,0.04))",
+                            margin: "2px 0 4px",
+                          }}
+                        />
 
                         {(project.startingPrice || project.monthlyPrice) && (
                           <div
@@ -1770,8 +1804,11 @@ export default function HomePage() {
                           style={{
                             ...outlineButtonStyle,
                             marginTop: "auto",
-                            padding: "12px 16px",
-                            width: "fit-content",
+                            padding: "13px 16px",
+                            width: "100%",
+                            background:
+                              "linear-gradient(135deg, rgba(14,165,233,0.22), rgba(56,189,248,0.12))",
+                            borderColor: "rgba(125, 211, 252, 0.34)",
                           }}
                         >
                           Ver detalhes <ArrowRight size={16} />
@@ -2120,6 +2157,26 @@ export default function HomePage() {
       >
         <MessageCircle size={20} />
       </a>
+
+      <style jsx>{`
+        .home-project-card {
+          transition:
+            transform 0.22s ease,
+            border-color 0.22s ease,
+            box-shadow 0.22s ease;
+        }
+
+        .home-project-card:hover {
+          transform: translateY(-7px);
+          border-color: rgba(125, 211, 252, 0.38) !important;
+          box-shadow: 0 30px 88px rgba(14, 165, 233, 0.16) !important;
+        }
+
+        .home-project-card:hover img {
+          transform: scale(1.045) !important;
+          transition: transform 0.35s ease;
+        }
+      `}</style>
 
       {selectedProject && (
         <ProjectDetailsModal
