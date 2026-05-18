@@ -5,7 +5,6 @@ import {
   doc,
   getDoc,
   getDocs,
-  orderBy,
   query,
   setDoc,
   where,
@@ -29,6 +28,40 @@ const clean = <T extends Record<string, unknown>>(data: T): T =>
   Object.fromEntries(
     Object.entries(data).filter(([, value]) => value !== undefined),
   ) as T;
+
+function cleanDeep(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => cleanDeep(item))
+      .filter((item) => item !== undefined);
+  }
+
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .map(([key, item]) => [key, cleanDeep(item)])
+        .filter(([, item]) => item !== undefined),
+    );
+  }
+
+  return value === undefined ? undefined : value;
+}
+
+function cleanLeadOptionItems(items: LeadOptionItem[]) {
+  return items
+    .map((item) => {
+      const value = String(item.value || "").trim();
+      const label = String(item.label || item.value || "").trim();
+
+      return cleanDeep({
+        value,
+        label,
+        messageText: item.messageText?.trim() || undefined,
+        messageImage: item.messageImage?.trim() || undefined,
+      }) as LeadOptionItem;
+    })
+    .filter((item) => item.value && item.label);
+}
 
 function addMonthsToDate(dateString: string, monthsToAdd: number) {
   if (!dateString) return "";
@@ -76,22 +109,24 @@ function normalizeSaleType(sale: LeadSale) {
 }
 
 export async function getLeads(): Promise<Lead[]> {
-  const snap = await getDocs(
-    query(collection(db, "leads"), orderBy("companyName", "asc")),
-  );
+  const snap = await getDocs(collection(db, "leads"));
 
-  return snap.docs.map((item) => ({
-    id: item.id,
-    ...(item.data() as Lead),
-  }));
+  return snap.docs
+    .map((item) => ({
+      id: item.id,
+      ...(item.data() as Lead),
+    }))
+    .sort((a, b) =>
+      String(a.companyName || "").localeCompare(String(b.companyName || "")),
+    );
 }
 
 export async function saveLead(lead: Lead) {
-  const payload = clean({
+  const payload = cleanDeep({
     ...lead,
     updatedAt: now(),
     createdAt: lead.createdAt || now(),
-  });
+  }) as Lead;
 
   if (lead.id) {
     await setDoc(doc(db, "leads", lead.id), payload, { merge: true });
@@ -106,25 +141,25 @@ export async function removeLead(id: string) {
 
 export async function getLeadContacts(leadId: string): Promise<LeadContact[]> {
   const snap = await getDocs(
-    query(
-      collection(db, "leadContacts"),
-      where("leadId", "==", leadId),
-      orderBy("contactDate", "desc"),
-    ),
+    query(collection(db, "leadContacts"), where("leadId", "==", leadId)),
   );
 
-  return snap.docs.map((item) => ({
-    id: item.id,
-    ...(item.data() as LeadContact),
-  }));
+  return snap.docs
+    .map((item) => ({
+      id: item.id,
+      ...(item.data() as LeadContact),
+    }))
+    .sort((a, b) =>
+      String(b.contactDate || "").localeCompare(String(a.contactDate || "")),
+    );
 }
 
 export async function saveLeadContact(contact: LeadContact) {
-  const payload = clean({
+  const payload = cleanDeep({
     ...contact,
     updatedAt: now(),
     createdAt: contact.createdAt || now(),
-  });
+  }) as LeadContact;
 
   if (contact.id) {
     await setDoc(doc(db, "leadContacts", contact.id), payload, {
@@ -142,26 +177,28 @@ export async function removeLeadContact(id: string) {
 export async function getLeadSales(leadId?: string): Promise<LeadSale[]> {
   const base = collection(db, "leadSales");
 
-  const q = leadId
-    ? query(base, where("leadId", "==", leadId), orderBy("saleDate", "desc"))
-    : query(base, orderBy("saleDate", "desc"));
+  const q = leadId ? query(base, where("leadId", "==", leadId)) : base;
 
   const snap = await getDocs(q);
 
-  return snap.docs.map((item) => ({
-    id: item.id,
-    ...(item.data() as LeadSale),
-  }));
+  return snap.docs
+    .map((item) => ({
+      id: item.id,
+      ...(item.data() as LeadSale),
+    }))
+    .sort((a, b) =>
+      String(b.saleDate || "").localeCompare(String(a.saleDate || "")),
+    );
 }
 
 export async function saveLeadSale(sale: LeadSale) {
-  const payload = clean({
+  const payload = cleanDeep({
     ...sale,
     saleStatus: sale.saleStatus || "ativa",
     saleType: normalizeSaleType(sale),
     updatedAt: now(),
     createdAt: sale.createdAt || now(),
-  });
+  }) as LeadSale;
 
   if (sale.id) {
     await setDoc(doc(db, "leadSales", sale.id), payload, { merge: true });
@@ -202,7 +239,12 @@ export async function removeLeadSale(id: string) {
 export async function getLeadOptions(): Promise<
   Record<LeadOptionCategory, LeadOptionItem[]>
 > {
-  const result = { ...defaultLeadOptions };
+  const result: Record<LeadOptionCategory, LeadOptionItem[]> = {
+    niches: [...defaultLeadOptions.niches],
+    statuses: [...defaultLeadOptions.statuses],
+    siteStatuses: [...defaultLeadOptions.siteStatuses],
+  };
+
   const snap = await getDocs(collection(db, "leadOptions"));
 
   snap.docs.forEach((item) => {
@@ -210,7 +252,7 @@ export async function getLeadOptions(): Promise<
     const data = item.data() as { items?: LeadOptionItem[] };
 
     if (Array.isArray(data.items)) {
-      result[id] = data.items;
+      result[id] = cleanLeadOptionItems(data.items);
     }
   });
 
@@ -221,9 +263,14 @@ export async function saveLeadOptions(
   category: LeadOptionCategory,
   items: LeadOptionItem[],
 ) {
+  const cleanedItems = cleanLeadOptionItems(items);
+
   await setDoc(
     doc(db, "leadOptions", category),
-    { items, updatedAt: now() },
+    {
+      items: cleanedItems,
+      updatedAt: now(),
+    },
     { merge: true },
   );
 }
@@ -264,7 +311,11 @@ export async function createSalePayments(sale: LeadSale) {
       updatedAt: now(),
     };
 
-    await addDoc(collection(db, "leadSalePayments"), clean(payment));
+    await addDoc(
+      collection(db, "leadSalePayments"),
+      cleanDeep(payment) as Record<string, unknown>,
+    );
+
     return;
   }
 
@@ -323,7 +374,10 @@ export async function createSalePayments(sale: LeadSale) {
 
     await Promise.all(
       payments.map((payment) =>
-        addDoc(collection(db, "leadSalePayments"), clean(payment)),
+        addDoc(
+          collection(db, "leadSalePayments"),
+          cleanDeep(payment) as Record<string, unknown>,
+        ),
       ),
     );
 
@@ -352,7 +406,10 @@ export async function createSalePayments(sale: LeadSale) {
     updatedAt: now(),
   };
 
-  await addDoc(collection(db, "leadSalePayments"), clean(payment));
+  await addDoc(
+    collection(db, "leadSalePayments"),
+    cleanDeep(payment) as Record<string, unknown>,
+  );
 }
 
 export async function ensurePaymentsForAllSales() {
@@ -404,11 +461,11 @@ export async function getLeadSalePaymentsBySale(
 }
 
 export async function saveLeadSalePayment(payment: LeadSalePayment) {
-  const payload = clean({
+  const payload = cleanDeep({
     ...payment,
     updatedAt: now(),
     createdAt: payment.createdAt || now(),
-  });
+  }) as LeadSalePayment;
 
   if (payment.id) {
     await setDoc(doc(db, "leadSalePayments", payment.id), payload, {
@@ -483,7 +540,10 @@ export async function confirmLeadSalePaymentAsPaid(
     updatedAt: now(),
   };
 
-  await addDoc(collection(db, "leadSalePayments"), clean(nextPayment));
+  await addDoc(
+    collection(db, "leadSalePayments"),
+    cleanDeep(nextPayment) as Record<string, unknown>,
+  );
 }
 
 export async function markLeadSalePaymentAsPending(payment: LeadSalePayment) {
@@ -570,10 +630,6 @@ export async function updateFutureLeadSalePayments(
   );
 }
 
-/**
- * Use esta função uma vez se você já criou uma venda recorrente com 12 parcelas
- * e quer manter apenas a primeira pendente + as já pagas.
- */
 export async function removeUnpaidFutureRecurringPayments(saleId: string) {
   const payments = await getLeadSalePaymentsBySale(saleId);
 
@@ -594,7 +650,7 @@ export async function removeUnpaidFutureRecurringPayments(saleId: string) {
 }
 
 /**
- * Aliases de compatibilidade.
+ * Aliases de compatibilidade com páginas antigas.
  */
 export const cancelFuturePayments = cancelFutureLeadSalePayments;
 export const markPaymentAsPaid = markLeadSalePaymentAsPaid;
