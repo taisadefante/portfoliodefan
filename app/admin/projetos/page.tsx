@@ -59,7 +59,6 @@ type AdminProject = Omit<
   | "link"
   | "imageUrl"
   | "images"
-  | "cardSummary"
   | "fullDescription"
   | "modules"
   | "integrations"
@@ -78,7 +77,6 @@ type AdminProject = Omit<
   link: string;
   imageUrl: string;
   images: string[];
-  cardSummary: string;
   fullDescription: string;
   modules: string[];
   integrations: string[];
@@ -104,7 +102,6 @@ const emptyProject: AdminProject = {
   link: "",
   imageUrl: "",
   images: [],
-  cardSummary: "",
   fullDescription: "",
   modules: [],
   integrations: [],
@@ -705,7 +702,6 @@ export default function AdminProjetosPage() {
         link: project.link || "",
         images,
         imageUrl: images[0] || project.imageUrl || "",
-        cardSummary: project.cardSummary || "",
         fullDescription: project.fullDescription || "",
         modules: project.modules || [],
         integrations: project.integrations || [],
@@ -717,7 +713,6 @@ export default function AdminProjetosPage() {
           (project.name ? `${project.name} | Defan Soluções Digitais` : ""),
         seoDescription:
           project.seoDescription?.trim() ||
-          project.cardSummary?.trim() ||
           project.fullDescription?.trim() ||
           "",
         seoKeywords: project.seoKeywords || [],
@@ -1026,7 +1021,6 @@ export default function AdminProjetosPage() {
                   <th>Modelo</th>
                   <th>Valores</th>
                   <th>Tecnologias</th>
-                  <th>Resumo</th>
                   <th>Detalhes</th>
                   <th>Ações</th>
                 </tr>
@@ -1074,9 +1068,6 @@ export default function AdminProjetosPage() {
                             <span key={tech}>{tech}</span>
                           ))}
                         </div>
-                      </td>
-                      <td className="text-cell">
-                        <CollapsibleCell text={item.cardSummary || ""} />
                       </td>
                       <td className="text-cell">
                         <CollapsibleCell
@@ -1310,17 +1301,6 @@ export default function AdminProjetosPage() {
                     <Plus size={16} />
                   </button>
                 </div>
-              </div>
-              <div style={{ ...styles.field, gridColumn: "1 / -1" }}>
-                <label style={styles.label}>Resumo para o card</label>
-                <textarea
-                  value={project.cardSummary}
-                  onChange={(event) =>
-                    updateField("cardSummary", event.target.value)
-                  }
-                  placeholder="Resumo curto e comercial para aparecer no card."
-                  style={styles.textarea}
-                />
               </div>
               <div style={{ ...styles.field, gridColumn: "1 / -1" }}>
                 <label style={styles.label}>Descrição completa</label>

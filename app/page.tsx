@@ -628,7 +628,6 @@ function ProjectDetailsModal({
 
               <p style={{ color: colors.muted, lineHeight: 1.7, margin: 0 }}>
                 {project.fullDescription ||
-                  project.cardSummary ||
                   "Projeto cadastrado no portfólio Defan."}
               </p>
 
@@ -1691,22 +1690,6 @@ export default function HomePage() {
                         >
                           {project.name}
                         </h3>
-
-                        <p
-                          style={{
-                            color: colors.muted,
-                            lineHeight: 1.68,
-                            minHeight: 84,
-                            margin: 0,
-                            display: "-webkit-box",
-                            WebkitLineClamp: 3,
-                            WebkitBoxOrient: "vertical",
-                            overflow: "hidden",
-                          }}
-                        >
-                          {project.cardSummary ||
-                            "Projeto cadastrado no portfólio Defan."}
-                        </p>
 
                         {(project.startingPrice || project.monthlyPrice) && (
                           <div

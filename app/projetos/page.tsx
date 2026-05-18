@@ -786,7 +786,6 @@ function ProjectDetailsModal({
                 </h3>
                 <p style={{ color: colors.muted, lineHeight: 1.7, margin: 0 }}>
                   {project.fullDescription ||
-                    project.cardSummary ||
                     "Projeto cadastrado no portfólio Defan."}
                 </p>
 
@@ -992,7 +991,6 @@ export default function ProjetosPage() {
       const matchSearch =
         !search ||
         safeLower(project.name).includes(search) ||
-        safeLower(project.cardSummary).includes(search) ||
         safeLower(project.fullDescription).includes(search) ||
         safeLower(project.niche).includes(search) ||
         safeLower(project.type).includes(search) ||
@@ -1295,8 +1293,6 @@ export default function ProjetosPage() {
                   </div>
 
                   <h3 style={styles.cardTitle}>{project.name}</h3>
-                  <p style={styles.cardText}>{project.cardSummary}</p>
-
                   <div style={styles.priceRow} className="projetos-price-row">
                     {project.startingPrice ? (
                       <div style={styles.priceCard}>
