@@ -176,6 +176,10 @@ export type Project = {
     question: string;
     answer: string;
   }[];
+
+  createdAt?: Date | string;
+
+  updatedAt?: Date | string;
 };
 
 export const emptyLead: Lead = {
