@@ -24,7 +24,38 @@ import {
 } from "lucide-react";
 
 import { getProjects } from "@/lib/firestore";
-import { Project } from "@/lib/types";
+
+type SeoFaqItem = {
+  question: string;
+  answer: string;
+};
+
+type Project = {
+  id?: string;
+  name: string;
+  type: string;
+  niche: string;
+  commercialModel: string;
+  startingPrice?: string;
+  monthlyPrice?: string;
+  technologies: string[];
+  link?: string;
+  imageUrl?: string;
+  images?: string[];
+  cardSummary?: string;
+  fullDescription?: string;
+  modules?: string[];
+  integrations?: string[];
+  indicatedBusinesses?: string[];
+  basicFlow?: string[];
+  highlight?: boolean;
+  seoTitle?: string;
+  seoDescription?: string;
+  seoKeywords?: string[];
+  seoLocation?: string;
+  seoText?: string;
+  seoFaqs?: SeoFaqItem[];
+};
 
 const services = [
   {
