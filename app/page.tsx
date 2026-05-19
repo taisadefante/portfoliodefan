@@ -1140,8 +1140,8 @@ export default function HomePage() {
                 letterSpacing: "-0.055em",
               }}
             >
-              Presença digital, sistemas e automações criados para sua empresa
-              transmitir confiança.
+              Desenvolvemos experiências digitais completas com sites modernos,
+              landing pages, sistemas personalizados e automações inteligentes.
             </h1>
 
             <p
