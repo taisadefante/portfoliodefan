@@ -59,6 +59,7 @@ type AdminProject = Omit<
   | "link"
   | "imageUrl"
   | "images"
+  | "cardSummary"
   | "fullDescription"
   | "modules"
   | "integrations"
@@ -77,6 +78,7 @@ type AdminProject = Omit<
   link: string;
   imageUrl: string;
   images: string[];
+  cardSummary: string;
   fullDescription: string;
   modules: string[];
   integrations: string[];
@@ -102,6 +104,7 @@ const emptyProject: AdminProject = {
   link: "",
   imageUrl: "",
   images: [],
+  cardSummary: "",
   fullDescription: "",
   modules: [],
   integrations: [],
@@ -391,6 +394,30 @@ function getProjectImages(project: Project) {
   return project.imageUrl ? [project.imageUrl] : [];
 }
 
+function removeUndefinedDeep<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value
+      .filter((item) => item !== undefined)
+      .map((item) => removeUndefinedDeep(item)) as T;
+  }
+
+  if (value && typeof value === "object") {
+    const cleanObject = Object.entries(value as Record<string, unknown>).reduce(
+      (acc, [key, item]) => {
+        if (item !== undefined) {
+          acc[key] = removeUndefinedDeep(item);
+        }
+        return acc;
+      },
+      {} as Record<string, unknown>,
+    );
+
+    return cleanObject as T;
+  }
+
+  return value;
+}
+
 function ProjectImageCell({
   project,
   index,
@@ -580,6 +607,7 @@ export default function AdminProjetosPage() {
       ...editableItem,
       images: getProjectImages(editableItem),
       imageUrl: getProjectImages(editableItem)[0] || "",
+      cardSummary: editableItem.cardSummary || "",
       seoTitle: editableItem.seoTitle || "",
       seoDescription: editableItem.seoDescription || "",
       seoKeywords: editableItem.seoKeywords || [],
@@ -690,36 +718,53 @@ export default function AdminProjetosPage() {
       setSavingProject(true);
       const images = project.images || [];
 
-      await saveProject({
+      const cleanProject = removeUndefinedDeep({
         ...project,
-        name: project.name || "",
-        type: project.type || "",
-        niche: project.niche || "",
-        commercialModel: project.commercialModel || "",
-        startingPrice: project.startingPrice || "",
-        monthlyPrice: project.monthlyPrice || "",
-        technologies: project.technologies || [],
-        link: project.link || "",
+        name: project.name ?? "",
+        type: project.type ?? "",
+        niche: project.niche ?? "",
+        commercialModel: project.commercialModel ?? "",
+        startingPrice: project.startingPrice ?? "",
+        monthlyPrice: project.monthlyPrice ?? "",
+        technologies: Array.isArray(project.technologies)
+          ? project.technologies.filter(Boolean)
+          : [],
+        link: project.link ?? "",
         images,
-        imageUrl: images[0] || project.imageUrl || "",
-        fullDescription: project.fullDescription || "",
-        modules: project.modules || [],
-        integrations: project.integrations || [],
-        indicatedBusinesses: project.indicatedBusinesses || [],
-        basicFlow: project.basicFlow || [],
+        imageUrl: images[0] ?? project.imageUrl ?? "",
+        cardSummary: project.cardSummary ?? "",
+        fullDescription: project.fullDescription ?? "",
+        modules: Array.isArray(project.modules)
+          ? project.modules.filter(Boolean)
+          : [],
+        integrations: Array.isArray(project.integrations)
+          ? project.integrations.filter(Boolean)
+          : [],
+        indicatedBusinesses: Array.isArray(project.indicatedBusinesses)
+          ? project.indicatedBusinesses.filter(Boolean)
+          : [],
+        basicFlow: Array.isArray(project.basicFlow)
+          ? project.basicFlow.filter(Boolean)
+          : [],
         highlight: project.highlight ?? false,
-        seoTitle:
-          project.seoTitle?.trim() ||
-          (project.name ? `${project.name} | Defan Soluções Digitais` : ""),
-        seoDescription:
-          project.seoDescription?.trim() ||
-          project.fullDescription?.trim() ||
-          "",
-        seoKeywords: project.seoKeywords || [],
-        seoLocation: project.seoLocation?.trim() || "",
-        seoText: project.seoText?.trim() || "",
-        seoFaqs: project.seoFaqs || [],
+        seoTitle: project.seoTitle?.trim() ?? "",
+        seoDescription: project.seoDescription?.trim() ?? "",
+        seoKeywords: Array.isArray(project.seoKeywords)
+          ? project.seoKeywords.filter(Boolean)
+          : [],
+        seoLocation: project.seoLocation?.trim() ?? "",
+        seoText: project.seoText?.trim() ?? "",
+        seoFaqs: Array.isArray(project.seoFaqs)
+          ? project.seoFaqs
+              .map((faq) => ({
+                question: faq?.question ?? "",
+                answer: faq?.answer ?? "",
+              }))
+              .filter((faq) => faq.question || faq.answer)
+          : [],
       } as AdminProject);
+
+      await saveProject(cleanProject);
 
       setProject(emptyProject);
       setModalOpen(false);
@@ -1301,6 +1346,17 @@ export default function AdminProjetosPage() {
                     <Plus size={16} />
                   </button>
                 </div>
+              </div>
+              <div style={{ ...styles.field, gridColumn: "1 / -1" }}>
+                <label style={styles.label}>Resumo do card</label>
+                <textarea
+                  value={project.cardSummary}
+                  onChange={(event) =>
+                    updateField("cardSummary", event.target.value)
+                  }
+                  placeholder="Resumo curto para aparecer no card do projeto. Campo opcional."
+                  style={{ ...styles.textarea, minHeight: 86 }}
+                />
               </div>
               <div style={{ ...styles.field, gridColumn: "1 / -1" }}>
                 <label style={styles.label}>Descrição completa</label>
