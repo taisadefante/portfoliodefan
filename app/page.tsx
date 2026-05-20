@@ -62,37 +62,37 @@ const services = [
     icon: Rocket,
     title: "Landing Pages",
     description:
-      "Páginas de alta conversão para apresentar serviços, campanhas e captação de clientes.",
+      "Páginas estratégicas para transformar visitantes em contatos, apresentar sua oferta com clareza e fortalecer sua presença digital.",
   },
   {
     icon: Globe2,
     title: "Websites",
     description:
-      "Sites institucionais profissionais, responsivos e alinhados à identidade da sua marca.",
+      "Sites profissionais, responsivos e bem estruturados para empresas que precisam transmitir confiança desde o primeiro acesso.",
   },
   {
     icon: LayoutDashboard,
     title: "Sistemas",
     description:
-      "Painéis, cadastros, relatórios, dashboards, CRM, financeiro e áreas administrativas.",
+      "Sistemas sob medida com painéis, cadastros, relatórios, dashboards, CRM, financeiro e áreas administrativas.",
   },
   {
     icon: Workflow,
     title: "Automações",
     description:
-      "Soluções para reduzir tarefas manuais, organizar processos e ganhar produtividade.",
+      "Automações para reduzir tarefas repetitivas, padronizar processos e tornar a operação mais ágil e organizada.",
   },
   {
     icon: Bot,
     title: "Integrações",
     description:
-      "Conexão com APIs, Firebase, WhatsApp, e-mail, pagamentos e bancos de dados.",
+      "Integrações com APIs, Firebase, WhatsApp, e-mail, pagamentos, bancos de dados e ferramentas externas.",
   },
   {
     icon: Code2,
     title: "Assinatura mensal",
     description:
-      "Projetos prontos para empresas que querem começar com menor investimento inicial.",
+      "Modelos profissionais para empresas que desejam iniciar com menor investimento e evoluir com novas funcionalidades.",
   },
 ];
 
@@ -120,18 +120,18 @@ const carouselItems = [
 const values = [
   {
     icon: ShieldCheck,
-    title: "Responsabilidade",
-    text: "Cada entrega é conduzida com cuidado, clareza e atenção aos detalhes.",
+    title: "Estratégia",
+    text: "Cada projeto é pensado para comunicar melhor, gerar confiança e facilitar a decisão do cliente.",
   },
   {
     icon: BadgeCheck,
-    title: "Comprometimento",
-    text: "O projeto é pensado para funcionar de verdade no dia a dia da empresa.",
+    title: "Execução profissional",
+    text: "Do layout ao funcionamento, a entrega é conduzida com organização, cuidado técnico e atenção aos detalhes.",
   },
   {
     icon: Gem,
-    title: "Projeto único",
-    text: "Mesmo usando boas bases, cada solução recebe identidade, propósito e adaptação.",
+    title: "Solução sob medida",
+    text: "Cada página, sistema ou automação recebe identidade, propósito e adaptação ao negócio.",
   },
 ];
 
@@ -139,17 +139,17 @@ const testimonials = [
   {
     name: "Mariana Alves",
     company: "Consultoria Empresarial",
-    text: "A página transmitiu muito mais confiança. Ficou moderna, clara e fácil de apresentar aos clientes.",
+    text: "A nova presença digital deixou a empresa mais profissional, clara e segura para apresentar aos clientes.",
   },
   {
     name: "Rafael Martins",
     company: "Serviços e Manutenção",
-    text: "O sistema deixou meus cadastros e controles muito mais organizados. O atendimento ficou mais profissional.",
+    text: "A organização do sistema melhorou nossa rotina. Ficou mais fácil acompanhar dados, clientes e processos.",
   },
   {
     name: "Camila Ferreira",
     company: "Clínica de Estética",
-    text: "A entrega ficou bonita, rápida e objetiva. Consegui divulgar meus serviços com muito mais segurança.",
+    text: "A página ficou elegante, objetiva e transmitiu muito mais credibilidade para divulgar meus serviços.",
   },
 ];
 
@@ -368,8 +368,8 @@ function ProjectDetailsModal({
     whiteSpace: "nowrap",
     border: 0,
     color: "#fff",
-    background: "linear-gradient(135deg, #0ea5e9, #38bdf8)",
-    boxShadow: "0 18px 44px rgba(14,165,233,0.25)",
+    background: "linear-gradient(135deg, #075985, #0ea5e9, #38bdf8)",
+    boxShadow: "0 18px 44px rgba(14,165,233,0.22)",
     textDecoration: "none",
   };
 
@@ -948,8 +948,8 @@ export default function HomePage() {
     whiteSpace: "nowrap",
     border: 0,
     color: "#fff",
-    background: "linear-gradient(135deg, #0ea5e9, #38bdf8)",
-    boxShadow: "0 18px 44px rgba(14,165,233,0.25)",
+    background: "linear-gradient(135deg, #075985, #0ea5e9, #38bdf8)",
+    boxShadow: "0 18px 44px rgba(14,165,233,0.22)",
     textDecoration: "none",
   };
 
@@ -1128,7 +1128,8 @@ export default function HomePage() {
                 fontWeight: 950,
               }}
             >
-              <Sparkles size={16} /> Defan Soluções Digitais
+              <Sparkles size={16} /> Vitrine digital para empresas que querem
+              vender melhor
             </span>
 
             <h1
@@ -1140,8 +1141,8 @@ export default function HomePage() {
                 letterSpacing: "-0.055em",
               }}
             >
-              Desenvolvemos experiências digitais completas com sites modernos,
-              landing pages, sistemas personalizados e automações inteligentes.
+              Criamos sites, landing pages, sistemas e automações para empresas
+              que precisam se apresentar melhor e vender com mais confiança.
             </h1>
 
             <p
@@ -1153,9 +1154,9 @@ export default function HomePage() {
                 lineHeight: 1.7,
               }}
             >
-              Projetos profissionais para empresas que precisam vender melhor,
-              organizar processos e se apresentar com mais credibilidade no
-              digital.
+              A Defan Soluções Digitais desenvolve páginas e sistemas com visual
+              profissional, estrutura clara e foco em resultado: atrair
+              clientes, organizar processos e fortalecer sua marca no digital.
             </p>
 
             <div
@@ -1177,7 +1178,7 @@ export default function HomePage() {
                   width: isMobile ? "100%" : "auto",
                 }}
               >
-                Pedir orçamento no WhatsApp <MessageCircle size={19} />
+                Solicitar proposta no WhatsApp <MessageCircle size={19} />
               </a>
 
               <a
@@ -1188,7 +1189,7 @@ export default function HomePage() {
                   width: isMobile ? "100%" : "auto",
                 }}
               >
-                Ver soluções disponíveis <ArrowRight size={18} />
+                Ver portfólio e soluções <ArrowRight size={18} />
               </a>
             </div>
           </div>
@@ -1260,7 +1261,7 @@ export default function HomePage() {
               }}
             >
               <span style={{ color: "#93c5fd", fontSize: 13 }}>
-                Criação estratégica
+                Desenvolvimento estratégico
               </span>
 
               <strong
@@ -1271,7 +1272,7 @@ export default function HomePage() {
                   letterSpacing: "-0.035em",
                 }}
               >
-                Landing pages, websites, sistemas e automações
+                Sites, landing pages, sistemas e automações para negócios reais
               </strong>
 
               <div
@@ -1284,7 +1285,7 @@ export default function HomePage() {
               >
                 {[
                   ["Assinatura mensal", "comece com menor investimento"],
-                  ["Projeto sob medida", "solução única para sua empresa"],
+                  ["Projeto sob medida", "feito para a sua operação"],
                 ].map(([title, text]) => (
                   <div
                     key={title}
@@ -1361,7 +1362,7 @@ export default function HomePage() {
         <div style={containerStyle}>
           <SectionTitle
             eyebrow="Serviços"
-            title="Soluções digitais para empresas que querem se destacar"
+            title="Soluções digitais para empresas que precisam transmitir confiança"
           />
 
           <div
@@ -1457,19 +1458,21 @@ export default function HomePage() {
                 letterSpacing: "-0.052em",
               }}
             >
-              Cada projeto é tratado como único.
+              Cada projeto é criado para representar melhor a empresa por trás
+              da tela.
             </h2>
 
             <p style={{ color: colors.muted, lineHeight: 1.68 }}>
-              A Defan Soluções Digitais nasceu para criar experiências digitais
-              com aparência profissional, funcionamento prático e estratégia
-              comercial.
+              A Defan Soluções Digitais cria páginas, sites, sistemas e
+              automações para empresas que querem melhorar sua presença online,
+              apresentar seus serviços com mais profissionalismo e vender com
+              mais segurança.
             </p>
 
             <p style={{ color: colors.muted, lineHeight: 1.68 }}>
-              O objetivo não é apenas entregar uma tela bonita. É construir uma
-              solução que ajude a empresa a se posicionar melhor, vender com
-              segurança e organizar sua operação.
+              O objetivo não é apenas criar uma tela bonita. É construir uma
+              solução que comunique valor, facilite o contato do cliente e ajude
+              o negócio a funcionar melhor no dia a dia.
             </p>
           </article>
 
@@ -1513,8 +1516,8 @@ export default function HomePage() {
 
             <p style={{ color: colors.muted, lineHeight: 1.68 }}>
               A Defan é conduzida por Tais Defante, com foco em desenvolvimento,
-              design, automação, organização de processos e soluções digitais
-              para negócios reais.
+              design, automação, organização de processos e criação de soluções
+              digitais para negócios reais.
             </p>
           </article>
         </div>
@@ -1868,8 +1871,9 @@ export default function HomePage() {
             </h2>
 
             <p style={{ color: colors.muted, lineHeight: 1.68 }}>
-              Uma alternativa para empresas que desejam começar com uma solução
-              profissional pagando mensalmente.
+              Uma alternativa para empresas que desejam iniciar com uma solução
+              profissional, reduzindo o investimento inicial e mantendo
+              possibilidade de evolução.
             </p>
 
             <ul
@@ -1942,7 +1946,8 @@ export default function HomePage() {
 
             <p style={{ color: colors.muted, lineHeight: 1.68 }}>
               Solução indicada para empresas que precisam de regras próprias,
-              módulos específicos e integrações exclusivas.
+              identidade exclusiva, módulos específicos, integrações e fluxos
+              personalizados.
             </p>
 
             <ul
@@ -1993,7 +1998,7 @@ export default function HomePage() {
         <div style={containerStyle}>
           <SectionTitle
             eyebrow="Depoimentos"
-            title="Clientes que valorizam uma presença digital mais profissional"
+            title="Credibilidade também é construída pela forma como sua empresa se apresenta"
           />
 
           <div
@@ -2041,7 +2046,10 @@ export default function HomePage() {
 
       <section id="faq" style={sectionStyle}>
         <div style={containerStyle}>
-          <SectionTitle eyebrow="FAQ" title="Dúvidas frequentes" />
+          <SectionTitle
+            eyebrow="FAQ"
+            title="Perguntas importantes antes de iniciar um projeto"
+          />
 
           <div
             style={{
@@ -2065,6 +2073,94 @@ export default function HomePage() {
                 </p>
               </article>
             ))}
+          </div>
+        </div>
+      </section>
+
+      <section
+        id="contato"
+        style={{
+          padding: isMobile ? "76px 0" : "112px 0",
+          background:
+            "radial-gradient(circle at 50% 0%, rgba(14,165,233,0.20), transparent 34%), linear-gradient(135deg, rgba(15,23,42,0.78), rgba(8,47,73,0.42))",
+          borderTop: "1px solid rgba(125, 211, 252, 0.12)",
+          borderBottom: "1px solid rgba(125, 211, 252, 0.12)",
+        }}
+      >
+        <div style={{ ...containerStyle, textAlign: "center" }}>
+          <span
+            style={{
+              display: "inline-flex",
+              color: colors.blue,
+              letterSpacing: "0.15em",
+              textTransform: "uppercase",
+              fontSize: 12,
+              fontWeight: 950,
+              marginBottom: 16,
+            }}
+          >
+            Próximo passo
+          </span>
+
+          <h2
+            style={{
+              maxWidth: 920,
+              margin: "0 auto",
+              color: colors.text,
+              fontSize: "clamp(32px, 4.3vw, 66px)",
+              lineHeight: 1.02,
+              letterSpacing: "-0.06em",
+            }}
+          >
+            Sua empresa precisa de uma presença digital que gere confiança antes
+            mesmo do primeiro atendimento.
+          </h2>
+
+          <p
+            style={{
+              maxWidth: 760,
+              margin: "24px auto 34px",
+              color: colors.muted,
+              fontSize: "clamp(16px, 1.15vw, 20px)",
+              lineHeight: 1.75,
+            }}
+          >
+            Se você precisa de uma landing page, site institucional, sistema
+            personalizado ou automação, fale comigo e receba uma proposta
+            alinhada ao momento da sua empresa.
+          </p>
+
+          <div
+            style={{
+              display: "flex",
+              gap: 14,
+              justifyContent: "center",
+              flexWrap: "wrap",
+            }}
+          >
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noreferrer"
+              style={{
+                ...buttonStyle,
+                padding: "16px 24px",
+                width: isMobile ? "100%" : "auto",
+              }}
+            >
+              Quero uma proposta profissional <MessageCircle size={19} />
+            </a>
+
+            <a
+              href="/projetos"
+              style={{
+                ...outlineButtonStyle,
+                padding: "16px 24px",
+                width: isMobile ? "100%" : "auto",
+              }}
+            >
+              Ver projetos disponíveis <ArrowRight size={18} />
+            </a>
           </div>
         </div>
       </section>
@@ -2100,8 +2196,9 @@ export default function HomePage() {
             />
 
             <p style={{ color: colors.muted, lineHeight: 1.68, margin: 0 }}>
-              Defan Soluções Digitais — Landing pages, websites, sistemas e
-              automações para empresas.
+              Defan Soluções Digitais — sites, landing pages, sistemas e
+              automações para empresas que querem se posicionar melhor no
+              digital.
             </p>
           </div>
 
@@ -2123,7 +2220,7 @@ export default function HomePage() {
               rel="noreferrer"
               style={buttonStyle}
             >
-              Pedir orçamento
+              Solicitar proposta
             </a>
           </div>
         </div>
