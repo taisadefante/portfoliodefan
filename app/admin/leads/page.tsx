@@ -58,6 +58,7 @@ import AdminMenu from "../../../components/admin/AdminMenu.tsx";
 type LeadLocationExtra = {
   state?: string;
   city?: string;
+  statusUpdatedAt?: string;
 };
 
 type LeadForm = Lead & LeadLocationExtra;
@@ -589,6 +590,21 @@ function formatDate(value?: string) {
   return year && month && day ? `${day}/${month}/${year}` : value;
 }
 
+function formatDateTime(value?: string) {
+  if (!value) return "-";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return date.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 function normalizeText(value: string) {
   return value
     .toLowerCase()
@@ -1049,9 +1065,16 @@ export default function AdminLeadsPage() {
     if (!item.id) return;
 
     const normalizedStatus = getLeadStatusValue(status);
+    const currentStatus = getLeadStatusValue(item.status);
+    const statusChanged = normalizedStatus !== currentStatus;
+    const statusUpdatedAt = statusChanged
+      ? new Date().toISOString()
+      : (item as LeadForm).statusUpdatedAt || new Date().toISOString();
+
     const baseLead: LeadForm = {
       ...(item as LeadForm),
       status: normalizedStatus,
+      statusUpdatedAt,
     };
     const score = calculateLeadScore(baseLead);
     const updatedLead: LeadForm = {
@@ -1629,24 +1652,32 @@ export default function AdminLeadsPage() {
                         </span>
                       </td>
                       <td>
-                        <select
-                          className={`status-select-inline lead-${getLeadStatusValue(
-                            item.status,
-                          )}`}
-                          value={getLeadStatusValue(item.status)}
-                          onChange={(event) =>
-                            updateLeadStatus(item, event.target.value)
-                          }
-                        >
-                          {salesStatusOptions.map((statusItem) => (
-                            <option
-                              key={statusItem.value}
-                              value={statusItem.value}
-                            >
-                              {statusItem.label}
-                            </option>
-                          ))}
-                        </select>
+                        <div className="status-column-cell">
+                          <select
+                            className={`status-select-inline lead-${getLeadStatusValue(
+                              item.status,
+                            )}`}
+                            value={getLeadStatusValue(item.status)}
+                            onChange={(event) =>
+                              updateLeadStatus(item, event.target.value)
+                            }
+                          >
+                            {salesStatusOptions.map((statusItem) => (
+                              <option
+                                key={statusItem.value}
+                                value={statusItem.value}
+                              >
+                                {statusItem.label}
+                              </option>
+                            ))}
+                          </select>
+
+                          <span className="status-updated-date">
+                            Alterado em:
+                            <br />
+                            {formatDateTime(itemForm.statusUpdatedAt)}
+                          </span>
+                        </div>
                       </td>
                       <td className="text-cell">
                         <div className="clamped-text">
