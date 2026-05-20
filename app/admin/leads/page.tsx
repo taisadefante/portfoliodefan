@@ -12,12 +12,12 @@ import {
   ArrowLeft,
   ArrowRight,
   Building2,
+  CalendarClock,
   Edit3,
   Eye,
   EyeOff,
-  Globe,
   Flame,
-  CalendarClock,
+  Globe,
   Loader2,
   Lock,
   LogOut,
@@ -54,6 +54,319 @@ import {
   leadOptionCategoryLabels,
 } from "@/lib/leadsTypes";
 import AdminMenu from "../../../components/admin/AdminMenu.tsx";
+
+type LeadLocationExtra = {
+  state?: string;
+  city?: string;
+};
+
+type LeadForm = Lead & LeadLocationExtra;
+
+type UfOption = {
+  value: string;
+  label: string;
+  cities: string[];
+};
+
+const brazilStates: UfOption[] = [
+  {
+    value: "AC",
+    label: "Acre",
+    cities: [
+      "Rio Branco",
+      "Cruzeiro do Sul",
+      "Sena Madureira",
+      "Tarauacá",
+      "Feijó",
+    ],
+  },
+  {
+    value: "AL",
+    label: "Alagoas",
+    cities: [
+      "Maceió",
+      "Arapiraca",
+      "Rio Largo",
+      "Palmeira dos Índios",
+      "União dos Palmares",
+    ],
+  },
+  {
+    value: "AP",
+    label: "Amapá",
+    cities: ["Macapá", "Santana", "Laranjal do Jari", "Oiapoque", "Mazagão"],
+  },
+  {
+    value: "AM",
+    label: "Amazonas",
+    cities: ["Manaus", "Parintins", "Itacoatiara", "Manacapuru", "Coari"],
+  },
+  {
+    value: "BA",
+    label: "Bahia",
+    cities: [
+      "Salvador",
+      "Feira de Santana",
+      "Vitória da Conquista",
+      "Camaçari",
+      "Itabuna",
+      "Juazeiro",
+      "Lauro de Freitas",
+    ],
+  },
+  {
+    value: "CE",
+    label: "Ceará",
+    cities: [
+      "Fortaleza",
+      "Caucaia",
+      "Juazeiro do Norte",
+      "Maracanaú",
+      "Sobral",
+      "Crato",
+    ],
+  },
+  {
+    value: "DF",
+    label: "Distrito Federal",
+    cities: [
+      "Brasília",
+      "Ceilândia",
+      "Taguatinga",
+      "Samambaia",
+      "Planaltina",
+      "Águas Claras",
+    ],
+  },
+  {
+    value: "ES",
+    label: "Espírito Santo",
+    cities: [
+      "Vitória",
+      "Vila Velha",
+      "Serra",
+      "Cariacica",
+      "Linhares",
+      "Guarapari",
+    ],
+  },
+  {
+    value: "GO",
+    label: "Goiás",
+    cities: [
+      "Goiânia",
+      "Aparecida de Goiânia",
+      "Anápolis",
+      "Rio Verde",
+      "Luziânia",
+    ],
+  },
+  {
+    value: "MA",
+    label: "Maranhão",
+    cities: [
+      "São Luís",
+      "Imperatriz",
+      "São José de Ribamar",
+      "Timon",
+      "Caxias",
+    ],
+  },
+  {
+    value: "MT",
+    label: "Mato Grosso",
+    cities: [
+      "Cuiabá",
+      "Várzea Grande",
+      "Rondonópolis",
+      "Sinop",
+      "Tangará da Serra",
+    ],
+  },
+  {
+    value: "MS",
+    label: "Mato Grosso do Sul",
+    cities: [
+      "Campo Grande",
+      "Dourados",
+      "Três Lagoas",
+      "Corumbá",
+      "Ponta Porã",
+    ],
+  },
+  {
+    value: "MG",
+    label: "Minas Gerais",
+    cities: [
+      "Belo Horizonte",
+      "Uberlândia",
+      "Contagem",
+      "Juiz de Fora",
+      "Betim",
+      "Montes Claros",
+      "Uberaba",
+    ],
+  },
+  {
+    value: "PA",
+    label: "Pará",
+    cities: ["Belém", "Ananindeua", "Santarém", "Marabá", "Castanhal"],
+  },
+  {
+    value: "PB",
+    label: "Paraíba",
+    cities: ["João Pessoa", "Campina Grande", "Santa Rita", "Patos", "Bayeux"],
+  },
+  {
+    value: "PR",
+    label: "Paraná",
+    cities: [
+      "Curitiba",
+      "Londrina",
+      "Maringá",
+      "Ponta Grossa",
+      "Cascavel",
+      "São José dos Pinhais",
+    ],
+  },
+  {
+    value: "PE",
+    label: "Pernambuco",
+    cities: [
+      "Recife",
+      "Jaboatão dos Guararapes",
+      "Olinda",
+      "Caruaru",
+      "Petrolina",
+      "Paulista",
+    ],
+  },
+  {
+    value: "PI",
+    label: "Piauí",
+    cities: ["Teresina", "Parnaíba", "Picos", "Piripiri", "Floriano"],
+  },
+  {
+    value: "RJ",
+    label: "Rio de Janeiro",
+    cities: [
+      "Rio de Janeiro",
+      "Niterói",
+      "São Gonçalo",
+      "Duque de Caxias",
+      "Nova Iguaçu",
+      "Belford Roxo",
+      "São João de Meriti",
+      "Campos dos Goytacazes",
+      "Petrópolis",
+      "Volta Redonda",
+      "Macaé",
+      "Cabo Frio",
+      "Angra dos Reis",
+      "Nova Friburgo",
+      "Barra Mansa",
+      "Teresópolis",
+      "Mesquita",
+      "Nilópolis",
+      "Itaboraí",
+      "Magé",
+      "Maricá",
+      "Queimados",
+      "Resende",
+      "Araruama",
+      "Itaguaí",
+      "Japeri",
+      "Seropédica",
+      "Bangu",
+      "Realengo",
+      "Campo Grande",
+      "Jacarepaguá",
+      "Barra da Tijuca",
+    ],
+  },
+  {
+    value: "RN",
+    label: "Rio Grande do Norte",
+    cities: [
+      "Natal",
+      "Mossoró",
+      "Parnamirim",
+      "São Gonçalo do Amarante",
+      "Macaíba",
+    ],
+  },
+  {
+    value: "RS",
+    label: "Rio Grande do Sul",
+    cities: [
+      "Porto Alegre",
+      "Caxias do Sul",
+      "Pelotas",
+      "Canoas",
+      "Santa Maria",
+      "Gravataí",
+    ],
+  },
+  {
+    value: "RO",
+    label: "Rondônia",
+    cities: ["Porto Velho", "Ji-Paraná", "Ariquemes", "Vilhena", "Cacoal"],
+  },
+  {
+    value: "RR",
+    label: "Roraima",
+    cities: ["Boa Vista", "Rorainópolis", "Caracaraí", "Pacaraima", "Mucajaí"],
+  },
+  {
+    value: "SC",
+    label: "Santa Catarina",
+    cities: [
+      "Florianópolis",
+      "Joinville",
+      "Blumenau",
+      "São José",
+      "Chapecó",
+      "Itajaí",
+    ],
+  },
+  {
+    value: "SP",
+    label: "São Paulo",
+    cities: [
+      "São Paulo",
+      "Guarulhos",
+      "Campinas",
+      "São Bernardo do Campo",
+      "Santo André",
+      "Osasco",
+      "Ribeirão Preto",
+      "Sorocaba",
+      "Santos",
+    ],
+  },
+  {
+    value: "SE",
+    label: "Sergipe",
+    cities: [
+      "Aracaju",
+      "Nossa Senhora do Socorro",
+      "Lagarto",
+      "Itabaiana",
+      "São Cristóvão",
+    ],
+  },
+  {
+    value: "TO",
+    label: "Tocantins",
+    cities: [
+      "Palmas",
+      "Araguaína",
+      "Gurupi",
+      "Porto Nacional",
+      "Paraíso do Tocantins",
+    ],
+  },
+];
 
 const colors = {
   panel: "rgba(15, 23, 42, 0.78)",
@@ -293,30 +606,39 @@ function normalizeEmail(value?: string) {
     .toLowerCase();
 }
 
-function findDuplicatePhone(leads: Lead[], currentLead: Lead) {
-  const currentId = currentLead.id || "";
-  const phonesToCheck = [
-    normalizePhone(currentLead.phone),
-    normalizePhone(currentLead.whatsapp),
-  ].filter(Boolean);
+function getLeadState(lead: LeadForm) {
+  return lead.state || "";
+}
 
-  if (!phonesToCheck.length) return null;
+function getLeadCity(lead: LeadForm) {
+  return lead.city || "";
+}
+
+function getCitiesByState(state?: string) {
+  return brazilStates.find((item) => item.value === state)?.cities || [];
+}
+
+function findDuplicatePhone(leads: Lead[], currentLead: LeadForm) {
+  const currentId = currentLead.id || "";
+  const whatsappToCheck = normalizePhone(currentLead.whatsapp);
+
+  if (!whatsappToCheck) return null;
 
   return (
     leads.find((item) => {
       if (item.id && item.id === currentId) return false;
 
       const itemPhones = [
-        normalizePhone(item.phone),
         normalizePhone(item.whatsapp),
+        normalizePhone(item.phone),
       ].filter(Boolean);
 
-      return phonesToCheck.some((phone) => itemPhones.includes(phone));
+      return itemPhones.includes(whatsappToCheck);
     }) || null
   );
 }
 
-function findDuplicateEmail(leads: Lead[], currentLead: Lead) {
+function findDuplicateEmail(leads: Lead[], currentLead: LeadForm) {
   const currentId = currentLead.id || "";
   const currentEmail = normalizeEmail(currentLead.email);
 
@@ -431,14 +753,16 @@ function getLeadStatusLabel(status?: string) {
   );
 }
 
-function calculateLeadScore(lead: Lead) {
+function calculateLeadScore(lead: LeadForm) {
   let score = 0;
 
   if (lead.companyName) score += 5;
   if (lead.contactName) score += 5;
-  if (lead.phone || lead.whatsapp) score += 20;
+  if (lead.whatsapp) score += 25;
   if (lead.email) score += 10;
   if (lead.address) score += 5;
+  if (lead.state) score += 5;
+  if (lead.city) score += 5;
   if (lead.instagram) score += 10;
   if (lead.website) score += 5;
 
@@ -474,12 +798,12 @@ function getLeadTemperatureLabel(value?: string) {
   return "Frio";
 }
 
-function getLeadEffectiveScore(lead: Lead) {
+function getLeadEffectiveScore(lead: LeadForm) {
   if (typeof lead.score === "number") return lead.score;
   return calculateLeadScore(lead);
 }
 
-function getLeadEffectiveTemperature(lead: Lead): LeadTemperatureValue {
+function getLeadEffectiveTemperature(lead: LeadForm): LeadTemperatureValue {
   if (lead.temperature)
     return normalizeLeadTemperature(String(lead.temperature));
   return getLeadTemperatureByScore(getLeadEffectiveScore(lead));
@@ -502,7 +826,7 @@ export default function AdminLeadsPage() {
   const [showPassword, setShowPassword] = useState(false);
 
   const [leads, setLeads] = useState<Lead[]>([]);
-  const [lead, setLead] = useState<Lead>(emptyLead);
+  const [lead, setLead] = useState<LeadForm>(emptyLead as LeadForm);
   const [modalOpen, setModalOpen] = useState(false);
   const [savingLead, setSavingLead] = useState(false);
 
@@ -540,13 +864,14 @@ export default function AdminLeadsPage() {
   const filteredLeads = useMemo(() => {
     const term = normalizeText(search.trim());
     return leads.filter((item) => {
+      const itemForm = item as LeadForm;
       const leadStatus = getLeadStatusValue(item.status);
       const matchesStatus = leadStatus === statusFilter;
       const matchesSite =
         siteFilter === "todos" || item.siteStatus === siteFilter;
       const matchesNiche =
         nicheFilter === "todos" || item.niche === nicheFilter;
-      const leadTemperature = getLeadEffectiveTemperature(item);
+      const leadTemperature = getLeadEffectiveTemperature(itemForm);
       const matchesTemperature =
         temperatureFilter === "todos" || leadTemperature === temperatureFilter;
       const matchesReturn =
@@ -558,10 +883,11 @@ export default function AdminLeadsPage() {
         [
           item.companyName,
           item.contactName,
-          item.phone,
           item.whatsapp,
           item.email,
           item.address,
+          itemForm.state,
+          itemForm.city,
           item.niche,
           item.website,
           item.linkedin,
@@ -629,16 +955,20 @@ export default function AdminLeadsPage() {
     await signOut(auth);
   }
 
-  function updateField<K extends keyof Lead>(field: K, value: Lead[K]) {
+  function updateField<K extends keyof LeadForm>(field: K, value: LeadForm[K]) {
     setLead((prev) => ({ ...prev, [field]: value }));
   }
 
   function openNewLead() {
     setLead({
-      ...emptyLead,
-      niche: options.niches[0]?.value || "Outro",
+      ...(emptyLead as LeadForm),
+      niche: "",
       status: "nenhum",
       siteStatus: options.siteStatuses[0]?.value || "nao_sei",
+      state: "",
+      city: "",
+      whatsapp: "",
+      phone: "",
     });
     setModalOpen(true);
     setMessage("");
@@ -646,8 +976,9 @@ export default function AdminLeadsPage() {
 
   function openEditLead(item: Lead) {
     setLead({
-      ...emptyLead,
-      ...item,
+      ...(emptyLead as LeadForm),
+      ...(item as LeadForm),
+      phone: "",
       status: getLeadStatusValue(item.status),
       contactHistory: Array.isArray(item.contactHistory)
         ? item.contactHistory
@@ -659,20 +990,20 @@ export default function AdminLeadsPage() {
 
   function closeModal() {
     if (savingLead) return;
-    setLead(emptyLead);
+    setLead(emptyLead as LeadForm);
     setModalOpen(false);
   }
 
   async function handleSave() {
     if (!lead.companyName.trim())
-      return setMessage("Informe o nome da empresa.");
+      return setMessage("Informe o nome da empresa ou pessoa.");
 
     const duplicatePhone = findDuplicatePhone(leads, lead);
     const duplicateEmail = findDuplicateEmail(leads, lead);
 
     if (duplicatePhone) {
       return setMessage(
-        `Telefone/WhatsApp já cadastrado no lead: ${duplicatePhone.companyName}.`,
+        `WhatsApp já cadastrado no lead: ${duplicatePhone.companyName}.`,
       );
     }
 
@@ -685,23 +1016,25 @@ export default function AdminLeadsPage() {
     try {
       setSavingLead(true);
 
-      const normalizedLead: Lead = {
+      const normalizedLead: LeadForm = {
         ...lead,
+        phone: "",
+        whatsapp: lead.whatsapp || "",
         status: getLeadStatusValue(lead.status),
       };
 
       const score = calculateLeadScore(normalizedLead);
       const temperature = getLeadTemperatureByScore(score);
 
-      const leadToSave: Lead = {
+      const leadToSave: LeadForm = {
         ...normalizedLead,
         score,
         temperature,
       };
 
-      await saveLead(leadToSave);
+      await saveLead(leadToSave as Lead);
       await loadData();
-      setLead(emptyLead);
+      setLead(emptyLead as LeadForm);
       setModalOpen(false);
       setMessage("Lead salvo com sucesso.");
     } catch (error) {
@@ -716,9 +1049,12 @@ export default function AdminLeadsPage() {
     if (!item.id) return;
 
     const normalizedStatus = getLeadStatusValue(status);
-    const baseLead: Lead = { ...item, status: normalizedStatus };
+    const baseLead: LeadForm = {
+      ...(item as LeadForm),
+      status: normalizedStatus,
+    };
     const score = calculateLeadScore(baseLead);
-    const updatedLead: Lead = {
+    const updatedLead: LeadForm = {
       ...baseLead,
       score,
       temperature: getLeadTemperatureByScore(score),
@@ -727,10 +1063,10 @@ export default function AdminLeadsPage() {
     try {
       setLeads((prev): Lead[] =>
         prev.map((leadItem) =>
-          leadItem.id === item.id ? updatedLead : leadItem,
+          leadItem.id === item.id ? (updatedLead as Lead) : leadItem,
         ),
       );
-      await saveLead(updatedLead);
+      await saveLead(updatedLead as Lead);
       setMessage(`Lead movido para ${getLeadStatusLabel(normalizedStatus)}.`);
     } catch (error) {
       console.error(error);
@@ -749,11 +1085,6 @@ export default function AdminLeadsPage() {
       console.error(error);
       setMessage("Erro ao excluir lead.");
     }
-  }
-
-  async function copyText(text: string) {
-    await navigator.clipboard.writeText(text);
-    setMessage("Mensagem copiada com sucesso.");
   }
 
   function openOptionModal(category: LeadOptionCategory) {
@@ -846,7 +1177,7 @@ export default function AdminLeadsPage() {
 
   async function openContactModal(item: Lead) {
     if (!item.id) return setMessage("Salve o lead antes de cadastrar contato.");
-    setLead(item);
+    setLead(item as LeadForm);
     setContacts(await getLeadContacts(item.id));
     setContact({
       ...emptyLeadContact,
@@ -865,12 +1196,12 @@ export default function AdminLeadsPage() {
     await saveLeadContact(contact);
 
     if (lead.id === contact.leadId) {
-      const updatedLead: Lead = {
+      const updatedLead: LeadForm = {
         ...lead,
         nextContactDate: contactNextDate,
       };
 
-      await saveLead(updatedLead);
+      await saveLead(updatedLead as Lead);
       setLead(updatedLead);
       await loadData();
     }
@@ -1068,19 +1399,11 @@ export default function AdminLeadsPage() {
             <div>
               <h1 style={styles.title}>Painel Admin</h1>
               <p style={styles.subText}>
-                Gerencie leads por status, contatos separados e mensagens por
-                situação.
+                Gerencie leads por status, WhatsApp, localização e retorno.
               </p>
             </div>
           </div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              flexWrap: "wrap",
-            }}
-          >
+          <div className="header-actions">
             <a href="/" style={styles.secondaryButton}>
               <ArrowLeft size={17} /> Ver site
             </a>
@@ -1139,7 +1462,7 @@ export default function AdminLeadsPage() {
                 <input
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Empresa, nicho, site, observação..."
+                  placeholder="Empresa, cidade, nicho, site, observação..."
                 />
               </div>
             </label>
@@ -1187,58 +1510,19 @@ export default function AdminLeadsPage() {
           </div>
 
           <div className="kpi-grid">
-            <div>
-              <strong>
-                {
-                  leads.filter(
-                    (item) => getLeadStatusValue(item.status) === "nenhum",
-                  ).length
-                }
-              </strong>
-              <span>Nenhum</span>
-            </div>
-            <div>
-              <strong>
-                {
-                  leads.filter(
-                    (item) =>
-                      getLeadStatusValue(item.status) === "enviei_mensagem",
-                  ).length
-                }
-              </strong>
-              <span>Enviei mensagem</span>
-            </div>
-            <div>
-              <strong>
-                {
-                  leads.filter(
-                    (item) => getLeadStatusValue(item.status) === "interessado",
-                  ).length
-                }
-              </strong>
-              <span>Interessados</span>
-            </div>
-            <div>
-              <strong>
-                {
-                  leads.filter(
-                    (item) =>
-                      getLeadStatusValue(item.status) === "sem_interesse",
-                  ).length
-                }
-              </strong>
-              <span>Sem interesse</span>
-            </div>
-            <div>
-              <strong>
-                {
-                  leads.filter(
-                    (item) => getLeadStatusValue(item.status) === "cliente",
-                  ).length
-                }
-              </strong>
-              <span>Clientes</span>
-            </div>
+            {salesStatusOptions.map((item) => (
+              <div key={item.value}>
+                <strong>
+                  {
+                    leads.filter(
+                      (leadItem) =>
+                        getLeadStatusValue(leadItem.status) === item.value,
+                    ).length
+                  }
+                </strong>
+                <span>{item.label}</span>
+              </div>
+            ))}
           </div>
 
           <div className="table-wrap">
@@ -1247,7 +1531,7 @@ export default function AdminLeadsPage() {
                 <tr>
                   <th>Empresa / Pessoa</th>
                   <th>Contato</th>
-                  <th>Endereço</th>
+                  <th>Localização</th>
                   <th>Nicho</th>
                   <th>Site</th>
                   <th>Score</th>
@@ -1260,6 +1544,7 @@ export default function AdminLeadsPage() {
               </thead>
               <tbody>
                 {filteredLeads.map((item) => {
+                  const itemForm = item as LeadForm;
                   const suggested = getSuggestedMessage(item, options);
                   return (
                     <tr key={item.id || item.companyName}>
@@ -1283,7 +1568,15 @@ export default function AdminLeadsPage() {
                       </td>
                       <td>
                         <strong>{item.contactName || "-"}</strong>
-                        {item.phone && <span>{item.phone}</span>}
+                        {item.whatsapp && (
+                          <a
+                            href={createWhatsAppLink(item.whatsapp, suggested)}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            <MessageCircle size={13} /> {item.whatsapp}
+                          </a>
+                        )}
                         {item.email && (
                           <a href={`mailto:${item.email}`}>
                             <Mail size={13} /> {item.email}
@@ -1291,9 +1584,12 @@ export default function AdminLeadsPage() {
                         )}
                       </td>
                       <td className="text-cell">
-                        <div className="clamped-text">
-                          {item.address || "-"}
-                        </div>
+                        <strong>
+                          {[getLeadCity(itemForm), getLeadState(itemForm)]
+                            .filter(Boolean)
+                            .join(" / ") || "-"}
+                        </strong>
+                        <div className="clamped-text">{item.address || ""}</div>
                       </td>
                       <td>{optionLabel(options.niches, item.niche)}</td>
                       <td>
@@ -1305,18 +1601,18 @@ export default function AdminLeadsPage() {
                       </td>
                       <td>
                         <span className="score-pill">
-                          {getLeadEffectiveScore(item)}%
+                          {getLeadEffectiveScore(itemForm)}%
                         </span>
                       </td>
                       <td>
                         <span
                           className={`temperature-badge temperature-${getLeadEffectiveTemperature(
-                            item,
+                            itemForm,
                           )}`}
                         >
                           <Flame size={13} />
                           {getLeadTemperatureLabel(
-                            getLeadEffectiveTemperature(item),
+                            getLeadEffectiveTemperature(itemForm),
                           )}
                         </span>
                       </td>
@@ -1375,17 +1671,14 @@ export default function AdminLeadsPage() {
                           </button>
                           <a
                             className="small-action whatsapp"
-                            href={createWhatsAppLink(
-                              item.whatsapp || item.phone,
-                              suggested,
-                            )}
+                            href={createWhatsAppLink(item.whatsapp, suggested)}
                             target="_blank"
                             rel="noreferrer"
                             onClick={(event) => {
-                              if (!item.whatsapp && !item.phone) {
+                              if (!item.whatsapp) {
                                 event.preventDefault();
                                 setMessage(
-                                  "Cadastre um telefone ou WhatsApp para enviar mensagem.",
+                                  "Cadastre o WhatsApp para enviar mensagem.",
                                 );
                               }
                             }}
@@ -1427,7 +1720,6 @@ export default function AdminLeadsPage() {
           handleSave={handleSave}
           handleDelete={handleDelete}
           openOptionModal={openOptionModal}
-          copyText={copyText}
         />
       )}
       {contactModalOpen && (
@@ -1516,19 +1808,19 @@ function LeadModal({
   handleDelete,
   openOptionModal,
 }: {
-  lead: Lead;
+  lead: LeadForm;
   leads: Lead[];
   options: Record<LeadOptionCategory, LeadOptionItem[]>;
   savingLead: boolean;
-  updateField: <K extends keyof Lead>(field: K, value: Lead[K]) => void;
+  updateField: <K extends keyof LeadForm>(field: K, value: LeadForm[K]) => void;
   closeModal: () => void;
   handleSave: () => void;
   handleDelete: (id?: string) => void;
   openOptionModal: (category: LeadOptionCategory) => void;
-  copyText: (text: string) => void;
 }) {
   const duplicatePhone = findDuplicatePhone(leads, lead);
   const duplicateEmail = findDuplicateEmail(leads, lead);
+  const cityOptions = getCitiesByState(lead.state);
 
   return (
     <div style={styles.modalBackdrop}>
@@ -1539,8 +1831,8 @@ function LeadModal({
               {lead.id ? "Editar lead" : "Novo lead"}
             </h2>
             <p style={styles.cardSub}>
-              Cadastre somente os dados da empresa ou pessoa. O histórico de
-              contatos e as vendas ficam nos botões de ações.
+              Modal separada por blocos: dados, WhatsApp, localização,
+              comercial, presença digital e observações.
             </p>
           </div>
           <button
@@ -1552,193 +1844,262 @@ function LeadModal({
           </button>
         </header>
 
-        <div style={styles.formGrid} className="admin-form-grid">
-          <Field
-            label="Nome da empresa ou pessoa *"
-            value={lead.companyName}
-            onChange={(v) => updateField("companyName", v)}
-            placeholder="Ex: Clínica Vida ou Maria Silva"
-          />
-          <Field
-            label="Nome do responsável"
-            value={lead.contactName}
-            onChange={(v) => updateField("contactName", v)}
-            placeholder="Ex: Ana Paula"
-          />
-          <Field
-            label="Telefone"
-            value={lead.phone}
-            onChange={(v) => updateField("phone", v)}
-            placeholder="(21) 99999-9999"
-          />
-          <div style={styles.field}>
+        <div className="lead-sections">
+          <FormSection
+            title="Dados principais"
+            description="Identificação da empresa ou pessoa."
+          >
             <Field
-              label="WhatsApp"
-              value={lead.whatsapp}
-              onChange={(v) => updateField("whatsapp", v)}
-              placeholder="(21) 99999-9999"
+              label="Nome da empresa ou pessoa *"
+              value={lead.companyName}
+              onChange={(v) => updateField("companyName", v)}
+              placeholder="Ex: Clínica Vida ou Maria Silva"
             />
-            {duplicatePhone && (
-              <div className="duplicate-warning">
-                Este telefone/WhatsApp já está cadastrado em:{" "}
-                <strong>{duplicatePhone.companyName}</strong>
-              </div>
-            )}
-          </div>
-          <div style={styles.field}>
             <Field
-              label="E-mail"
-              value={lead.email}
-              onChange={(v) => updateField("email", v)}
-              placeholder="contato@empresa.com.br"
+              label="Nome do responsável"
+              value={lead.contactName}
+              onChange={(v) => updateField("contactName", v)}
+              placeholder="Ex: Ana Paula"
             />
-            {duplicateEmail && (
-              <div className="duplicate-warning">
-                Este e-mail já está cadastrado em:{" "}
-                <strong>{duplicateEmail.companyName}</strong>
-              </div>
-            )}
-          </div>
+          </FormSection>
 
-          <Field
-            label="Endereço"
-            value={lead.address || ""}
-            onChange={(v) => updateField("address", v)}
-            placeholder="Rua, número, bairro, cidade..."
-          />
+          <FormSection
+            title="Contato"
+            description="Telefone separado apenas como WhatsApp."
+          >
+            <div style={styles.field}>
+              <Field
+                label="WhatsApp"
+                value={lead.whatsapp || ""}
+                onChange={(v) => updateField("whatsapp", v)}
+                placeholder="(21) 99999-9999"
+              />
+              {duplicatePhone && (
+                <div className="duplicate-warning">
+                  Este WhatsApp já está cadastrado em:{" "}
+                  <strong>{duplicatePhone.companyName}</strong>
+                </div>
+              )}
+            </div>
 
-          <label style={styles.field}>
-            <span style={styles.label}>Nicho</span>
-            <div style={styles.optionRow}>
+            <div style={styles.field}>
+              <Field
+                label="E-mail"
+                value={lead.email || ""}
+                onChange={(v) => updateField("email", v)}
+                placeholder="contato@empresa.com.br"
+              />
+              {duplicateEmail && (
+                <div className="duplicate-warning">
+                  Este e-mail já está cadastrado em:{" "}
+                  <strong>{duplicateEmail.companyName}</strong>
+                </div>
+              )}
+            </div>
+          </FormSection>
+
+          <FormSection
+            title="Localização"
+            description="Estado e cidade em select para padronizar a lista."
+          >
+            <label style={styles.field}>
+              <span style={styles.label}>Estado</span>
               <select
-                value={lead.niche}
-                onChange={(event) => updateField("niche", event.target.value)}
+                value={lead.state || ""}
+                onChange={(event) => {
+                  updateField("state", event.target.value);
+                  updateField("city", "");
+                }}
                 style={styles.select}
               >
-                {options.niches.map((item) => (
+                <option value="">Selecione o estado</option>
+                {brazilStates.map((item) => (
                   <option key={item.value} value={item.value}>
                     {item.label}
                   </option>
                 ))}
               </select>
-              <button
-                style={styles.button}
-                type="button"
-                onClick={() => openOptionModal("niches")}
-              >
-                <Plus size={16} />
-              </button>
-            </div>
-          </label>
+            </label>
 
-          <label style={styles.field}>
-            <span style={styles.label}>Status da venda</span>
-            <select
-              value={getLeadStatusValue(lead.status)}
-              onChange={(event) =>
-                updateField("status", getLeadStatusValue(event.target.value))
-              }
-              style={styles.select}
-            >
-              {salesStatusOptions.map((item) => (
-                <option key={item.value} value={item.value}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label style={styles.field}>
-            <span style={styles.label}>Temperatura</span>
-            <select
-              value={
-                lead.temperature ||
-                getLeadTemperatureByScore(calculateLeadScore(lead))
-              }
-              onChange={(event) =>
-                updateField(
-                  "temperature",
-                  normalizeLeadTemperature(event.target.value),
-                )
-              }
-              style={styles.select}
-            >
-              <option value="frio">Frio</option>
-              <option value="morno">Morno</option>
-              <option value="quente">Quente</option>
-            </select>
-          </label>
-
-          <Field
-            type="number"
-            label="Score do lead"
-            value={String(lead.score ?? calculateLeadScore(lead))}
-            onChange={(v) => updateField("score", Number(v) as Lead["score"])}
-            placeholder="0 a 100"
-          />
-
-          <label style={styles.field}>
-            <span style={styles.label}>Situação do site</span>
-            <div style={styles.optionRow}>
+            <label style={styles.field}>
+              <span style={styles.label}>Cidade</span>
               <select
-                value={lead.siteStatus}
+                value={lead.city || ""}
+                onChange={(event) => updateField("city", event.target.value)}
+                style={styles.select}
+                disabled={!lead.state}
+              >
+                <option value="">
+                  {lead.state
+                    ? "Selecione a cidade"
+                    : "Selecione o estado primeiro"}
+                </option>
+                {cityOptions.map((city) => (
+                  <option key={city} value={city}>
+                    {city}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <Field
+              label="Endereço"
+              value={lead.address || ""}
+              onChange={(v) => updateField("address", v)}
+              placeholder="Rua, número, bairro..."
+            />
+          </FormSection>
+
+          <FormSection
+            title="Comercial"
+            description="Nicho, status, score e temperatura do lead."
+          >
+            <label style={styles.field}>
+              <span style={{ ...styles.label, color: "#f87171" }}>Nicho</span>
+              <div style={styles.optionRow}>
+                <select
+                  value={lead.niche || ""}
+                  onChange={(event) => updateField("niche", event.target.value)}
+                  style={styles.select}
+                >
+                  <option value="">Selecione o nicho</option>
+                  {options.niches.map((item) => (
+                    <option key={item.value} value={item.value}>
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  style={styles.button}
+                  type="button"
+                  onClick={() => openOptionModal("niches")}
+                >
+                  <Plus size={16} />
+                </button>
+              </div>
+            </label>
+
+            <label style={styles.field}>
+              <span style={styles.label}>Status da venda</span>
+              <select
+                value={getLeadStatusValue(lead.status)}
                 onChange={(event) =>
-                  updateField("siteStatus", event.target.value)
+                  updateField("status", getLeadStatusValue(event.target.value))
                 }
                 style={styles.select}
               >
-                {options.siteStatuses.map((item) => (
+                {salesStatusOptions.map((item) => (
                   <option key={item.value} value={item.value}>
                     {item.label}
                   </option>
                 ))}
               </select>
-              <button
-                style={styles.button}
-                type="button"
-                onClick={() => openOptionModal("siteStatuses")}
+            </label>
+
+            <label style={styles.field}>
+              <span style={styles.label}>Temperatura</span>
+              <select
+                value={
+                  lead.temperature ||
+                  getLeadTemperatureByScore(calculateLeadScore(lead))
+                }
+                onChange={(event) =>
+                  updateField(
+                    "temperature",
+                    normalizeLeadTemperature(event.target.value),
+                  )
+                }
+                style={styles.select}
               >
-                <Plus size={16} />
-              </button>
-            </div>
-          </label>
+                <option value="frio">Frio</option>
+                <option value="morno">Morno</option>
+                <option value="quente">Quente</option>
+              </select>
+            </label>
 
-          <Field
-            label="Site atual"
-            value={lead.website}
-            onChange={(v) => updateField("website", v)}
-            placeholder="https://..."
-          />
-          <Field
-            label="LinkedIn"
-            value={lead.linkedin}
-            onChange={(v) => updateField("linkedin", v)}
-            placeholder="https://linkedin.com/..."
-          />
-          <Field
-            label="Facebook"
-            value={lead.facebook}
-            onChange={(v) => updateField("facebook", v)}
-            placeholder="https://facebook.com/..."
-          />
-          <Field
-            label="Instagram"
-            value={lead.instagram}
-            onChange={(v) => updateField("instagram", v)}
-            placeholder="https://instagram.com/..."
-          />
-
-          <label style={{ ...styles.field, gridColumn: "1 / -1" }}>
-            <span style={styles.label}>Observação geral</span>
-            <textarea
-              value={lead.observation}
-              onChange={(event) =>
-                updateField("observation", event.target.value)
-              }
-              placeholder="Ex: empresa sem site, Instagram ativo, melhor horário para chamar..."
-              style={styles.textarea}
+            <Field
+              type="number"
+              label="Score do lead"
+              value={String(lead.score ?? calculateLeadScore(lead))}
+              onChange={(v) => updateField("score", Number(v) as Lead["score"])}
+              placeholder="0 a 100"
             />
-          </label>
+          </FormSection>
+
+          <FormSection
+            title="Presença digital"
+            description="Dados para avaliar oportunidade de site, landing page ou sistema."
+          >
+            <label style={styles.field}>
+              <span style={{ ...styles.label, color: "#f87171" }}>
+                Situação do site
+              </span>
+              <div style={styles.optionRow}>
+                <select
+                  value={lead.siteStatus || ""}
+                  onChange={(event) =>
+                    updateField("siteStatus", event.target.value)
+                  }
+                  style={styles.select}
+                >
+                  {options.siteStatuses.map((item) => (
+                    <option key={item.value} value={item.value}>
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  style={styles.button}
+                  type="button"
+                  onClick={() => openOptionModal("siteStatuses")}
+                >
+                  <Plus size={16} />
+                </button>
+              </div>
+            </label>
+
+            <Field
+              label="Site atual"
+              value={lead.website || ""}
+              onChange={(v) => updateField("website", v)}
+              placeholder="https://..."
+            />
+            <Field
+              label="Instagram"
+              value={lead.instagram || ""}
+              onChange={(v) => updateField("instagram", v)}
+              placeholder="https://instagram.com/..."
+            />
+            <Field
+              label="Facebook"
+              value={lead.facebook || ""}
+              onChange={(v) => updateField("facebook", v)}
+              placeholder="https://facebook.com/..."
+            />
+            <Field
+              label="LinkedIn"
+              value={lead.linkedin || ""}
+              onChange={(v) => updateField("linkedin", v)}
+              placeholder="https://linkedin.com/..."
+            />
+          </FormSection>
+
+          <FormSection
+            title="Observações"
+            description="Anotações gerais sobre o lead."
+          >
+            <label style={{ ...styles.field, gridColumn: "1 / -1" }}>
+              <span style={styles.label}>Observação geral</span>
+              <textarea
+                value={lead.observation || ""}
+                onChange={(event) =>
+                  updateField("observation", event.target.value)
+                }
+                placeholder="Ex: empresa sem site, Instagram ativo, melhor horário para chamar..."
+                style={styles.textarea}
+              />
+            </label>
+          </FormSection>
         </div>
 
         <div style={styles.actions}>
@@ -1773,6 +2134,28 @@ function LeadModal({
         </div>
       </section>
     </div>
+  );
+}
+
+function FormSection({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="form-section">
+      <div className="form-section-title">
+        <h3>{title}</h3>
+        <p>{description}</p>
+      </div>
+      <div style={styles.formGrid} className="admin-form-grid">
+        {children}
+      </div>
+    </section>
   );
 }
 
@@ -1954,9 +2337,7 @@ function OptionModal(props: {
                         onChange={async (event) => {
                           const file = event.target.files?.[0];
                           if (!file) return;
-
                           const image = await fileToDataUrl(file);
-
                           p.setEditingOptionImage(image);
                         }}
                       />
@@ -2037,14 +2418,30 @@ function AdminLeadsGlobalStyle() {
       a {
         text-decoration: none;
       }
+
+      button:disabled,
+      select:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
       .spin {
         animation: spin 0.8s linear infinite;
       }
+
       @keyframes spin {
         to {
           transform: rotate(360deg);
         }
       }
+
+      .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
       .admin-badge {
         display: inline-flex;
         width: fit-content;
@@ -2058,6 +2455,7 @@ function AdminLeadsGlobalStyle() {
         font-size: 12px;
         font-weight: 900;
       }
+
       .password-wrap {
         display: grid;
         grid-template-columns: 1fr auto;
@@ -2067,6 +2465,7 @@ function AdminLeadsGlobalStyle() {
         border-radius: 16px;
         overflow: hidden;
       }
+
       .password-wrap input {
         border: 0;
         background: transparent;
@@ -2075,6 +2474,7 @@ function AdminLeadsGlobalStyle() {
         padding: 13px 14px;
         width: 100%;
       }
+
       .password-wrap button {
         border: 0;
         background: transparent;
@@ -2085,6 +2485,7 @@ function AdminLeadsGlobalStyle() {
         display: grid;
         place-items: center;
       }
+
       .list-toolbar,
       .history-header {
         display: flex;
@@ -2093,6 +2494,7 @@ function AdminLeadsGlobalStyle() {
         gap: 18px;
         margin-bottom: 18px;
       }
+
       .filters-grid {
         display: grid;
         grid-template-columns: minmax(300px, 1fr) 220px 260px 190px 190px;
@@ -2100,6 +2502,7 @@ function AdminLeadsGlobalStyle() {
         margin-bottom: 18px;
         align-items: end;
       }
+
       .search-box {
         display: grid;
         grid-template-columns: auto 1fr;
@@ -2110,6 +2513,7 @@ function AdminLeadsGlobalStyle() {
         border-radius: 16px;
         padding: 0 13px;
       }
+
       .search-box input {
         border: 0;
         outline: 0;
@@ -2117,24 +2521,28 @@ function AdminLeadsGlobalStyle() {
         background: transparent;
         padding: 13px 0;
       }
+
       .kpi-grid {
         display: grid;
         grid-template-columns: repeat(5, minmax(0, 1fr));
         gap: 12px;
         margin-bottom: 18px;
       }
+
       .kpi-grid > div {
         border-radius: 20px;
         padding: 18px;
         background: rgba(2, 6, 23, 0.35);
         border: 1px solid rgba(125, 211, 252, 0.14);
       }
+
       .kpi-grid strong {
         display: block;
         font-size: 28px;
         color: #f8fafc;
         line-height: 1;
       }
+
       .kpi-grid span {
         display: block;
         margin-top: 8px;
@@ -2142,6 +2550,7 @@ function AdminLeadsGlobalStyle() {
         font-size: 13px;
         font-weight: 900;
       }
+
       .table-wrap {
         width: 100%;
         max-width: 100%;
@@ -2165,6 +2574,7 @@ function AdminLeadsGlobalStyle() {
         background: #0ea5e9;
         border-radius: 999px;
       }
+
       .admin-table {
         width: 100%;
         min-width: 1860px;
@@ -2172,6 +2582,7 @@ function AdminLeadsGlobalStyle() {
         border-collapse: collapse;
         background: rgba(2, 6, 23, 0.32);
       }
+
       .admin-table th,
       .admin-table td {
         padding: 14px;
@@ -2181,6 +2592,7 @@ function AdminLeadsGlobalStyle() {
         color: #cbd5e1;
         font-size: 14px;
       }
+
       .admin-table th {
         position: sticky;
         top: 0;
@@ -2199,7 +2611,7 @@ function AdminLeadsGlobalStyle() {
 
       .admin-table th:nth-child(2),
       .admin-table td:nth-child(2) {
-        width: 160px;
+        width: 170px;
       }
 
       .admin-table th:nth-child(3),
@@ -2250,6 +2662,7 @@ function AdminLeadsGlobalStyle() {
       .admin-table td strong {
         color: #f8fafc;
       }
+
       .admin-table td a {
         display: inline-flex;
         align-items: center;
@@ -2258,6 +2671,7 @@ function AdminLeadsGlobalStyle() {
         margin-top: 6px;
         font-size: 13px;
       }
+
       .table-link-button {
         border: 0;
         background: transparent;
@@ -2266,16 +2680,19 @@ function AdminLeadsGlobalStyle() {
         cursor: pointer;
         text-align: left;
       }
+
       .table-link-button strong {
         color: #f8fafc;
         text-decoration: underline;
         text-decoration-color: rgba(125, 211, 252, 0.35);
         text-underline-offset: 4px;
       }
+
       .text-cell {
         max-width: 230px;
         line-height: 1.55;
       }
+
       .clamped-text {
         color: #cbd5e1;
         line-height: 1.55;
@@ -2292,6 +2709,7 @@ function AdminLeadsGlobalStyle() {
         gap: 10px;
         margin-bottom: 18px;
       }
+
       .status-tabs button {
         border: 1px solid rgba(125, 211, 252, 0.16);
         border-radius: 18px;
@@ -2305,6 +2723,7 @@ function AdminLeadsGlobalStyle() {
         cursor: pointer;
         font-weight: 900;
       }
+
       .status-tabs button.active {
         color: #f8fafc;
         border-color: rgba(56, 189, 248, 0.55);
@@ -2315,6 +2734,7 @@ function AdminLeadsGlobalStyle() {
         );
         box-shadow: 0 18px 38px rgba(14, 165, 233, 0.14);
       }
+
       .status-tabs strong {
         display: inline-flex;
         min-width: 34px;
@@ -2325,6 +2745,7 @@ function AdminLeadsGlobalStyle() {
         background: rgba(15, 23, 42, 0.78);
         color: #e0f2fe;
       }
+
       .status-select-inline {
         width: 100%;
         max-width: 190px;
@@ -2339,6 +2760,7 @@ function AdminLeadsGlobalStyle() {
         color: #ffffff;
         color-scheme: dark;
       }
+
       .status-select-inline option {
         background: #0f172a;
         color: #ffffff;
@@ -2348,22 +2770,27 @@ function AdminLeadsGlobalStyle() {
         background: rgba(15, 23, 42, 0.96);
         color: #e0f2fe;
       }
+
       .status-select-inline.lead-enviei_mensagem {
         background: rgba(245, 158, 11, 0.22);
         color: #fef3c7;
       }
+
       .status-select-inline.lead-interessado {
         background: rgba(34, 197, 94, 0.22);
         color: #dcfce7;
       }
+
       .status-select-inline.lead-sem_interesse {
         background: rgba(239, 68, 68, 0.22);
         color: #fee2e2;
       }
+
       .status-select-inline.lead-cliente {
         background: rgba(14, 165, 233, 0.24);
         color: #e0f2fe;
       }
+
       .status-badge {
         display: inline-flex;
         width: fit-content;
@@ -2373,56 +2800,27 @@ function AdminLeadsGlobalStyle() {
         font-weight: 900;
         border: 1px solid rgba(125, 211, 252, 0.16);
       }
-      .lead-novo,
+
       .site-nao_sei {
         color: #e0f2fe;
         background: rgba(14, 165, 233, 0.13);
       }
-      .lead-contatado,
-      .site-tem_desatualizado,
-      .lead-proposta_enviada {
+
+      .site-tem_desatualizado {
         color: #fef3c7;
         background: rgba(245, 158, 11, 0.15);
       }
-      .lead-respondeu {
-        color: #ddd6fe;
-        background: rgba(139, 92, 246, 0.15);
-      }
-      .lead-interessado,
+
       .site-nao_tem {
         color: #bbf7d0;
         background: rgba(34, 197, 94, 0.14);
       }
-      .lead-sem_interesse {
-        color: #fecaca;
-        background: rgba(239, 68, 68, 0.15);
-      }
-      .lead-fechado,
+
       .site-tem_atualizado {
         color: #bae6fd;
         background: rgba(14, 165, 233, 0.2);
       }
 
-      .lead-nenhum {
-        color: #e0f2fe;
-        background: rgba(14, 165, 233, 0.13);
-      }
-      .lead-enviei_mensagem {
-        color: #fef3c7;
-        background: rgba(245, 158, 11, 0.15);
-      }
-      .lead-interessado {
-        color: #bbf7d0;
-        background: rgba(34, 197, 94, 0.14);
-      }
-      .lead-sem_interesse {
-        color: #fecaca;
-        background: rgba(239, 68, 68, 0.15);
-      }
-      .lead-cliente {
-        color: #bae6fd;
-        background: rgba(14, 165, 233, 0.2);
-      }
       .score-pill {
         display: inline-flex;
         align-items: center;
@@ -2475,31 +2873,13 @@ function AdminLeadsGlobalStyle() {
         background: rgba(245, 158, 11, 0.18);
       }
 
-      .client-sale-banner {
-        display: grid;
-        gap: 4px;
-        margin-bottom: 18px;
-        border-radius: 18px;
-        padding: 14px 16px;
-        background: rgba(14, 165, 233, 0.12);
-        border: 1px solid rgba(125, 211, 252, 0.18);
-      }
-      .client-sale-banner span {
-        color: #94a3b8;
-        font-size: 12px;
-        font-weight: 900;
-        text-transform: uppercase;
-      }
-      .client-sale-banner strong {
-        color: #f8fafc;
-        font-size: 20px;
-      }
       .row-actions {
         min-width: 145px;
         display: flex;
         flex-direction: column;
         gap: 8px;
       }
+
       .small-action {
         width: 100%;
         min-width: 130px;
@@ -2516,17 +2896,47 @@ function AdminLeadsGlobalStyle() {
         font-weight: 900;
         white-space: nowrap;
       }
+
       .small-action.whatsapp {
         color: #dcfce7;
         background: rgba(34, 197, 94, 0.13);
       }
-      .small-action.sale {
-        color: #dcfce7;
-        background: rgba(34, 197, 94, 0.16);
-      }
+
       .small-action.danger {
         color: #fff;
         background: rgba(239, 68, 68, 0.82);
+      }
+
+      .lead-sections {
+        display: grid;
+        gap: 16px;
+      }
+
+      .form-section {
+        border-radius: 24px;
+        padding: 18px;
+        background: rgba(2, 6, 23, 0.28);
+        border: 1px solid rgba(125, 211, 252, 0.14);
+      }
+
+      .form-section-title {
+        margin-bottom: 16px;
+        padding-bottom: 14px;
+        border-bottom: 1px solid rgba(125, 211, 252, 0.12);
+      }
+
+      .form-section-title h3 {
+        margin: 0 0 5px;
+        color: #f8fafc;
+        font-size: 20px;
+        letter-spacing: -0.03em;
+      }
+
+      .form-section-title p {
+        margin: 0;
+        color: #94a3b8;
+        line-height: 1.45;
+        font-size: 13px;
       }
 
       .duplicate-warning {
@@ -2544,52 +2954,14 @@ function AdminLeadsGlobalStyle() {
       .duplicate-warning strong {
         color: #ffffff;
       }
-      .message-box {
-        border-radius: 24px;
-        padding: 20px;
-        background: rgba(2, 6, 23, 0.35);
-        border: 1px solid rgba(125, 211, 252, 0.14);
-      }
-      .message-box h3 {
-        margin: 0 0 6px;
-        color: #f8fafc;
-        font-size: 20px;
-      }
-      .message-box p {
-        margin: 0 0 14px;
-        color: #94a3b8;
-        line-height: 1.55;
-      }
-      .message-box textarea {
-        width: 100%;
-        min-height: 220px;
-        resize: vertical;
-        border: 1px solid rgba(125, 211, 252, 0.18);
-        background: rgba(2, 6, 23, 0.45);
-        color: #f8fafc;
-        outline: none;
-        border-radius: 16px;
-        padding: 13px 14px;
-        line-height: 1.55;
-      }
-      .message-preview-image {
-        max-width: 100%;
-        border-radius: 18px;
-        margin: 0 0 12px;
-        border: 1px solid rgba(125, 211, 252, 0.18);
-      }
-      .message-actions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        margin-top: 12px;
-      }
+
       .option-add-box {
         display: grid;
         grid-template-columns: 1fr auto;
         gap: 10px;
         margin-bottom: 18px;
       }
+
       .option-add-box input,
       .option-list-item input,
       .option-list-item textarea {
@@ -2601,14 +2973,15 @@ function AdminLeadsGlobalStyle() {
         border-radius: 16px;
         padding: 13px 14px;
       }
+
       .option-list-item textarea {
         min-height: 170px;
         resize: vertical;
       }
+
       .option-add-box button,
       .option-list-item button,
-      .mini-card button,
-      .sale-card button {
+      .mini-card button {
         border: 0;
         border-radius: 14px;
         padding: 11px 13px;
@@ -2621,13 +2994,14 @@ function AdminLeadsGlobalStyle() {
         cursor: pointer;
         font-weight: 900;
       }
+
       .option-list-box,
-      .mini-list,
-      .sales-grid {
+      .mini-list {
         display: grid;
         gap: 10px;
         margin-top: 18px;
       }
+
       .option-list-item {
         display: grid;
         grid-template-columns: 1fr auto;
@@ -2638,33 +3012,28 @@ function AdminLeadsGlobalStyle() {
         background: rgba(2, 6, 23, 0.35);
         border: 1px solid rgba(125, 211, 252, 0.12);
       }
+
       .option-list-item > div:not(.edit-option-form),
-      .mini-card > div,
-      .sale-card > div {
+      .mini-card > div {
         display: flex;
         gap: 8px;
         flex-wrap: wrap;
       }
+
       .edit-option-form {
         display: grid;
         gap: 10px;
       }
+
       .danger {
         background: rgba(239, 68, 68, 0.9) !important;
       }
+
       .empty-option-list {
         color: #94a3b8;
       }
-      .check-field {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        color: #dbeafe;
-        font-size: 13px;
-        font-weight: 900;
-      }
-      .mini-card,
-      .sale-card {
+
+      .mini-card {
         display: grid;
         gap: 8px;
         padding: 14px;
@@ -2673,57 +3042,60 @@ function AdminLeadsGlobalStyle() {
         border: 1px solid rgba(125, 211, 252, 0.12);
         color: #cbd5e1;
       }
-      .mini-card strong,
-      .sale-card strong {
+
+      .mini-card strong {
         color: #f8fafc;
       }
-      .mini-card a,
-      .sale-card a {
+
+      .mini-card a {
         color: #7dd3fc;
         display: inline-flex;
         align-items: center;
         gap: 5px;
       }
-      .sales-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-      .sale-card img {
-        width: 100%;
-        max-height: 220px;
-        object-fit: cover;
-        border-radius: 14px;
-      }
+
       @media (max-width: 1180px) {
         .filters-grid,
         .status-tabs {
           grid-template-columns: 1fr 1fr !important;
         }
       }
+
       @media (max-width: 1080px) {
         .admin-top-header,
         .list-toolbar {
           align-items: flex-start !important;
           flex-direction: column !important;
         }
-        .kpi-grid,
-        .sales-grid {
+
+        .kpi-grid {
           grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
         }
       }
+
       @media (max-width: 900px) {
         .admin-login-card {
           grid-template-columns: 1fr !important;
         }
       }
+
       @media (max-width: 760px) {
         .admin-form-grid,
         .filters-grid,
         .status-tabs,
         .kpi-grid,
         .option-add-box,
-        .option-list-item,
-        .sales-grid {
+        .option-list-item {
           grid-template-columns: 1fr !important;
+        }
+
+        .header-actions {
+          width: 100%;
+        }
+
+        .header-actions a,
+        .header-actions button {
+          width: 100%;
         }
       }
     `}</style>
