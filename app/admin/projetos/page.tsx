@@ -220,6 +220,7 @@ const styles: Record<string, CSSProperties> = {
     background: colors.panel,
     border: `1px solid ${colors.border}`,
     boxShadow: "0 24px 80px rgba(0,0,0,0.2)",
+    overflow: "hidden",
   },
   cardTitle: { margin: "0 0 6px", fontSize: 26, letterSpacing: "-0.04em" },
   cardSub: { margin: "0 0 22px", color: colors.soft, lineHeight: 1.55 },
@@ -683,7 +684,9 @@ export default function AdminProjetosPage() {
       for (const file of Array.from(files)) {
         if (!file.type.startsWith("image/")) continue;
         const extension = file.name.split(".").pop() || "png";
-        const safeName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${extension}`;
+        const safeName = `${Date.now()}-${Math.random()
+          .toString(36)
+          .slice(2)}.${extension}`;
         const storageRef = ref(storage, `portfolio-projects/${safeName}`);
         await uploadBytes(storageRef, file);
         const url = await getDownloadURL(storageRef);
@@ -1116,7 +1119,13 @@ export default function AdminProjetosPage() {
                       </td>
                       <td className="text-cell">
                         <CollapsibleCell
-                          text={`Módulos: ${listToDisplay(item.modules)}\nIntegrações: ${listToDisplay(item.integrations)}\nIndicado: ${listToDisplay(item.indicatedBusinesses)}`}
+                          text={`Módulos: ${listToDisplay(
+                            item.modules,
+                          )}\nIntegrações: ${listToDisplay(
+                            item.integrations,
+                          )}\nIndicado: ${listToDisplay(
+                            item.indicatedBusinesses,
+                          )}`}
                         />
                       </td>
                       <td>
@@ -1125,6 +1134,8 @@ export default function AdminProjetosPage() {
                             type="button"
                             className="small-action"
                             onClick={() => openEditProject(item)}
+                            title="Editar"
+                            aria-label="Editar projeto"
                           >
                             <Edit3 size={15} />
                           </button>
@@ -1132,6 +1143,8 @@ export default function AdminProjetosPage() {
                             type="button"
                             className="small-action danger"
                             onClick={() => handleDelete(item.id)}
+                            title="Excluir"
+                            aria-label="Excluir projeto"
                           >
                             <Trash2 size={15} />
                           </button>
@@ -1142,7 +1155,7 @@ export default function AdminProjetosPage() {
                 })}
                 {!filteredProjects.length && (
                   <tr>
-                    <td colSpan={10}>Nenhum projeto encontrado.</td>
+                    <td colSpan={9}>Nenhum projeto encontrado.</td>
                   </tr>
                 )}
               </tbody>
@@ -1624,6 +1637,10 @@ export default function AdminProjetosPage() {
 function AdminGlobalStyle() {
   return (
     <style jsx global>{`
+      * {
+        box-sizing: border-box;
+      }
+
       a {
         text-decoration: none;
       }
@@ -1708,7 +1725,7 @@ function AdminGlobalStyle() {
 
       .admin-table {
         width: 100%;
-        min-width: 1900px;
+        min-width: 1420px;
         table-layout: fixed;
         border-collapse: collapse;
         background: rgba(2, 6, 23, 0.32);
@@ -1735,52 +1752,49 @@ function AdminGlobalStyle() {
 
       .admin-table th:nth-child(1),
       .admin-table td:nth-child(1) {
-        width: 170px;
+        width: 135px;
       }
 
       .admin-table th:nth-child(2),
       .admin-table td:nth-child(2) {
-        width: 250px;
+        width: 210px;
       }
 
       .admin-table th:nth-child(3),
       .admin-table td:nth-child(3) {
-        width: 160px;
+        width: 145px;
       }
 
       .admin-table th:nth-child(4),
       .admin-table td:nth-child(4) {
-        width: 180px;
+        width: 165px;
       }
 
       .admin-table th:nth-child(5),
       .admin-table td:nth-child(5) {
-        width: 220px;
+        width: 190px;
       }
 
       .admin-table th:nth-child(6),
       .admin-table td:nth-child(6) {
-        width: 180px;
+        width: 150px;
       }
 
       .admin-table th:nth-child(7),
       .admin-table td:nth-child(7) {
-        width: 280px;
+        width: 220px;
       }
 
       .admin-table th:nth-child(8),
       .admin-table td:nth-child(8) {
-        width: 340px;
+        width: 300px;
       }
 
       .admin-table th:nth-child(9),
       .admin-table td:nth-child(9) {
-        width: 360px;
-      }
-
-      .admin-table th:nth-child(10),
-      .admin-table td:nth-child(10) {
-        width: 130px;
+        width: 115px;
+        max-width: 115px;
+        min-width: 115px;
       }
 
       .admin-table td strong {
@@ -1797,11 +1811,11 @@ function AdminGlobalStyle() {
         margin-bottom: 4px;
       }
       .text-cell {
-        max-width: 440px;
+        max-width: 300px;
         line-height: 1.55;
       }
       .collapsed-text {
-        max-width: 440px;
+        max-width: 300px;
       }
       .collapsed-text-content {
         color: #cbd5e1;
@@ -1835,7 +1849,7 @@ function AdminGlobalStyle() {
         display: flex;
         flex-wrap: wrap;
         gap: 6px;
-        max-width: 250px;
+        max-width: 210px;
       }
       .chip-list span,
       .mini-badge {
@@ -1855,12 +1869,12 @@ function AdminGlobalStyle() {
         background: rgba(34, 197, 94, 0.12);
       }
       .image-cell {
-        width: 118px;
+        width: 112px;
       }
       .image-cell img,
       .image-empty {
-        width: 112px;
-        height: 78px;
+        width: 100px;
+        height: 68px;
         border-radius: 14px;
         object-fit: cover;
         background: rgba(15, 23, 42, 0.9);
@@ -1877,6 +1891,7 @@ function AdminGlobalStyle() {
         justify-content: center;
         gap: 6px;
         margin-top: 8px;
+        width: 100px;
       }
       .image-arrows button {
         width: 26px;
@@ -1895,14 +1910,21 @@ function AdminGlobalStyle() {
         font-weight: 900;
       }
       .row-actions {
+        width: 86px;
+        min-width: 86px;
+        max-width: 86px;
         display: flex;
         flex-direction: column;
         gap: 8px;
       }
       .small-action {
+        width: 86px;
+        min-width: 86px;
+        max-width: 86px;
+        height: 34px;
         border: 0;
         border-radius: 12px;
-        padding: 10px 12px;
+        padding: 8px 10px;
         display: inline-flex;
         align-items: center;
         justify-content: center;

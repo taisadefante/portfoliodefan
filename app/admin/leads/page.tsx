@@ -336,7 +336,9 @@ function createWhatsAppLink(phone?: string, message?: string) {
   const phoneWithCountry = cleanPhone.startsWith("55")
     ? cleanPhone
     : `55${cleanPhone}`;
-  return `https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(message || "")}`;
+  return `https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(
+    message || "",
+  )}`;
 }
 
 function optionLabel(options: LeadOptionItem[], value?: string) {
@@ -381,6 +383,7 @@ type LeadTemperatureValue = NonNullable<Lead["temperature"]>;
 
 const salesStatusOptions: LeadOptionItem[] = [
   { value: "nenhum", label: "Nenhum" },
+  { value: "enviei_mensagem", label: "Enviei mensagem" },
   { value: "interessado", label: "Interessado" },
   { value: "sem_interesse", label: "Sem interesse" },
   { value: "cliente", label: "Cliente" },
@@ -389,9 +392,23 @@ const salesStatusOptions: LeadOptionItem[] = [
 const salesStatusTabs = salesStatusOptions;
 
 function getLeadStatusValue(status?: string): LeadStatusValue {
-  const clean = String(status || "").trim();
+  const clean = normalizeText(String(status || "").trim());
+
+  if (
+    [
+      "enviei_mensagem",
+      "enviei mensagem",
+      "mensagem_enviada",
+      "mensagem enviada",
+      "contatado",
+      "enviei",
+    ].includes(clean)
+  ) {
+    return "enviei_mensagem" as LeadStatusValue;
+  }
 
   if (["interessado"].includes(clean)) return "interessado" as LeadStatusValue;
+
   if (
     ["sem_interesse", "sem interesse", "perdido", "sem_interesse_"].includes(
       clean,
@@ -399,6 +416,7 @@ function getLeadStatusValue(status?: string): LeadStatusValue {
   ) {
     return "sem_interesse" as LeadStatusValue;
   }
+
   if (["cliente", "fechado", "finalizado"].includes(clean)) {
     return "cliente" as LeadStatusValue;
   }
@@ -430,6 +448,7 @@ function calculateLeadScore(lead: Lead) {
   if (lead.siteStatus === "nao_tem") score += 30;
   if (lead.siteStatus === "tem_desatualizado") score += 25;
 
+  if (getLeadStatusValue(lead.status) === "enviei_mensagem") score += 18;
   if (getLeadStatusValue(lead.status) === "interessado") score += 35;
   if (getLeadStatusValue(lead.status) === "cliente") score += 45;
   if (getLeadStatusValue(lead.status) === "sem_interesse") score -= 35;
@@ -629,6 +648,7 @@ export default function AdminLeadsPage() {
     setLead({
       ...emptyLead,
       ...item,
+      status: getLeadStatusValue(item.status),
       contactHistory: Array.isArray(item.contactHistory)
         ? item.contactHistory
         : [],
@@ -665,12 +685,16 @@ export default function AdminLeadsPage() {
     try {
       setSavingLead(true);
 
-      const score = calculateLeadScore(lead);
+      const normalizedLead: Lead = {
+        ...lead,
+        status: getLeadStatusValue(lead.status),
+      };
+
+      const score = calculateLeadScore(normalizedLead);
       const temperature = getLeadTemperatureByScore(score);
 
       const leadToSave: Lead = {
-        ...lead,
-        status: getLeadStatusValue(lead.status),
+        ...normalizedLead,
         score,
         temperature,
       };
@@ -797,7 +821,7 @@ export default function AdminLeadsPage() {
       activeOptionCategory === "statuses" &&
       lead.status === oldValue
     )
-      updateField("status", clean);
+      updateField("status", clean as Lead["status"]);
     if (
       oldValue &&
       activeOptionCategory === "siteStatuses" &&
@@ -1177,6 +1201,17 @@ export default function AdminLeadsPage() {
               <strong>
                 {
                   leads.filter(
+                    (item) =>
+                      getLeadStatusValue(item.status) === "enviei_mensagem",
+                  ).length
+                }
+              </strong>
+              <span>Enviei mensagem</span>
+            </div>
+            <div>
+              <strong>
+                {
+                  leads.filter(
                     (item) => getLeadStatusValue(item.status) === "interessado",
                   ).length
                 }
@@ -1299,7 +1334,9 @@ export default function AdminLeadsPage() {
                       </td>
                       <td>
                         <select
-                          className={`status-select-inline lead-${getLeadStatusValue(item.status)}`}
+                          className={`status-select-inline lead-${getLeadStatusValue(
+                            item.status,
+                          )}`}
                           value={getLeadStatusValue(item.status)}
                           onChange={(event) =>
                             updateLeadStatus(item, event.target.value)
@@ -2082,7 +2119,7 @@ function AdminLeadsGlobalStyle() {
       }
       .kpi-grid {
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(5, minmax(0, 1fr));
         gap: 12px;
         margin-bottom: 18px;
       }
@@ -2311,6 +2348,10 @@ function AdminLeadsGlobalStyle() {
         background: rgba(15, 23, 42, 0.96);
         color: #e0f2fe;
       }
+      .status-select-inline.lead-enviei_mensagem {
+        background: rgba(245, 158, 11, 0.22);
+        color: #fef3c7;
+      }
       .status-select-inline.lead-interessado {
         background: rgba(34, 197, 94, 0.22);
         color: #dcfce7;
@@ -2365,6 +2406,10 @@ function AdminLeadsGlobalStyle() {
       .lead-nenhum {
         color: #e0f2fe;
         background: rgba(14, 165, 233, 0.13);
+      }
+      .lead-enviei_mensagem {
+        color: #fef3c7;
+        background: rgba(245, 158, 11, 0.15);
       }
       .lead-interessado {
         color: #bbf7d0;

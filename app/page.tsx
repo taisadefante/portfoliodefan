@@ -1112,7 +1112,10 @@ export default function HomePage() {
             alignItems: "center",
           }}
         >
-          <div style={{ textAlign: isNotebook ? "center" : "left" }}>
+          <div
+            className="animate-fade-up"
+            style={{ textAlign: isNotebook ? "center" : "left" }}
+          >
             <span
               style={{
                 display: "inline-flex",
@@ -1195,6 +1198,7 @@ export default function HomePage() {
           </div>
 
           <div
+            className="hero-visual"
             style={{
               position: "relative",
               minHeight: isMobile ? "auto" : 500,
@@ -1315,6 +1319,7 @@ export default function HomePage() {
       </section>
 
       <section
+        className="animate-fade-up delay-3"
         style={{
           width: isTablet ? "min(92%, 760px)" : "80%",
           maxWidth: 1240,
@@ -1382,9 +1387,11 @@ export default function HomePage() {
               return (
                 <article
                   key={service.title}
+                  className="home-service-card"
                   style={{
                     ...cardStyle,
                     minHeight: 280,
+                    animationDelay: `${0.1 + services.indexOf(service) * 0.08}s`,
                   }}
                 >
                   <div
@@ -1539,7 +1546,15 @@ export default function HomePage() {
             const Icon = value.icon;
 
             return (
-              <article key={value.title} style={{ ...cardStyle, padding: 28 }}>
+              <article
+                key={value.title}
+                className="home-value-card"
+                style={{
+                  ...cardStyle,
+                  padding: 28,
+                  animationDelay: `${0.1 + values.indexOf(value) * 0.1}s`,
+                }}
+              >
                 <Icon size={25} color={colors.blue} />
 
                 <h3 style={{ margin: "26px 0 12px", fontSize: 22 }}>
@@ -1602,6 +1617,7 @@ export default function HomePage() {
                       key={getProjectKey(project, index)}
                       className="home-project-card"
                       style={{
+                        animationDelay: `${0.1 + index * 0.12}s`,
                         overflow: "hidden",
                         cursor: "pointer",
                         position: "relative",
@@ -2013,7 +2029,14 @@ export default function HomePage() {
             }}
           >
             {testimonials.map((item) => (
-              <article key={item.name} style={cardStyle}>
+              <article
+                key={item.name}
+                className="home-testimonial-card"
+                style={{
+                  ...cardStyle,
+                  animationDelay: `${0.1 + testimonials.indexOf(item) * 0.1}s`,
+                }}
+              >
                 <div
                   style={{
                     display: "flex",
@@ -2062,7 +2085,12 @@ export default function HomePage() {
             {faqs.map((item) => (
               <article
                 key={item.question}
-                style={{ ...cardStyle, padding: 28 }}
+                className="home-faq-card"
+                style={{
+                  ...cardStyle,
+                  padding: 28,
+                  animationDelay: `${0.1 + faqs.indexOf(item) * 0.08}s`,
+                }}
               >
                 <h3 style={{ margin: "0 0 12px", fontSize: 20 }}>
                   {item.question}
@@ -2255,7 +2283,120 @@ export default function HomePage() {
       </a>
 
       <style jsx>{`
+        @keyframes fadeUp {
+          from {
+            opacity: 0;
+            transform: translateY(34px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+
+        @keyframes scaleIn {
+          from {
+            opacity: 0;
+            transform: scale(0.94) translateY(24px);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+          }
+        }
+
+        @keyframes floatSoft {
+          0%,
+          100% {
+            transform: translateY(0);
+          }
+          50% {
+            transform: translateY(-12px);
+          }
+        }
+
+        @keyframes glowPulse {
+          0%,
+          100% {
+            box-shadow: 0 44px 120px rgba(0, 0, 0, 0.36);
+          }
+          50% {
+            box-shadow: 0 44px 135px rgba(14, 165, 233, 0.18);
+          }
+        }
+
+        @keyframes shineMove {
+          from {
+            background-position: -220% center;
+          }
+          to {
+            background-position: 220% center;
+          }
+        }
+
+        .animate-fade-up {
+          opacity: 0;
+          animation: fadeUp 0.85s ease forwards;
+        }
+
+        .animate-fade-in {
+          opacity: 0;
+          animation: fadeIn 0.9s ease forwards;
+        }
+
+        .animate-scale-in {
+          opacity: 0;
+          animation: scaleIn 0.9s ease forwards;
+        }
+
+        .delay-1 {
+          animation-delay: 0.12s;
+        }
+
+        .delay-2 {
+          animation-delay: 0.24s;
+        }
+
+        .delay-3 {
+          animation-delay: 0.36s;
+        }
+
+        .delay-4 {
+          animation-delay: 0.48s;
+        }
+
+        .hero-visual {
+          animation:
+            scaleIn 0.9s ease forwards,
+            floatSoft 6.5s ease-in-out 1.1s infinite,
+            glowPulse 4.2s ease-in-out 1.1s infinite;
+        }
+
+        .shine-text {
+          background-size: 220% auto !important;
+          animation: shineMove 6.5s linear infinite;
+        }
+
+        .home-service-card,
+        .home-value-card,
+        .home-faq-card,
+        .home-testimonial-card {
+          opacity: 0;
+          animation: fadeUp 0.8s ease forwards;
+        }
+
         .home-project-card {
+          opacity: 0;
+          animation: scaleIn 0.8s ease forwards;
           transition:
             transform 0.22s ease,
             border-color 0.22s ease,
@@ -2271,6 +2412,23 @@ export default function HomePage() {
         .home-project-card:hover img {
           transform: scale(1.045) !important;
           transition: transform 0.35s ease;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .animate-fade-up,
+          .animate-fade-in,
+          .animate-scale-in,
+          .hero-visual,
+          .home-service-card,
+          .home-value-card,
+          .home-faq-card,
+          .home-testimonial-card,
+          .home-project-card,
+          .shine-text {
+            animation: none !important;
+            opacity: 1 !important;
+            transform: none !important;
+          }
         }
       `}</style>
 
