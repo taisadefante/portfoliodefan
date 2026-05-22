@@ -2,6 +2,7 @@
 
 import { CSSProperties, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
+import Select, { StylesConfig } from "react-select";
 import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
@@ -45,6 +46,11 @@ import AdminMenu from "../../../components/admin/AdminMenu.tsx";
 type SeoFaqItem = {
   question: string;
   answer: string;
+};
+
+type FilterOption = {
+  value: string;
+  label: string;
 };
 
 type AdminProject = Omit<
@@ -134,6 +140,77 @@ const colors = {
   text: "#f8fafc",
   muted: "#cbd5e1",
   soft: "#94a3b8",
+};
+
+const advancedSelectStyles: StylesConfig<FilterOption, false> = {
+  control: (base, state) => ({
+    ...base,
+    minHeight: 52,
+    borderRadius: 16,
+    borderColor: state.isFocused
+      ? "rgba(125, 211, 252, 0.55)"
+      : "rgba(125, 211, 252, 0.18)",
+    backgroundColor: "rgba(2, 6, 23, 0.9)",
+    boxShadow: state.isFocused ? "0 0 0 3px rgba(14,165,233,0.14)" : "none",
+    cursor: "pointer",
+    color: "#f8fafc",
+    transition: "0.2s ease",
+    ":hover": {
+      borderColor: "rgba(125, 211, 252, 0.45)",
+    },
+  }),
+  menu: (base) => ({
+    ...base,
+    zIndex: 80,
+    overflow: "hidden",
+    borderRadius: 16,
+    border: "1px solid rgba(125, 211, 252, 0.18)",
+    backgroundColor: "#0f172a",
+    boxShadow: "0 18px 50px rgba(0,0,0,0.35)",
+  }),
+  menuList: (base) => ({
+    ...base,
+    padding: 6,
+    maxHeight: 260,
+  }),
+  option: (base, state) => ({
+    ...base,
+    borderRadius: 12,
+    marginBottom: 4,
+    backgroundColor: state.isSelected
+      ? "rgba(14, 165, 233, 0.42)"
+      : state.isFocused
+        ? "rgba(14, 165, 233, 0.18)"
+        : "transparent",
+    color: "#f8fafc",
+    cursor: "pointer",
+    fontWeight: state.isSelected ? 900 : 700,
+  }),
+  singleValue: (base) => ({
+    ...base,
+    color: "#f8fafc",
+    fontWeight: 800,
+  }),
+  input: (base) => ({
+    ...base,
+    color: "#f8fafc",
+  }),
+  placeholder: (base) => ({
+    ...base,
+    color: "#94a3b8",
+  }),
+  indicatorSeparator: (base) => ({
+    ...base,
+    backgroundColor: "rgba(125, 211, 252, 0.18)",
+  }),
+  dropdownIndicator: (base, state) => ({
+    ...base,
+    color: state.isFocused ? "#7dd3fc" : "#94a3b8",
+  }),
+  clearIndicator: (base) => ({
+    ...base,
+    color: "#94a3b8",
+  }),
 };
 
 const styles: Record<string, CSSProperties> = {
@@ -515,6 +592,9 @@ export default function AdminProjetosPage() {
   const [project, setProject] = useState<AdminProject>(emptyProject);
   const [projects, setProjects] = useState<Project[]>([]);
   const [search, setSearch] = useState("");
+  const [filterType, setFilterType] = useState<string | null>(null);
+  const [filterNiche, setFilterNiche] = useState<string | null>(null);
+  const [filterModel, setFilterModel] = useState<string | null>(null);
   const [imageIndexes, setImageIndexes] = useState<Record<string, number>>({});
   const [options, setOptions] = useState<Record<OptionCategory, string[]>>({
     types: [],
@@ -529,23 +609,58 @@ export default function AdminProjetosPage() {
     return user.email.toLowerCase() === adminEmail.toLowerCase();
   }, [user, adminEmail]);
 
+  const typeFilterOptions = useMemo<FilterOption[]>(
+    () => options.types.map((item) => ({ value: item, label: item })),
+    [options.types],
+  );
+
+  const nicheFilterOptions = useMemo<FilterOption[]>(
+    () => options.niches.map((item) => ({ value: item, label: item })),
+    [options.niches],
+  );
+
+  const modelFilterOptions = useMemo<FilterOption[]>(
+    () =>
+      options.commercialModels.map((item) => ({
+        value: item,
+        label: item,
+      })),
+    [options.commercialModels],
+  );
+
   const filteredProjects = useMemo(() => {
     const term = search.trim().toLowerCase();
-    if (!term) return projects;
-    return projects.filter(
-      (item) =>
+
+    return projects.filter((item) => {
+      const editableItem = item as AdminProject;
+      const matchesSearch =
+        !term ||
         item.name.toLowerCase().includes(term) ||
         item.type.toLowerCase().includes(term) ||
         item.niche.toLowerCase().includes(term) ||
         item.commercialModel.toLowerCase().includes(term) ||
-        String((item as AdminProject).seoTitle || "")
+        String(editableItem.seoTitle || "")
           .toLowerCase()
           .includes(term) ||
-        String((item as AdminProject).seoDescription || "")
+        String(editableItem.seoDescription || "")
           .toLowerCase()
-          .includes(term),
-    );
-  }, [projects, search]);
+          .includes(term);
+
+      const matchesType = !filterType || item.type === filterType;
+      const matchesNiche = !filterNiche || item.niche === filterNiche;
+      const matchesModel = !filterModel || item.commercialModel === filterModel;
+
+      return matchesSearch && matchesType && matchesNiche && matchesModel;
+    });
+  }, [projects, search, filterType, filterNiche, filterModel]);
+
+  const hasAdvancedFilters = Boolean(filterType || filterNiche || filterModel);
+
+  function clearAdvancedFilters() {
+    setFilterType(null);
+    setFilterNiche(null);
+    setFilterModel(null);
+  }
 
   async function loadData() {
     const [projectList, optionList] = await Promise.all([
@@ -1058,6 +1173,88 @@ export default function AdminProjetosPage() {
               />
             </div>
           </label>
+
+          <div className="advanced-filter-panel">
+            <div className="advanced-filter-heading">
+              <div>
+                <strong>Filtros avançados</strong>
+                <span>Refine a lista por tipo, nicho e modelo comercial.</span>
+              </div>
+              {hasAdvancedFilters && (
+                <button type="button" onClick={clearAdvancedFilters}>
+                  <X size={15} />
+                  Limpar filtros
+                </button>
+              )}
+            </div>
+
+            <div className="advanced-filter-grid">
+              <label>
+                <span>Tipo</span>
+                <Select<FilterOption, false>
+                  instanceId="admin-filter-type"
+                  styles={advancedSelectStyles}
+                  options={typeFilterOptions}
+                  value={
+                    typeFilterOptions.find(
+                      (item) => item.value === filterType,
+                    ) || null
+                  }
+                  onChange={(selected) =>
+                    setFilterType(selected?.value || null)
+                  }
+                  placeholder="Todos os tipos"
+                  isClearable
+                  noOptionsMessage={() => "Nenhum tipo cadastrado"}
+                />
+              </label>
+
+              <label>
+                <span>Nicho</span>
+                <Select<FilterOption, false>
+                  instanceId="admin-filter-niche"
+                  styles={advancedSelectStyles}
+                  options={nicheFilterOptions}
+                  value={
+                    nicheFilterOptions.find(
+                      (item) => item.value === filterNiche,
+                    ) || null
+                  }
+                  onChange={(selected) =>
+                    setFilterNiche(selected?.value || null)
+                  }
+                  placeholder="Todos os nichos"
+                  isClearable
+                  noOptionsMessage={() => "Nenhum nicho cadastrado"}
+                />
+              </label>
+
+              <label>
+                <span>Modelo comercial</span>
+                <Select<FilterOption, false>
+                  instanceId="admin-filter-model"
+                  styles={advancedSelectStyles}
+                  options={modelFilterOptions}
+                  value={
+                    modelFilterOptions.find(
+                      (item) => item.value === filterModel,
+                    ) || null
+                  }
+                  onChange={(selected) =>
+                    setFilterModel(selected?.value || null)
+                  }
+                  placeholder="Todos os modelos"
+                  isClearable
+                  noOptionsMessage={() => "Nenhum modelo cadastrado"}
+                />
+              </label>
+            </div>
+
+            <div className="advanced-filter-result">
+              Exibindo <strong>{filteredProjects.length}</strong> de{" "}
+              <strong>{projects.length}</strong> projeto(s).
+            </div>
+          </div>
           <div className="table-wrap">
             <table className="admin-table">
               <thead>
@@ -1699,6 +1896,68 @@ function AdminGlobalStyle() {
         background: transparent;
         padding: 13px 0;
       }
+
+      .advanced-filter-panel {
+        margin: 0 0 22px;
+        padding: 16px;
+        border-radius: 22px;
+        background: rgba(2, 6, 23, 0.32);
+        border: 1px solid rgba(125, 211, 252, 0.16);
+      }
+      .advanced-filter-heading {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 14px;
+        margin-bottom: 14px;
+      }
+      .advanced-filter-heading div {
+        display: grid;
+        gap: 4px;
+      }
+      .advanced-filter-heading strong {
+        color: #f8fafc;
+        font-size: 16px;
+      }
+      .advanced-filter-heading span,
+      .advanced-filter-grid label > span,
+      .advanced-filter-result {
+        color: #94a3b8;
+        font-size: 13px;
+      }
+      .advanced-filter-heading button {
+        border: 1px solid rgba(125, 211, 252, 0.18);
+        border-radius: 14px;
+        padding: 10px 12px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        color: #e0f2fe;
+        background: rgba(15, 23, 42, 0.72);
+        cursor: pointer;
+        font-weight: 900;
+        white-space: nowrap;
+      }
+      .advanced-filter-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+      }
+      .advanced-filter-grid label {
+        display: grid;
+        gap: 8px;
+      }
+      .advanced-filter-grid label > span {
+        color: #dbeafe;
+        font-weight: 900;
+      }
+      .advanced-filter-result {
+        margin-top: 14px;
+      }
+      .advanced-filter-result strong {
+        color: #7dd3fc;
+      }
       .table-wrap {
         width: 100%;
         max-width: 100%;
@@ -2060,6 +2319,9 @@ function AdminGlobalStyle() {
         color: #94a3b8;
       }
       @media (max-width: 1080px) {
+        .advanced-filter-grid {
+          grid-template-columns: 1fr 1fr;
+        }
         .admin-top-header,
         .list-toolbar {
           align-items: flex-start !important;
@@ -2072,6 +2334,15 @@ function AdminGlobalStyle() {
         }
       }
       @media (max-width: 760px) {
+        .advanced-filter-heading {
+          flex-direction: column;
+        }
+        .advanced-filter-heading button {
+          width: 100%;
+        }
+        .advanced-filter-grid {
+          grid-template-columns: 1fr;
+        }
         .admin-form-grid {
           grid-template-columns: 1fr !important;
         }
