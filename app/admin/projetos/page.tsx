@@ -1,8 +1,7 @@
 "use client";
 
-import { CSSProperties, useEffect, useMemo, useState } from "react";
+import { CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import Select, { StylesConfig } from "react-select";
 import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
@@ -140,77 +139,6 @@ const colors = {
   text: "#f8fafc",
   muted: "#cbd5e1",
   soft: "#94a3b8",
-};
-
-const advancedSelectStyles: StylesConfig<FilterOption, false> = {
-  control: (base, state) => ({
-    ...base,
-    minHeight: 52,
-    borderRadius: 16,
-    borderColor: state.isFocused
-      ? "rgba(125, 211, 252, 0.55)"
-      : "rgba(125, 211, 252, 0.18)",
-    backgroundColor: "rgba(2, 6, 23, 0.9)",
-    boxShadow: state.isFocused ? "0 0 0 3px rgba(14,165,233,0.14)" : "none",
-    cursor: "pointer",
-    color: "#f8fafc",
-    transition: "0.2s ease",
-    ":hover": {
-      borderColor: "rgba(125, 211, 252, 0.45)",
-    },
-  }),
-  menu: (base) => ({
-    ...base,
-    zIndex: 80,
-    overflow: "hidden",
-    borderRadius: 16,
-    border: "1px solid rgba(125, 211, 252, 0.18)",
-    backgroundColor: "#0f172a",
-    boxShadow: "0 18px 50px rgba(0,0,0,0.35)",
-  }),
-  menuList: (base) => ({
-    ...base,
-    padding: 6,
-    maxHeight: 260,
-  }),
-  option: (base, state) => ({
-    ...base,
-    borderRadius: 12,
-    marginBottom: 4,
-    backgroundColor: state.isSelected
-      ? "rgba(14, 165, 233, 0.42)"
-      : state.isFocused
-        ? "rgba(14, 165, 233, 0.18)"
-        : "transparent",
-    color: "#f8fafc",
-    cursor: "pointer",
-    fontWeight: state.isSelected ? 900 : 700,
-  }),
-  singleValue: (base) => ({
-    ...base,
-    color: "#f8fafc",
-    fontWeight: 800,
-  }),
-  input: (base) => ({
-    ...base,
-    color: "#f8fafc",
-  }),
-  placeholder: (base) => ({
-    ...base,
-    color: "#94a3b8",
-  }),
-  indicatorSeparator: (base) => ({
-    ...base,
-    backgroundColor: "rgba(125, 211, 252, 0.18)",
-  }),
-  dropdownIndicator: (base, state) => ({
-    ...base,
-    color: state.isFocused ? "#7dd3fc" : "#94a3b8",
-  }),
-  clearIndicator: (base) => ({
-    ...base,
-    color: "#94a3b8",
-  }),
 };
 
 const styles: Record<string, CSSProperties> = {
@@ -561,6 +489,149 @@ function CollapsibleCell({
         >
           {open ? "Recolher" : "Ler mais"}
         </button>
+      )}
+    </div>
+  );
+}
+
+function AdvancedSelect({
+  options,
+  value,
+  onChange,
+  placeholder,
+  emptyMessage,
+}: {
+  options: FilterOption[];
+  value: string | null;
+  onChange: (value: string | null) => void;
+  placeholder: string;
+  emptyMessage: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [term, setTerm] = useState("");
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+  const selectedOption = options.find((item) => item.value === value) || null;
+
+  const filteredOptions = useMemo(() => {
+    const cleanTerm = term.trim().toLowerCase();
+    if (!cleanTerm) return options;
+    return options.filter((item) =>
+      item.label.toLowerCase().includes(cleanTerm),
+    );
+  }, [options, term]);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (!wrapRef.current) return;
+      if (!wrapRef.current.contains(event.target as Node)) {
+        setOpen(false);
+        setTerm("");
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  return (
+    <div className="custom-advanced-select" ref={wrapRef}>
+      <button
+        type="button"
+        className={
+          open ? "custom-select-control open" : "custom-select-control"
+        }
+        onClick={() => setOpen((prev) => !prev)}
+      >
+        <span
+          className={
+            selectedOption ? "custom-select-value" : "custom-select-placeholder"
+          }
+        >
+          {selectedOption?.label || placeholder}
+        </span>
+        <span className="custom-select-icons">
+          {selectedOption && (
+            <span
+              role="button"
+              tabIndex={0}
+              className="custom-select-clear"
+              onClick={(event) => {
+                event.stopPropagation();
+                onChange(null);
+                setTerm("");
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  onChange(null);
+                  setTerm("");
+                }
+              }}
+              aria-label="Limpar filtro"
+            >
+              ×
+            </span>
+          )}
+          <span
+            className={
+              open ? "custom-select-arrow open" : "custom-select-arrow"
+            }
+          >
+            ⌄
+          </span>
+        </span>
+      </button>
+
+      {open && (
+        <div className="custom-select-menu">
+          <div className="custom-select-search-row">
+            <Search size={15} />
+            <input
+              value={term}
+              onChange={(event) => setTerm(event.target.value)}
+              placeholder="Pesquisar..."
+              autoFocus
+            />
+          </div>
+
+          <button
+            type="button"
+            className={
+              !value ? "custom-select-option selected" : "custom-select-option"
+            }
+            onClick={() => {
+              onChange(null);
+              setOpen(false);
+              setTerm("");
+            }}
+          >
+            Todos
+          </button>
+
+          {filteredOptions.map((item) => (
+            <button
+              type="button"
+              key={item.value}
+              className={
+                item.value === value
+                  ? "custom-select-option selected"
+                  : "custom-select-option"
+              }
+              onClick={() => {
+                onChange(item.value);
+                setOpen(false);
+                setTerm("");
+              }}
+            >
+              {item.label}
+            </button>
+          ))}
+
+          {!filteredOptions.length && (
+            <div className="custom-select-empty">{emptyMessage}</div>
+          )}
+        </div>
       )}
     </div>
   );
@@ -1191,61 +1262,34 @@ export default function AdminProjetosPage() {
             <div className="advanced-filter-grid">
               <label>
                 <span>Tipo</span>
-                <Select<FilterOption, false>
-                  instanceId="admin-filter-type"
-                  styles={advancedSelectStyles}
+                <AdvancedSelect
                   options={typeFilterOptions}
-                  value={
-                    typeFilterOptions.find(
-                      (item) => item.value === filterType,
-                    ) || null
-                  }
-                  onChange={(selected) =>
-                    setFilterType(selected?.value || null)
-                  }
+                  value={filterType}
+                  onChange={setFilterType}
                   placeholder="Todos os tipos"
-                  isClearable
-                  noOptionsMessage={() => "Nenhum tipo cadastrado"}
+                  emptyMessage="Nenhum tipo cadastrado"
                 />
               </label>
 
               <label>
                 <span>Nicho</span>
-                <Select<FilterOption, false>
-                  instanceId="admin-filter-niche"
-                  styles={advancedSelectStyles}
+                <AdvancedSelect
                   options={nicheFilterOptions}
-                  value={
-                    nicheFilterOptions.find(
-                      (item) => item.value === filterNiche,
-                    ) || null
-                  }
-                  onChange={(selected) =>
-                    setFilterNiche(selected?.value || null)
-                  }
+                  value={filterNiche}
+                  onChange={setFilterNiche}
                   placeholder="Todos os nichos"
-                  isClearable
-                  noOptionsMessage={() => "Nenhum nicho cadastrado"}
+                  emptyMessage="Nenhum nicho cadastrado"
                 />
               </label>
 
               <label>
                 <span>Modelo comercial</span>
-                <Select<FilterOption, false>
-                  instanceId="admin-filter-model"
-                  styles={advancedSelectStyles}
+                <AdvancedSelect
                   options={modelFilterOptions}
-                  value={
-                    modelFilterOptions.find(
-                      (item) => item.value === filterModel,
-                    ) || null
-                  }
-                  onChange={(selected) =>
-                    setFilterModel(selected?.value || null)
-                  }
+                  value={filterModel}
+                  onChange={setFilterModel}
                   placeholder="Todos os modelos"
-                  isClearable
-                  noOptionsMessage={() => "Nenhum modelo cadastrado"}
+                  emptyMessage="Nenhum modelo cadastrado"
                 />
               </label>
             </div>
@@ -1957,6 +2001,132 @@ function AdminGlobalStyle() {
       }
       .advanced-filter-result strong {
         color: #7dd3fc;
+      }
+
+      .custom-advanced-select {
+        position: relative;
+        width: 100%;
+      }
+      .custom-select-control {
+        width: 100%;
+        min-height: 52px;
+        border: 1px solid rgba(125, 211, 252, 0.18);
+        border-radius: 16px;
+        background: rgba(2, 6, 23, 0.9);
+        color: #f8fafc;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 0 13px;
+        cursor: pointer;
+        text-align: left;
+        transition: 0.2s ease;
+      }
+      .custom-select-control:hover,
+      .custom-select-control.open {
+        border-color: rgba(125, 211, 252, 0.5);
+        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+      }
+      .custom-select-value {
+        color: #f8fafc;
+        font-weight: 900;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .custom-select-placeholder {
+        color: #94a3b8;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .custom-select-icons {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: #94a3b8;
+        flex: 0 0 auto;
+      }
+      .custom-select-clear {
+        width: 22px;
+        height: 22px;
+        border-radius: 999px;
+        display: grid;
+        place-items: center;
+        color: #e0f2fe;
+        background: rgba(148, 163, 184, 0.16);
+        font-size: 18px;
+        line-height: 1;
+      }
+      .custom-select-arrow {
+        font-size: 18px;
+        line-height: 1;
+        transition: 0.2s ease;
+      }
+      .custom-select-arrow.open {
+        transform: rotate(180deg);
+      }
+      .custom-select-menu {
+        position: absolute;
+        z-index: 80;
+        top: calc(100% + 8px);
+        left: 0;
+        right: 0;
+        max-height: 310px;
+        overflow: auto;
+        padding: 8px;
+        border-radius: 18px;
+        background: #0f172a;
+        border: 1px solid rgba(125, 211, 252, 0.18);
+        box-shadow: 0 22px 60px rgba(0, 0, 0, 0.42);
+      }
+      .custom-select-search-row {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid rgba(125, 211, 252, 0.16);
+        border-radius: 14px;
+        padding: 0 11px;
+        margin-bottom: 8px;
+        color: #7dd3fc;
+        background: rgba(2, 6, 23, 0.46);
+      }
+      .custom-select-search-row input {
+        border: 0;
+        outline: 0;
+        background: transparent;
+        color: #f8fafc;
+        padding: 11px 0;
+        min-width: 0;
+      }
+      .custom-select-search-row input::placeholder {
+        color: #64748b;
+      }
+      .custom-select-option {
+        width: 100%;
+        border: 0;
+        border-radius: 13px;
+        padding: 11px 12px;
+        color: #e2e8f0;
+        background: transparent;
+        text-align: left;
+        cursor: pointer;
+        font-weight: 800;
+      }
+      .custom-select-option:hover {
+        background: rgba(14, 165, 233, 0.16);
+        color: #f8fafc;
+      }
+      .custom-select-option.selected {
+        background: rgba(14, 165, 233, 0.34);
+        color: #f8fafc;
+      }
+      .custom-select-empty {
+        padding: 12px;
+        color: #94a3b8;
+        font-size: 13px;
       }
       .table-wrap {
         width: 100%;
