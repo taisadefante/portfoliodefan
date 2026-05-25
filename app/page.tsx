@@ -12,6 +12,7 @@ import {
   Globe2,
   LayoutDashboard,
   MessageCircle,
+  Phone,
   Rocket,
   ShieldCheck,
   Sparkles,
@@ -878,6 +879,414 @@ function ProjectDetailsModal({
   );
 }
 
+function SubscriptionProjectsSection({
+  projects,
+  isMobile,
+  isTablet,
+  isNotebook,
+  containerStyle,
+  outlineButtonStyle,
+  tagStyle,
+  onOpen,
+}: {
+  projects: Project[];
+  isMobile: boolean;
+  isTablet: boolean;
+  isNotebook: boolean;
+  containerStyle: CSSProperties;
+  outlineButtonStyle: CSSProperties;
+  tagStyle: CSSProperties;
+  onOpen: (project: Project) => void;
+}) {
+  const [activePage, setActivePage] = useState(0);
+  const perPage = isTablet ? 1 : isNotebook ? 2 : 3;
+
+  const pages = useMemo(() => {
+    const chunks: Project[][] = [];
+
+    for (let index = 0; index < projects.length; index += perPage) {
+      chunks.push(projects.slice(index, index + perPage));
+    }
+
+    return chunks;
+  }, [projects, perPage]);
+
+  useEffect(() => {
+    if (pages.length <= 1) return;
+
+    const interval = window.setInterval(() => {
+      setActivePage((prev) => (prev + 1) % pages.length);
+    }, 4300);
+
+    return () => window.clearInterval(interval);
+  }, [pages.length]);
+
+  useEffect(() => {
+    if (!pages.length) {
+      setActivePage(0);
+      return;
+    }
+
+    if (activePage > pages.length - 1) {
+      setActivePage(0);
+    }
+  }, [activePage, pages.length]);
+
+  if (!projects.length || !pages.length) return null;
+
+  return (
+    <section
+      id="assinaturas-home"
+      style={{ padding: isMobile ? "70px 0" : "104px 0" }}
+    >
+      <div style={containerStyle}>
+        <div
+          style={{
+            display: isTablet ? "grid" : "flex",
+            justifyContent: "space-between",
+            alignItems: isTablet ? "start" : "end",
+            gap: 26,
+            marginBottom: 28,
+          }}
+        >
+          <SectionTitle
+            eyebrow="Assinaturas"
+            title="Sistemas por assinatura"
+            center={false}
+          />
+
+          <a href="/assinaturas" style={outlineButtonStyle}>
+            Ver todos <ArrowRight size={18} />
+          </a>
+        </div>
+
+        <div style={{ width: "100%", overflow: "hidden" }}>
+          <div
+            style={{
+              display: "flex",
+              width: "100%",
+              transform: `translateX(-${activePage * 100}%)`,
+              transition: "transform 700ms ease",
+            }}
+          >
+            {pages.map((page, pageIndex) => (
+              <div
+                key={`assinaturas-page-${pageIndex}`}
+                style={{
+                  minWidth: "100%",
+                  display: "grid",
+                  gridTemplateColumns: isTablet
+                    ? "1fr"
+                    : isNotebook
+                      ? "repeat(2, minmax(0, 1fr))"
+                      : "repeat(3, minmax(0, 1fr))",
+                  gap: 24,
+                }}
+              >
+                {page.map((project, index) => {
+                  const images = getProjectImages(project);
+                  const image = images[0];
+                  const isSubscription = project.commercialModel
+                    ?.toLowerCase()
+                    .includes("assinatura");
+
+                  return (
+                    <article
+                      key={`${getProjectKey(project, index)}-assinatura-${pageIndex}-${index}`}
+                      className="home-project-card"
+                      style={{
+                        animationDelay: `${0.1 + index * 0.12}s`,
+                        overflow: "hidden",
+                        cursor: "pointer",
+                        position: "relative",
+                        borderRadius: 34,
+                        background:
+                          "linear-gradient(180deg, rgba(15,23,42,0.84), rgba(8,47,73,0.5))",
+                        border: `1px solid ${colors.border}`,
+                        boxShadow: "0 24px 76px rgba(0,0,0,0.22)",
+                        height: "100%",
+                        display: "flex",
+                        flexDirection: "column",
+                      }}
+                      onClick={() => onOpen(project)}
+                    >
+                      <div
+                        style={{
+                          position: "relative",
+                          width: "100%",
+                          height: isMobile ? 260 : 320,
+                          overflow: "hidden",
+                          background: "#020617",
+                        }}
+                      >
+                        {image ? (
+                          <img
+                            src={image}
+                            alt={project.name}
+                            style={{
+                              width: "100%",
+                              height: "100%",
+                              objectFit: "cover",
+                              objectPosition: "top center",
+                              display: "block",
+                              transform: "scale(1.01)",
+                            }}
+                          />
+                        ) : (
+                          <div
+                            style={{
+                              width: "100%",
+                              height: "100%",
+                              display: "grid",
+                              placeItems: "center",
+                              background:
+                                "radial-gradient(circle at 30% 20%, rgba(56,189,248,0.22), transparent 40%), rgba(8,47,73,0.35)",
+                            }}
+                          >
+                            <Image
+                              src="/logo-white.png"
+                              alt="Defan Soluções Digitais"
+                              width={210}
+                              height={76}
+                              style={{ width: "auto", height: 76 }}
+                            />
+                          </div>
+                        )}
+
+                        <div
+                          style={{
+                            position: "absolute",
+                            inset: 0,
+                            background:
+                              "linear-gradient(180deg, rgba(2,6,23,0.02) 35%, rgba(2,6,23,0.86) 100%)",
+                          }}
+                        />
+                      </div>
+
+                      <div
+                        style={{
+                          padding: 24,
+                          display: "flex",
+                          flexDirection: "column",
+                          flex: 1,
+                        }}
+                      >
+                        <h3
+                          style={{
+                            margin: "0 0 12px",
+                            fontSize: 25,
+                            lineHeight: 1.08,
+                            letterSpacing: "-0.045em",
+                            display: "flex",
+                            alignItems: "flex-start",
+                          }}
+                        >
+                          {project.name}
+                        </h3>
+
+                        <div
+                          style={{
+                            width: "100%",
+                            height: 1,
+                            background:
+                              "linear-gradient(90deg, rgba(56,189,248,0.5), rgba(125,211,252,0.04))",
+                            margin: "2px 0 14px",
+                          }}
+                        />
+
+                        <div
+                          style={{
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: 8,
+                            marginBottom: 16,
+                          }}
+                        >
+                          {project.type && (
+                            <span style={tagStyle}>{project.type}</span>
+                          )}
+
+                          {project.commercialModel && (
+                            <span
+                              style={{
+                                ...tagStyle,
+                                color: isSubscription ? "#bbf7d0" : "#bfdbfe",
+                                background: isSubscription
+                                  ? "rgba(34,197,94,0.12)"
+                                  : "rgba(59,130,246,0.14)",
+                              }}
+                            >
+                              {project.commercialModel}
+                            </span>
+                          )}
+
+                          {project.niche && (
+                            <span style={tagStyle}>{project.niche}</span>
+                          )}
+                        </div>
+
+                        {(project.startingPrice || project.monthlyPrice) && (
+                          <div
+                            style={{
+                              display: "grid",
+                              gridTemplateColumns: "1fr 1fr",
+                              gap: 10,
+                              margin: "18px 0",
+                            }}
+                          >
+                            {project.startingPrice && (
+                              <div
+                                style={{
+                                  padding: 14,
+                                  borderRadius: 18,
+                                  background: "rgba(2, 6, 23, 0.34)",
+                                  border: "1px solid rgba(125, 211, 252, 0.12)",
+                                }}
+                              >
+                                <small style={{ color: colors.soft }}>
+                                  Inicial
+                                </small>
+
+                                <strong
+                                  style={{ display: "block", marginTop: 4 }}
+                                >
+                                  {project.startingPrice}
+                                </strong>
+                              </div>
+                            )}
+
+                            {project.monthlyPrice && (
+                              <div
+                                style={{
+                                  padding: 14,
+                                  borderRadius: 18,
+                                  background: "rgba(2, 6, 23, 0.34)",
+                                  border: "1px solid rgba(125, 211, 252, 0.12)",
+                                }}
+                              >
+                                <small style={{ color: colors.soft }}>
+                                  Mensal
+                                </small>
+
+                                <strong
+                                  style={{ display: "block", marginTop: 4 }}
+                                >
+                                  {project.monthlyPrice}
+                                </strong>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {!!project.technologies?.length && (
+                          <div
+                            style={{
+                              display: "flex",
+                              flexWrap: "wrap",
+                              gap: 8,
+                              marginBottom: 16,
+                              alignContent: "flex-start",
+                            }}
+                          >
+                            {project.technologies.slice(0, 2).map((tech) => (
+                              <span style={tagStyle} key={tech}>
+                                {tech}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        <button
+                          type="button"
+                          style={{
+                            ...outlineButtonStyle,
+                            marginTop: "auto",
+                            padding: "13px 16px",
+                            width: "100%",
+                            background:
+                              "linear-gradient(135deg, rgba(14,165,233,0.22), rgba(56,189,248,0.12))",
+                            borderColor: "rgba(125, 211, 252, 0.34)",
+                          }}
+                        >
+                          Ver detalhes <ArrowRight size={16} />
+                        </button>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            marginTop: 34,
+          }}
+        >
+          <a
+            href="/assinaturas"
+            style={{
+              borderRadius: 999,
+              padding: isMobile ? "16px 22px" : "18px 34px",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 12,
+              fontWeight: 950,
+              cursor: "pointer",
+              whiteSpace: isMobile ? "normal" : "nowrap",
+              border: 0,
+              color: "#fff",
+              fontSize: isMobile ? 15 : 17,
+              background: "linear-gradient(135deg, #16a34a, #22c55e, #4ade80)",
+              boxShadow: "0 24px 64px rgba(34,197,94,0.35)",
+              textDecoration: "none",
+              textAlign: "center",
+            }}
+          >
+            Ver todos os sistemas por assinatura <ArrowRight size={20} />
+          </a>
+        </div>
+
+        {pages.length > 1 && (
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              gap: 8,
+              marginTop: 24,
+            }}
+          >
+            {pages.map((_, index) => (
+              <button
+                key={`assinaturas-dot-${index}`}
+                type="button"
+                onClick={() => setActivePage(index)}
+                aria-label={`Ver página ${index + 1} dos sistemas por assinatura`}
+                style={{
+                  width: activePage === index ? 26 : 10,
+                  height: 10,
+                  borderRadius: 999,
+                  border: 0,
+                  cursor: "pointer",
+                  background:
+                    activePage === index
+                      ? "#38bdf8"
+                      : "rgba(125, 211, 252, 0.24)",
+                  transition: "all 0.2s ease",
+                }}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 export default function HomePage() {
   const { isMobile, isTablet, isNotebook } = useScreen();
 
@@ -924,6 +1333,19 @@ export default function HomePage() {
   }, [projectSlides.length]);
 
   const visibleProjects = projectSlides[projectPage] || [];
+
+  const subscriptionProjects = useMemo(
+    () =>
+      projects.filter((project) => {
+        const model = String(project.commercialModel || "").toLowerCase();
+        return (
+          model.includes("assinatura") ||
+          model.includes("mensal") ||
+          model.includes("recorrente")
+        );
+      }),
+    [projects],
+  );
 
   const whatsappUrl = `https://wa.me/5521988359825?text=${encodeURIComponent(
     "Olá, Tais! Vi seu portfólio da Defan e quero um orçamento para site, sistema ou automação.",
@@ -1065,6 +1487,12 @@ export default function HomePage() {
                 style={{ color: "inherit", textDecoration: "none" }}
               >
                 Projetos
+              </a>
+              <a
+                href="/assinaturas"
+                style={{ color: "inherit", textDecoration: "none" }}
+              >
+                Assinaturas
               </a>
               <a
                 href="#depoimentos"
@@ -1840,172 +2268,54 @@ export default function HomePage() {
           ) : (
             <div style={{ ...cardStyle, width: "min(900px, 100%)" }}></div>
           )}
-        </div>
-      </section>
 
-      <section style={{ ...sectionStyle, paddingTop: 40 }}>
-        <div
-          style={{
-            ...containerStyle,
-            display: "grid",
-            gridTemplateColumns: isTablet ? "1fr" : "1fr 1fr",
-            gap: 26,
-          }}
-        >
-          <article
+          <div
             style={{
-              ...cardStyle,
-              padding: isMobile ? 28 : 42,
-              minHeight: 420,
-              background:
-                "radial-gradient(circle at 20% 12%, rgba(56,189,248,0.2), transparent 36%), rgba(15,23,42,0.76)",
+              display: "flex",
+              justifyContent: "center",
+              marginTop: 38,
             }}
           >
-            <span
-              style={{
-                display: "inline-flex",
-                color: colors.blue,
-                letterSpacing: "0.15em",
-                textTransform: "uppercase",
-                fontSize: 12,
-                fontWeight: 950,
-              }}
-            >
-              Mais acessível
-            </span>
-
-            <h2
-              style={{
-                margin: "24px 0 16px",
-                color: colors.text,
-                fontSize: "clamp(28px, 3.35vw, 52px)",
-                lineHeight: 1.04,
-                letterSpacing: "-0.052em",
-              }}
-            >
-              Projetos por assinatura mensal
-            </h2>
-
-            <p style={{ color: colors.muted, lineHeight: 1.68 }}>
-              Uma alternativa para empresas que desejam iniciar com uma solução
-              profissional, reduzindo o investimento inicial e mantendo
-              possibilidade de evolução.
-            </p>
-
-            <ul
-              style={{
-                padding: 0,
-                margin: "30px 0",
-                listStyle: "none",
-                display: "grid",
-                gap: 14,
-              }}
-            >
-              {[
-                "Começo mais acessível",
-                "Ideal para validar uma ideia",
-                "Manutenção mensal",
-              ].map((item) => (
-                <li
-                  key={item}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 11,
-                    fontWeight: 800,
-                  }}
-                >
-                  <CheckCircle2 size={18} color={colors.blue} />
-                  {item}
-                </li>
-              ))}
-            </ul>
-
-            <a href="/projetos" style={buttonStyle}>
-              Ver opções por assinatura
-            </a>
-          </article>
-
-          <article
-            style={{
-              ...cardStyle,
-              padding: isMobile ? 28 : 42,
-              minHeight: 420,
-              background:
-                "radial-gradient(circle at 20% 12%, rgba(14,165,233,0.18), transparent 36%), rgba(8,47,73,0.62)",
-            }}
-          >
-            <span
-              style={{
-                display: "inline-flex",
-                color: colors.blue,
-                letterSpacing: "0.15em",
-                textTransform: "uppercase",
-                fontSize: 12,
-                fontWeight: 950,
-              }}
-            >
-              Sob medida
-            </span>
-
-            <h2
-              style={{
-                margin: "24px 0 16px",
-                color: colors.text,
-                fontSize: "clamp(28px, 3.35vw, 52px)",
-                lineHeight: 1.04,
-                letterSpacing: "-0.052em",
-              }}
-            >
-              Projetos personalizados
-            </h2>
-
-            <p style={{ color: colors.muted, lineHeight: 1.68 }}>
-              Solução indicada para empresas que precisam de regras próprias,
-              identidade exclusiva, módulos específicos, integrações e fluxos
-              personalizados.
-            </p>
-
-            <ul
-              style={{
-                padding: 0,
-                margin: "30px 0",
-                listStyle: "none",
-                display: "grid",
-                gap: 14,
-              }}
-            >
-              {[
-                "Fluxos exclusivos",
-                "Integrações específicas",
-                "Identidade própria",
-              ].map((item) => (
-                <li
-                  key={item}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 11,
-                    fontWeight: 800,
-                  }}
-                >
-                  <CheckCircle2 size={18} color={colors.blue} />
-                  {item}
-                </li>
-              ))}
-            </ul>
-
             <a
-              href={whatsappUrl}
-              target="_blank"
-              rel="noreferrer"
-              style={buttonStyle}
+              href="/projetos"
+              style={{
+                borderRadius: 999,
+                padding: isMobile ? "16px 22px" : "18px 34px",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 12,
+                fontWeight: 950,
+                cursor: "pointer",
+                whiteSpace: isMobile ? "normal" : "nowrap",
+                border: 0,
+                color: "#fff",
+                fontSize: isMobile ? 15 : 17,
+                background:
+                  "linear-gradient(135deg, #0284c7, #0ea5e9, #38bdf8)",
+                boxShadow: "0 24px 64px rgba(14,165,233,0.35)",
+                textDecoration: "none",
+                textAlign: "center",
+              }}
             >
-              Quero uma proposta
+              Ver todos os projetos <ArrowRight size={20} />
             </a>
-          </article>
+          </div>
         </div>
       </section>
+
+      {subscriptionProjects.length > 0 && (
+        <SubscriptionProjectsSection
+          projects={subscriptionProjects}
+          isMobile={isMobile}
+          isTablet={isTablet}
+          isNotebook={isNotebook}
+          containerStyle={containerStyle}
+          outlineButtonStyle={outlineButtonStyle}
+          tagStyle={tagStyle}
+          onOpen={setSelectedProject}
+        />
+      )}
 
       <section
         id="depoimentos"
@@ -2255,31 +2565,27 @@ export default function HomePage() {
       </footer>
 
       <a
-        href={whatsappUrl}
-        target="_blank"
-        rel="noreferrer"
+        href="tel:+5521988359825"
         style={{
           position: "fixed",
           right: isMobile ? 14 : 22,
           bottom: isMobile ? 14 : 22,
           zIndex: 90,
           borderRadius: 999,
-          padding: isMobile ? "14px 16px" : "16px 22px",
+          width: isMobile ? 56 : 62,
+          height: isMobile ? 56 : 62,
           display: "inline-flex",
           alignItems: "center",
           justifyContent: "center",
-          gap: 10,
-          fontWeight: 950,
-          fontSize: isMobile ? 14 : 16,
           color: "#fff",
           textDecoration: "none",
-          background: "linear-gradient(135deg, #16a34a, #22c55e)",
-          boxShadow: "0 18px 54px rgba(34,197,94,0.34)",
-          border: "1px solid rgba(187,247,208,0.32)",
+          background: "linear-gradient(135deg, #075985, #0ea5e9, #38bdf8)",
+          boxShadow: "0 18px 54px rgba(14,165,233,0.34)",
+          border: "1px solid rgba(125,211,252,0.34)",
         }}
-        aria-label="Pedir orçamento pelo WhatsApp"
+        aria-label="Ligar para Defan Soluções Digitais"
       >
-        <MessageCircle size={20} />
+        <Phone size={22} />
       </a>
 
       <style jsx>{`
