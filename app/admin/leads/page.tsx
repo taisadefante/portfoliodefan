@@ -53,7 +53,7 @@ import {
   LeadOptionItem,
   leadOptionCategoryLabels,
 } from "@/lib/leadsTypes";
-import AdminMenu from "../../../components/admin/AdminMenu.tsx";
+import AdminMenu from "../../../components/admin/AdminMenu";
 
 type LeadLocationExtra = {
   state?: string;

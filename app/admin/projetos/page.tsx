@@ -40,7 +40,7 @@ import {
   saveProjectOptions,
 } from "@/lib/firestore";
 import { OptionCategory, Project } from "@/lib/types";
-import AdminMenu from "../../../components/admin/AdminMenu.tsx";
+import AdminMenu from "../../../components/admin/AdminMenu";
 
 type SeoFaqItem = {
   question: string;
