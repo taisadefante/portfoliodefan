@@ -384,18 +384,6 @@ export default function AdminEmpregosPage() {
     "todos",
   );
   const [modeFilter, setModeFilter] = useState<JobWorkMode | "todos">("todos");
-  const [sentFilter, setSentFilter] = useState<
-    | "todos"
-    | "enviado_hoje"
-    | "nao_enviado_hoje"
-    | "sem_envio"
-    | "retorno_pendente"
-  >("todos");
-  const [cityFilter, setCityFilter] = useState("");
-  const [roleFilter, setRoleFilter] = useState("");
-  const [emailFilter, setEmailFilter] = useState("");
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
 
   async function loadCompanies() {
     setLoading(true);
@@ -418,24 +406,8 @@ export default function AdminEmpregosPage() {
     void loadCompanies();
   }, []);
 
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [
-    search,
-    statusFilter,
-    modeFilter,
-    sentFilter,
-    cityFilter,
-    roleFilter,
-    emailFilter,
-  ]);
-
   const filteredCompanies = useMemo(() => {
     const term = normalizeText(search.trim());
-    const cityTerm = normalizeText(cityFilter.trim());
-    const roleTerm = normalizeText(roleFilter.trim());
-    const emailTerm = normalizeText(emailFilter.trim());
-    const todayValue = today();
 
     return companies
       .filter((company) => {
@@ -444,38 +416,9 @@ export default function AdminEmpregosPage() {
         const matchesMode =
           modeFilter === "todos" || company.workMode === modeFilter;
 
-        const companyEmails = emailList(company);
-
-        const matchesEmail =
-          !emailTerm ||
-          normalizeText(companyEmails.join(" ")).includes(emailTerm);
-
-        const matchesCity =
-          !cityTerm ||
-          normalizeText([company.city, company.state].join(" ")).includes(
-            cityTerm,
-          );
-
-        const matchesRole =
-          !roleTerm || normalizeText(company.desiredRole).includes(roleTerm);
-
-        const matchesSent =
-          sentFilter === "todos" ||
-          (sentFilter === "enviado_hoje" &&
-            company.lastSentDate === todayValue) ||
-          (sentFilter === "nao_enviado_hoje" &&
-            company.lastSentDate !== todayValue) ||
-          (sentFilter === "sem_envio" && !company.lastSentDate) ||
-          (sentFilter === "retorno_pendente" &&
-            Boolean(company.nextFollowUpDate) &&
-            company.nextFollowUpDate <= todayValue &&
-            company.status !== "contratada" &&
-            company.status !== "recusado");
-
         const text = normalizeText(
           [
             company.companyName,
-            getDisplayCompanyName(company),
             company.contactName,
             company.phone,
             company.linkedin,
@@ -486,43 +429,18 @@ export default function AdminEmpregosPage() {
             company.desiredRole,
             company.city,
             company.state,
-            company.notes,
-            companyEmails.join(" "),
+            emailList(company).join(" "),
           ].join(" "),
         );
 
-        return (
-          matchesStatus &&
-          matchesMode &&
-          matchesEmail &&
-          matchesCity &&
-          matchesRole &&
-          matchesSent &&
-          (!term || text.includes(term))
-        );
+        return matchesStatus && matchesMode && (!term || text.includes(term));
       })
       .sort((a, b) => {
         const aDate = a.lastSentDate || "";
         const bDate = b.lastSentDate || "";
         return aDate.localeCompare(bDate);
       });
-  }, [
-    companies,
-    search,
-    statusFilter,
-    modeFilter,
-    sentFilter,
-    cityFilter,
-    roleFilter,
-    emailFilter,
-  ]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredCompanies.length / 100));
-
-  const paginatedCompanies = useMemo(() => {
-    const start = (currentPage - 1) * 100;
-    return filteredCompanies.slice(start, start + 100);
-  }, [filteredCompanies, currentPage]);
+  }, [companies, search, statusFilter, modeFilter]);
 
   const kpis = useMemo(() => {
     const todayValue = today();
@@ -621,7 +539,7 @@ export default function AdminEmpregosPage() {
     }
 
     setSelectedCompanyIds(
-      paginatedCompanies.map((company) => company.id || "").filter(Boolean),
+      filteredCompanies.map((company) => company.id || "").filter(Boolean),
     );
   }
 
@@ -958,166 +876,56 @@ export default function AdminEmpregosPage() {
             </div>
           </div>
 
-          <div className="filters-top">
-            <div className="filters-grid">
-              <label style={styles.field}>
-                <span style={styles.label}>Buscar</span>
-                <div className="search-box">
-                  <Search size={18} color={colors.soft} />
-                  <input
-                    value={search}
-                    onChange={(event) => setSearch(event.target.value)}
-                    placeholder="Empresa, e-mail, vaga, cidade..."
-                  />
-                </div>
-              </label>
+          <div className="filters-grid">
+            <label style={styles.field}>
+              <span style={styles.label}>Buscar</span>
+              <div className="search-box">
+                <Search size={18} color={colors.soft} />
+                <input
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Empresa, e-mail, vaga, cidade..."
+                />
+              </div>
+            </label>
 
-              <label style={styles.field}>
-                <span style={styles.label}>Status</span>
-                <select
-                  value={statusFilter}
-                  onChange={(event) =>
-                    setStatusFilter(
-                      event.target.value as JobCompanyStatus | "todos",
-                    )
-                  }
-                  style={styles.select}
-                >
-                  <option value="todos">Todos</option>
-                  {Object.entries(jobStatusLabels).map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label style={styles.field}>
-                <span style={styles.label}>Modalidade</span>
-                <select
-                  value={modeFilter}
-                  onChange={(event) =>
-                    setModeFilter(event.target.value as JobWorkMode | "todos")
-                  }
-                  style={styles.select}
-                >
-                  <option value="todos">Todas</option>
-                  {Object.entries(jobWorkModeLabels).map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-
-            <button
-              type="button"
-              style={styles.secondaryButton}
-              onClick={() => setShowAdvancedFilters((prev) => !prev)}
-            >
-              {showAdvancedFilters
-                ? "Ocultar filtros avançados"
-                : "Filtros avançados"}
-            </button>
-          </div>
-
-          {showAdvancedFilters && (
-            <div className="advanced-filters-grid">
-              <label style={styles.field}>
-                <span style={styles.label}>Envio</span>
-                <select
-                  value={sentFilter}
-                  onChange={(event) =>
-                    setSentFilter(
-                      event.target.value as
-                        | "todos"
-                        | "enviado_hoje"
-                        | "nao_enviado_hoje"
-                        | "sem_envio"
-                        | "retorno_pendente",
-                    )
-                  }
-                  style={styles.select}
-                >
-                  <option value="todos">Todos</option>
-                  <option value="enviado_hoje">Enviado hoje</option>
-                  <option value="nao_enviado_hoje">Não enviado hoje</option>
-                  <option value="sem_envio">Nunca enviado</option>
-                  <option value="retorno_pendente">Retorno pendente</option>
-                </select>
-              </label>
-
-              <Field
-                label="Cidade/Estado"
-                value={cityFilter}
-                onChange={setCityFilter}
-                placeholder="Ex: Barra, Recreio, RJ..."
-              />
-
-              <Field
-                label="Cargo/Vaga"
-                value={roleFilter}
-                onChange={setRoleFilter}
-                placeholder="Ex: administrativo, remoto..."
-              />
-
-              <Field
-                label="E-mail/domínio"
-                value={emailFilter}
-                onChange={setEmailFilter}
-                placeholder="Ex: rh@, gmail, empresa.com.br..."
-              />
-
-              <button
-                type="button"
-                style={styles.secondaryButton}
-                onClick={() => {
-                  setSearch("");
-                  setStatusFilter("todos");
-                  setModeFilter("todos");
-                  setSentFilter("todos");
-                  setCityFilter("");
-                  setRoleFilter("");
-                  setEmailFilter("");
-                }}
-              >
-                Limpar filtros
-              </button>
-            </div>
-          )}
-
-          <div className="pagination-info">
-            <span>
-              Exibindo {paginatedCompanies.length} de {filteredCompanies.length}{" "}
-              cadastro(s). Máximo de 100 por página.
-            </span>
-
-            <div className="pagination-actions">
-              <button
-                type="button"
-                className="small-action"
-                disabled={currentPage <= 1}
-                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-              >
-                Anterior
-              </button>
-
-              <strong>
-                Página {currentPage} de {totalPages}
-              </strong>
-
-              <button
-                type="button"
-                className="small-action"
-                disabled={currentPage >= totalPages}
-                onClick={() =>
-                  setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+            <label style={styles.field}>
+              <span style={styles.label}>Status</span>
+              <select
+                value={statusFilter}
+                onChange={(event) =>
+                  setStatusFilter(
+                    event.target.value as JobCompanyStatus | "todos",
+                  )
                 }
+                style={styles.select}
               >
-                Próxima
-              </button>
-            </div>
+                <option value="todos">Todos</option>
+                {Object.entries(jobStatusLabels).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label style={styles.field}>
+              <span style={styles.label}>Modalidade</span>
+              <select
+                value={modeFilter}
+                onChange={(event) =>
+                  setModeFilter(event.target.value as JobWorkMode | "todos")
+                }
+                style={styles.select}
+              >
+                <option value="todos">Todas</option>
+                {Object.entries(jobWorkModeLabels).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
 
           {loading ? (
@@ -1133,8 +941,8 @@ export default function AdminEmpregosPage() {
                       <input
                         type="checkbox"
                         checked={
-                          paginatedCompanies.length > 0 &&
-                          paginatedCompanies.every((company) =>
+                          filteredCompanies.length > 0 &&
+                          filteredCompanies.every((company) =>
                             selectedCompanyIds.includes(company.id || ""),
                           )
                         }
@@ -1155,7 +963,7 @@ export default function AdminEmpregosPage() {
                 </thead>
 
                 <tbody>
-                  {paginatedCompanies.map((company) => (
+                  {filteredCompanies.map((company) => (
                     <tr key={company.id || company.companyName}>
                       <td>
                         <input
@@ -1271,7 +1079,7 @@ export default function AdminEmpregosPage() {
                     </tr>
                   ))}
 
-                  {!paginatedCompanies.length && (
+                  {!filteredCompanies.length && (
                     <tr>
                       <td colSpan={9}>Nenhuma empresa encontrada.</td>
                     </tr>
@@ -1788,8 +1596,8 @@ function EmailModal({
           <div>
             <h2 style={styles.cardTitle}>Enviar currículo</h2>
             <p style={styles.cardSub}>
-              {company.companyName} • selecione os e-mails e anexe seu
-              currículo.
+              {getDisplayCompanyName(company)} • selecione os e-mails e anexe
+              seu currículo. Use {"{empresa}"} no texto para personalizar.
             </p>
           </div>
           <button type="button" style={styles.secondaryButton} onClick={close}>
@@ -1906,7 +1714,8 @@ function BulkEmailModal({
             <h2 style={styles.cardTitle}>Enviar currículo para selecionados</h2>
             <p style={styles.cardSub}>
               Você selecionou {selectedCount} empresa(s). O e-mail será enviado
-              individualmente para os e-mails cadastrados de cada empresa.
+              individualmente para os e-mails cadastrados de cada empresa. Use
+              {"{empresa}"} no texto para personalizar automaticamente.
             </p>
           </div>
           <button type="button" style={styles.secondaryButton} onClick={close}>
@@ -2033,46 +1842,11 @@ function GlobalStyle() {
         flex-wrap: wrap;
       }
 
-      .filters-top {
-        display: grid;
-        gap: 12px;
-        margin: 0 0 16px;
-      }
-
       .filters-grid {
         display: grid;
         grid-template-columns: 1.5fr 0.7fr 0.7fr;
         gap: 14px;
-      }
-
-      .advanced-filters-grid {
-        display: grid;
-        grid-template-columns: repeat(5, minmax(0, 1fr));
-        gap: 14px;
-        align-items: end;
-        margin: 0 0 16px;
-        padding: 14px;
-        border-radius: 20px;
-        background: rgba(2, 6, 23, 0.3);
-        border: 1px solid rgba(125, 211, 252, 0.14);
-      }
-
-      .pagination-info {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        flex-wrap: wrap;
-        margin: 0 0 16px;
-        color: #cbd5e1;
-        font-weight: 800;
-      }
-
-      .pagination-actions {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        flex-wrap: wrap;
+        margin: 0 0 20px;
       }
 
       .search-box {
@@ -2102,7 +1876,7 @@ function GlobalStyle() {
       .admin-table {
         width: 100%;
         border-collapse: collapse;
-        min-width: 1100px;
+        min-width: 1250px;
       }
 
       .admin-table th {
@@ -2325,9 +2099,16 @@ function GlobalStyle() {
       @media (max-width: 900px) {
         .kpi-grid,
         .filters-grid,
-        .advanced-filters-grid,
         .form-grid {
           grid-template-columns: 1fr;
+        }
+
+        .header-actions {
+          width: 100%;
+        }
+
+        .header-actions button {
+          width: 100%;
         }
       }
     `}</style>
