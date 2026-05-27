@@ -9,6 +9,19 @@ export type JobCompanyStatus =
 
 export type JobWorkMode = "presencial" | "hibrido" | "remoto" | "nao_informado";
 
+export type JobType =
+  | "tudo"
+  | "administrativo"
+  | "tecnologia"
+  | "financeiro"
+  | "comercial"
+  | "atendimento"
+  | "operacoes"
+  | "gestao_projetos"
+  | "rh"
+  | "estagio"
+  | "outros";
+
 export type JobEmailItem = {
   id: string;
   email: string;
@@ -26,6 +39,7 @@ export type JobCompany = {
   description: string;
   jobsPageLink: string;
   desiredRole: string;
+  jobType: JobType;
   city: string;
   state: string;
   workMode: JobWorkMode;
@@ -86,6 +100,7 @@ export const emptyJobCompany: JobCompany = {
   description: "",
   jobsPageLink: "",
   desiredRole: "",
+  jobType: "tudo",
   city: "",
   state: "",
   workMode: "nao_informado",

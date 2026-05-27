@@ -16,6 +16,8 @@ import {
   Trash2,
   Upload,
   X,
+  History,
+  Eye,
 } from "lucide-react";
 
 import AdminMenu from "../../../components/admin/AdminMenu";
@@ -27,6 +29,7 @@ import {
   JobCompany,
   JobCompanyStatus,
   JobEmailTemplate,
+  JobEmailLog,
   JobWorkMode,
 } from "@/lib/empregosTypes";
 import {
@@ -66,6 +69,60 @@ Taís Defante
 taisadefante@hotmail.com
 LinkedIn: linkedin.com/in/taisadefante/
 Portfólio: taisdefante.defan.com.br`;
+
+type JobType =
+  | "tudo"
+  | "administrativo"
+  | "tecnologia"
+  | "financeiro"
+  | "comercial"
+  | "atendimento"
+  | "operacoes"
+  | "gestao_projetos"
+  | "rh"
+  | "estagio"
+  | "outros";
+
+type JobCompanyWithType = JobCompany & {
+  jobType?: JobType;
+};
+
+const jobTypeLabels: Record<JobType, string> = {
+  tudo: "Tudo",
+  administrativo: "Administrativo",
+  tecnologia: "Tecnologia",
+  financeiro: "Financeiro",
+  comercial: "Comercial / Vendas",
+  atendimento: "Atendimento / Suporte",
+  operacoes: "Operações",
+  gestao_projetos: "Gestão de projetos",
+  rh: "Recursos humanos",
+  estagio: "Estágio / Júnior",
+  outros: "Outros",
+};
+
+const ITEMS_PER_PAGE = 50;
+
+function getJobTypeValue(company: JobCompany): JobType {
+  const value = (company as JobCompanyWithType).jobType;
+
+  if (
+    value === "administrativo" ||
+    value === "tecnologia" ||
+    value === "financeiro" ||
+    value === "comercial" ||
+    value === "atendimento" ||
+    value === "operacoes" ||
+    value === "gestao_projetos" ||
+    value === "rh" ||
+    value === "estagio" ||
+    value === "outros"
+  ) {
+    return value;
+  }
+
+  return "tudo";
+}
 
 const styles: Record<string, CSSProperties> = {
   page: {
@@ -143,6 +200,34 @@ const styles: Record<string, CSSProperties> = {
     cursor: "pointer",
     color: "#fff",
     background: "rgba(239,68,68,0.92)",
+  },
+  paginationButton: {
+    border: "1px solid rgba(125, 211, 252, 0.16)",
+    background: "rgba(15, 23, 42, 0.85)",
+    color: "#e2e8f0",
+    borderRadius: 12,
+    padding: "10px 16px",
+    cursor: "pointer",
+    fontWeight: 800,
+  },
+  paginationButtonActive: {
+    border: "1px solid rgba(56, 189, 248, 0.9)",
+    background:
+      "linear-gradient(135deg, rgba(14,165,233,0.38), rgba(56,189,248,0.24))",
+    color: "#ffffff",
+    borderRadius: 12,
+    padding: "10px 16px",
+    cursor: "pointer",
+    fontWeight: 900,
+  },
+  paginationButtonDisabled: {
+    border: "1px solid rgba(125, 211, 252, 0.08)",
+    background: "rgba(15, 23, 42, 0.35)",
+    color: "#64748b",
+    borderRadius: 12,
+    padding: "10px 16px",
+    cursor: "not-allowed",
+    fontWeight: 800,
   },
   card: {
     borderRadius: 30,
@@ -318,6 +403,69 @@ function personalizeEmailText(text: string, company: JobCompany) {
     .replaceAll("{{empresa}}", companyName);
 }
 
+function formatDate(value?: string) {
+  if (!value) return "-";
+
+  const [year, month, day] = value.split("-");
+
+  if (!year || !month || !day) return value;
+
+  return `${day}/${month}/${year}`;
+}
+
+function formatDateTime(value?: string) {
+  if (!value) return "-";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) return value;
+
+  return date.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function getLastEmailLogForCompany(logs: JobEmailLog[], company: JobCompany) {
+  const companyEmails = emailList(company).map((email) => email.toLowerCase());
+
+  return logs
+    .filter((log) => {
+      const matchesCompany = company.id && log.companyId === company.id;
+      const matchesEmail = (log.toEmails || []).some((email) =>
+        companyEmails.includes(email.toLowerCase()),
+      );
+
+      return matchesCompany || matchesEmail;
+    })
+    .sort(
+      (a, b) =>
+        new Date(b.sentAt || b.createdAt || "").getTime() -
+        new Date(a.sentAt || a.createdAt || "").getTime(),
+    )[0];
+}
+
+function getCompanyEmailStatus(company: JobCompany, logs: JobEmailLog[]) {
+  const lastLog = getLastEmailLogForCompany(logs, company);
+
+  if (lastLog || company.lastSentDate) {
+    return {
+      label: "Enviado",
+      className: "status-badge status-email-sent",
+      sentDate: lastLog?.sentAt || company.lastSentDate || "",
+    };
+  }
+
+  return {
+    label: jobStatusLabels[company.status] || "Não enviado",
+    className: `status-badge status-${company.status}`,
+    sentDate: "",
+  };
+}
+
 function Field({
   label,
   value,
@@ -347,8 +495,10 @@ function Field({
 
 export default function AdminEmpregosPage() {
   const [companies, setCompanies] = useState<JobCompany[]>([]);
+  const [emailLogs, setEmailLogs] = useState<JobEmailLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
+  const [sentLogsModalOpen, setSentLogsModalOpen] = useState(false);
 
   const [companyModalOpen, setCompanyModalOpen] = useState(false);
   const [companyForm, setCompanyForm] = useState<JobCompany>(emptyJobCompany);
@@ -375,6 +525,7 @@ export default function AdminEmpregosPage() {
   const [importEmailsText, setImportEmailsText] = useState("");
   const [importCompanyPrefix, setImportCompanyPrefix] = useState("Empresa");
   const [importDesiredRole, setImportDesiredRole] = useState("");
+  const [importJobType, setImportJobType] = useState<JobType>("tudo");
   const [importDescription, setImportDescription] = useState("");
   const [importNotes, setImportNotes] = useState("");
   const [importingCompanies, setImportingCompanies] = useState(false);
@@ -384,16 +535,21 @@ export default function AdminEmpregosPage() {
     "todos",
   );
   const [modeFilter, setModeFilter] = useState<JobWorkMode | "todos">("todos");
+  const [jobTypeFilter, setJobTypeFilter] = useState<JobType | "todos">(
+    "todos",
+  );
+  const [currentPage, setCurrentPage] = useState(1);
 
   async function loadCompanies() {
     setLoading(true);
 
     try {
-      const [companyList] = await Promise.all([
+      const [companyList, logsList] = await Promise.all([
         getJobCompanies(),
         getJobEmailLogs(),
       ]);
       setCompanies(companyList);
+      setEmailLogs(logsList);
     } catch (error) {
       console.error(error);
       setMessage("Erro ao carregar empresas.");
@@ -406,6 +562,10 @@ export default function AdminEmpregosPage() {
     void loadCompanies();
   }, []);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, statusFilter, modeFilter, jobTypeFilter]);
+
   const filteredCompanies = useMemo(() => {
     const term = normalizeText(search.trim());
 
@@ -415,6 +575,10 @@ export default function AdminEmpregosPage() {
           statusFilter === "todos" || company.status === statusFilter;
         const matchesMode =
           modeFilter === "todos" || company.workMode === modeFilter;
+
+        const matchesJobType =
+          jobTypeFilter === "todos" ||
+          getJobTypeValue(company) === jobTypeFilter;
 
         const text = normalizeText(
           [
@@ -427,13 +591,19 @@ export default function AdminEmpregosPage() {
             company.description,
             company.jobsPageLink,
             company.desiredRole,
+            jobTypeLabels[getJobTypeValue(company)],
             company.city,
             company.state,
             emailList(company).join(" "),
           ].join(" "),
         );
 
-        return matchesStatus && matchesMode && (!term || text.includes(term));
+        return (
+          matchesStatus &&
+          matchesMode &&
+          matchesJobType &&
+          (!term || text.includes(term))
+        );
       })
       .sort((a, b) => {
         const aDate = a.lastSentDate || "";
@@ -441,6 +611,24 @@ export default function AdminEmpregosPage() {
         return aDate.localeCompare(bDate);
       });
   }, [companies, search, statusFilter, modeFilter]);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredCompanies.length / ITEMS_PER_PAGE),
+  );
+
+  const paginatedCompanies = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredCompanies.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredCompanies, currentPage]);
+
+  const showingStart =
+    filteredCompanies.length === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1;
+
+  const showingEnd = Math.min(
+    currentPage * ITEMS_PER_PAGE,
+    filteredCompanies.length,
+  );
 
   const kpis = useMemo(() => {
     const todayValue = today();
@@ -458,6 +646,7 @@ export default function AdminEmpregosPage() {
   function openNewCompany() {
     setCompanyForm({
       ...emptyJobCompany,
+      jobType: "tudo",
       emails: [{ id: crypto.randomUUID(), email: "" }],
     });
     setCompanyModalOpen(true);
@@ -466,6 +655,7 @@ export default function AdminEmpregosPage() {
   function openEditCompany(company: JobCompany) {
     setCompanyForm({
       ...emptyJobCompany,
+      jobType: getJobTypeValue(company),
       ...company,
       emails:
         company.emails && company.emails.length > 0
@@ -539,7 +729,7 @@ export default function AdminEmpregosPage() {
     }
 
     setSelectedCompanyIds(
-      filteredCompanies.map((company) => company.id || "").filter(Boolean),
+      paginatedCompanies.map((company) => company.id || "").filter(Boolean),
     );
   }
 
@@ -682,6 +872,7 @@ export default function AdminEmpregosPage() {
               : companyNameByEmail,
           emails: [{ id: crypto.randomUUID(), email }],
           desiredRole: importDesiredRole,
+          jobType: importJobType,
           description: importDescription,
           notes: importNotes,
           status: "nao_enviado",
@@ -694,6 +885,7 @@ export default function AdminEmpregosPage() {
       setImportEmailsText("");
       setImportCompanyPrefix("Empresa");
       setImportDesiredRole("");
+      setImportJobType("tudo");
       setImportDescription("");
       setImportNotes("");
       setImportModalOpen(false);
@@ -817,6 +1009,14 @@ export default function AdminEmpregosPage() {
           <div className="header-actions">
             <button
               style={styles.secondaryButton}
+              onClick={() => setSentLogsModalOpen(true)}
+            >
+              <History size={18} />
+              E-mails enviados ({emailLogs.length})
+            </button>
+
+            <button
+              style={styles.secondaryButton}
               onClick={() => setImportModalOpen(true)}
             >
               <Upload size={18} />
@@ -926,6 +1126,31 @@ export default function AdminEmpregosPage() {
                 ))}
               </select>
             </label>
+
+            <label style={styles.field}>
+              <span style={styles.label}>Tipo de trabalho</span>
+              <select
+                value={jobTypeFilter}
+                onChange={(event) =>
+                  setJobTypeFilter(event.target.value as JobType | "todos")
+                }
+                style={styles.select}
+              >
+                <option value="todos">Todos</option>
+                {Object.entries(jobTypeLabels).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <div className="pagination-info">
+            <span>
+              Exibindo {showingStart} a {showingEnd} de{" "}
+              {filteredCompanies.length} cadastro(s). Máximo de 50 por página.
+            </span>
           </div>
 
           {loading ? (
@@ -941,8 +1166,8 @@ export default function AdminEmpregosPage() {
                       <input
                         type="checkbox"
                         checked={
-                          filteredCompanies.length > 0 &&
-                          filteredCompanies.every((company) =>
+                          paginatedCompanies.length > 0 &&
+                          paginatedCompanies.every((company) =>
                             selectedCompanyIds.includes(company.id || ""),
                           )
                         }
@@ -955,6 +1180,7 @@ export default function AdminEmpregosPage() {
                     <th>Contato</th>
                     <th>E-mails</th>
                     <th>Vaga / Modalidade</th>
+                    <th>Tipo</th>
                     <th>Status</th>
                     <th>Último envio</th>
                     <th>Retorno</th>
@@ -963,133 +1189,210 @@ export default function AdminEmpregosPage() {
                 </thead>
 
                 <tbody>
-                  {filteredCompanies.map((company) => (
-                    <tr key={company.id || company.companyName}>
-                      <td>
-                        <input
-                          type="checkbox"
-                          checked={selectedCompanyIds.includes(
-                            company.id || "",
-                          )}
-                          onChange={() => toggleCompanySelection(company.id)}
-                        />
-                      </td>
-                      <td>
-                        <strong>
-                          {company.companyName ||
-                            getDisplayCompanyName(company)}
-                        </strong>
-                        <span>{company.description || "Sem descrição"}</span>
-                        {company.jobsPageLink && (
-                          <a
-                            href={company.jobsPageLink}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            Página de vagas
-                          </a>
-                        )}
-                      </td>
-                      <td>
-                        <strong>{company.contactName || "-"}</strong>
-                        <span>{company.phone || "-"}</span>
-                        <div className="social-links">
-                          {company.linkedin && (
+                  {paginatedCompanies.map((company) => {
+                    const emailStatus = getCompanyEmailStatus(
+                      company,
+                      emailLogs,
+                    );
+
+                    return (
+                      <tr key={company.id || company.companyName}>
+                        <td>
+                          <input
+                            type="checkbox"
+                            checked={selectedCompanyIds.includes(
+                              company.id || "",
+                            )}
+                            onChange={() => toggleCompanySelection(company.id)}
+                          />
+                        </td>
+                        <td>
+                          <strong>
+                            {company.companyName ||
+                              getDisplayCompanyName(company)}
+                          </strong>
+                          <span>{company.description || "Sem descrição"}</span>
+                          {company.jobsPageLink && (
                             <a
-                              href={normalizeUrl(company.linkedin)}
+                              href={company.jobsPageLink}
                               target="_blank"
                               rel="noreferrer"
                             >
-                              LinkedIn
+                              Página de vagas
                             </a>
                           )}
+                        </td>
+                        <td>
+                          <strong>{company.contactName || "-"}</strong>
+                          <span>{company.phone || "-"}</span>
+                          <div className="social-links">
+                            {company.linkedin && (
+                              <a
+                                href={normalizeUrl(company.linkedin)}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                LinkedIn
+                              </a>
+                            )}
 
-                          {company.instagram && (
-                            <a
-                              href={normalizeUrl(company.instagram)}
-                              target="_blank"
-                              rel="noreferrer"
-                            >
-                              Instagram
-                            </a>
-                          )}
+                            {company.instagram && (
+                              <a
+                                href={normalizeUrl(company.instagram)}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                Instagram
+                              </a>
+                            )}
 
-                          {company.facebook && (
-                            <a
-                              href={normalizeUrl(company.facebook)}
-                              target="_blank"
-                              rel="noreferrer"
-                            >
-                              Facebook
-                            </a>
-                          )}
+                            {company.facebook && (
+                              <a
+                                href={normalizeUrl(company.facebook)}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                Facebook
+                              </a>
+                            )}
 
-                          {!company.linkedin &&
-                            !company.instagram &&
-                            !company.facebook && <small>Sem redes</small>}
-                        </div>
-                      </td>
-                      <td>
-                        {emailList(company).map((email) => (
-                          <span key={email} className="email-pill">
-                            {email}
+                            {!company.linkedin &&
+                              !company.instagram &&
+                              !company.facebook && <small>Sem redes</small>}
+                          </div>
+                        </td>
+                        <td>
+                          {emailList(company).map((email) => (
+                            <span key={email} className="email-pill">
+                              {email}
+                            </span>
+                          ))}
+                        </td>
+                        <td>
+                          <strong>{company.desiredRole || "-"}</strong>
+                          <span>{jobWorkModeLabels[company.workMode]}</span>
+                          <small>
+                            {[company.city, company.state]
+                              .filter(Boolean)
+                              .join(" - ") || "-"}
+                          </small>
+                        </td>
+                        <td>
+                          <span className="job-type-pill">
+                            {jobTypeLabels[getJobTypeValue(company)]}
                           </span>
-                        ))}
-                      </td>
-                      <td>
-                        <strong>{company.desiredRole || "-"}</strong>
-                        <span>{jobWorkModeLabels[company.workMode]}</span>
-                        <small>
-                          {[company.city, company.state]
-                            .filter(Boolean)
-                            .join(" - ") || "-"}
-                        </small>
-                      </td>
-                      <td>
-                        <span
-                          className={`status-badge status-${company.status}`}
-                        >
-                          {jobStatusLabels[company.status]}
-                        </span>
-                      </td>
-                      <td>{company.lastSentDate || "-"}</td>
-                      <td>{company.nextFollowUpDate || "-"}</td>
-                      <td>
-                        <div className="row-actions">
-                          <button
-                            className="small-action success"
-                            onClick={() => openEmailModal(company)}
-                          >
-                            <Send size={16} /> Enviar
-                          </button>
-                          <button
-                            className="small-action"
-                            onClick={() => openEditCompany(company)}
-                          >
-                            <Edit3 size={16} />
-                          </button>
-                          <button
-                            className="small-action danger"
-                            onClick={() => handleDeleteCompany(company)}
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td>
+                          <span className={emailStatus.className}>
+                            {emailStatus.label}
+                          </span>
+                        </td>
+                        <td>
+                          <strong>{formatDate(company.lastSentDate)}</strong>
+                          {emailStatus.sentDate && (
+                            <small>
+                              {formatDateTime(emailStatus.sentDate)}
+                            </small>
+                          )}
+                        </td>
+                        <td>{company.nextFollowUpDate || "-"}</td>
+                        <td>
+                          <div className="row-actions">
+                            <button
+                              className="small-action success"
+                              onClick={() => openEmailModal(company)}
+                            >
+                              <Send size={16} /> Enviar
+                            </button>
+                            <button
+                              className="small-action"
+                              onClick={() => openEditCompany(company)}
+                            >
+                              <Edit3 size={16} />
+                            </button>
+                            <button
+                              className="small-action danger"
+                              onClick={() => handleDeleteCompany(company)}
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
 
                   {!filteredCompanies.length && (
                     <tr>
-                      <td colSpan={9}>Nenhuma empresa encontrada.</td>
+                      <td colSpan={10}>Nenhuma empresa encontrada.</td>
                     </tr>
                   )}
                 </tbody>
               </table>
             </div>
           )}
+
+          {!loading && paginatedCompanies.length > 0 && (
+            <div className="pagination-wrapper">
+              <button
+                type="button"
+                style={
+                  currentPage <= 1
+                    ? styles.paginationButtonDisabled
+                    : styles.paginationButton
+                }
+                disabled={currentPage <= 1}
+                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+              >
+                Anterior
+              </button>
+
+              <div className="pagination-pages">
+                {Array.from({ length: totalPages }).map((_, index) => {
+                  const page = index + 1;
+
+                  return (
+                    <button
+                      key={page}
+                      type="button"
+                      onClick={() => setCurrentPage(page)}
+                      style={
+                        currentPage === page
+                          ? styles.paginationButtonActive
+                          : styles.paginationButton
+                      }
+                    >
+                      {page}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                type="button"
+                style={
+                  currentPage >= totalPages
+                    ? styles.paginationButtonDisabled
+                    : styles.paginationButton
+                }
+                disabled={currentPage >= totalPages}
+                onClick={() =>
+                  setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                }
+              >
+                Próxima
+              </button>
+            </div>
+          )}
         </section>
       </div>
+
+      {sentLogsModalOpen && (
+        <SentEmailsModal
+          logs={emailLogs}
+          close={() => setSentLogsModalOpen(false)}
+        />
+      )}
 
       {importModalOpen && (
         <ImportCompaniesModal
@@ -1099,6 +1402,8 @@ export default function AdminEmpregosPage() {
           setCompanyPrefix={setImportCompanyPrefix}
           desiredRole={importDesiredRole}
           setDesiredRole={setImportDesiredRole}
+          jobType={importJobType}
+          setJobType={setImportJobType}
           description={importDescription}
           setDescription={setImportDescription}
           notes={importNotes}
@@ -1157,6 +1462,80 @@ export default function AdminEmpregosPage() {
   );
 }
 
+function SentEmailsModal({
+  logs,
+  close,
+}: {
+  logs: JobEmailLog[];
+  close: () => void;
+}) {
+  const sortedLogs = [...logs].sort(
+    (a, b) =>
+      new Date(b.sentAt || b.createdAt || "").getTime() -
+      new Date(a.sentAt || a.createdAt || "").getTime(),
+  );
+
+  return (
+    <div style={styles.modalBackdrop}>
+      <section style={styles.modal}>
+        <header style={styles.modalHeader}>
+          <div>
+            <h2 style={styles.cardTitle}>E-mails enviados</h2>
+            <p style={styles.cardSub}>
+              Histórico de todos os currículos enviados pelo sistema.
+            </p>
+          </div>
+          <button type="button" style={styles.secondaryButton} onClick={close}>
+            <X size={18} /> Fechar
+          </button>
+        </header>
+
+        <div className="sent-logs-list">
+          {sortedLogs.map((log) => (
+            <article
+              key={log.id || `${log.companyName}-${log.sentAt}`}
+              className="sent-log-card"
+            >
+              <div>
+                <strong>{log.companyName || "Empresa sem nome"}</strong>
+                <span>{formatDateTime(log.sentAt || log.createdAt)}</span>
+              </div>
+
+              <div>
+                <small>Para:</small>
+                <p>{(log.toEmails || []).join(", ") || "-"}</p>
+              </div>
+
+              <div>
+                <small>Assunto:</small>
+                <p>{log.subject || "-"}</p>
+              </div>
+
+              {log.resumeFileName && (
+                <div>
+                  <small>Anexo:</small>
+                  <p>{log.resumeFileName}</p>
+                </div>
+              )}
+
+              <details>
+                <summary>
+                  <Eye size={15} /> Ver texto enviado
+                </summary>
+                <pre>{log.message || "-"}</pre>
+              </details>
+            </article>
+          ))}
+
+          {!sortedLogs.length && (
+            <div className="empty-state">Nenhum e-mail enviado ainda.</div>
+          )}
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function ImportCompaniesModal({
   emailsText,
   setEmailsText,
@@ -1164,6 +1543,8 @@ function ImportCompaniesModal({
   setCompanyPrefix,
   desiredRole,
   setDesiredRole,
+  jobType,
+  setJobType,
   description,
   setDescription,
   notes,
@@ -1178,6 +1559,8 @@ function ImportCompaniesModal({
   setCompanyPrefix: (value: string) => void;
   desiredRole: string;
   setDesiredRole: (value: string) => void;
+  jobType: JobType;
+  setJobType: (value: JobType) => void;
   description: string;
   setDescription: (value: string) => void;
   notes: string;
@@ -1218,6 +1601,21 @@ function ImportCompaniesModal({
             onChange={setDesiredRole}
             placeholder="Ex: Administrativo, Programadora, Home office..."
           />
+
+          <label style={styles.field}>
+            <span style={styles.label}>Tipo de trabalho para todos</span>
+            <select
+              value={jobType}
+              onChange={(event) => setJobType(event.target.value as JobType)}
+              style={styles.select}
+            >
+              {Object.entries(jobTypeLabels).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
 
           <label style={{ ...styles.field, gridColumn: "1 / -1" }}>
             <span style={styles.label}>Lista de e-mails *</span>
@@ -1427,6 +1825,29 @@ function CompanyModal({
               setCompany((prev) => ({ ...prev, desiredRole: value }))
             }
           />
+
+          <label style={styles.field}>
+            <span style={styles.label}>Tipo de trabalho</span>
+            <select
+              value={getJobTypeValue(company)}
+              onChange={(event) =>
+                setCompany(
+                  (prev) =>
+                    ({
+                      ...prev,
+                      jobType: event.target.value as JobType,
+                    }) as JobCompanyWithType,
+                )
+              }
+              style={styles.select}
+            >
+              {Object.entries(jobTypeLabels).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
 
           <Field
             label="Cidade"
@@ -1844,7 +2265,7 @@ function GlobalStyle() {
 
       .filters-grid {
         display: grid;
-        grid-template-columns: 1.5fr 0.7fr 0.7fr;
+        grid-template-columns: 1.4fr 0.7fr 0.7fr 0.7fr;
         gap: 14px;
         margin: 0 0 20px;
       }
@@ -1866,6 +2287,30 @@ function GlobalStyle() {
         color: #f8fafc;
         background: transparent;
         padding: 13px 0;
+      }
+
+      .pagination-info {
+        width: 100%;
+        margin: 0 0 14px;
+        color: #cbd5e1;
+        font-weight: 800;
+      }
+
+      .pagination-wrapper {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        margin-top: 24px;
+        flex-wrap: wrap;
+      }
+
+      .pagination-pages {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
       }
 
       .table-wrap {
@@ -1945,6 +2390,19 @@ function GlobalStyle() {
         border: 1px solid rgba(125, 211, 252, 0.16);
       }
 
+      .job-type-pill {
+        display: inline-flex !important;
+        width: fit-content;
+        margin-top: 0 !important;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: rgba(56, 189, 248, 0.12);
+        color: #bae6fd !important;
+        border: 1px solid rgba(125, 211, 252, 0.2);
+        font-size: 12px !important;
+        font-weight: 900;
+      }
+
       .status-badge {
         width: fit-content;
         padding: 7px 10px;
@@ -1958,9 +2416,11 @@ function GlobalStyle() {
       .status-curriculo_enviado,
       .status-respondeu,
       .status-entrevista,
-      .status-contratada {
+      .status-contratada,
+      .status-email-sent {
         background: rgba(34, 197, 94, 0.16);
         color: #bbf7d0 !important;
+        border: 1px solid rgba(34, 197, 94, 0.28);
       }
 
       .status-nao_enviado,
@@ -2094,6 +2554,61 @@ function GlobalStyle() {
         gap: 10px;
         color: #cbd5e1;
         padding: 18px;
+      }
+
+      .sent-logs-list {
+        display: grid;
+        gap: 12px;
+      }
+
+      .sent-log-card {
+        display: grid;
+        gap: 10px;
+        padding: 16px;
+        border-radius: 18px;
+        background: rgba(2, 6, 23, 0.38);
+        border: 1px solid rgba(125, 211, 252, 0.14);
+      }
+
+      .sent-log-card strong {
+        color: #f8fafc;
+        font-size: 17px;
+      }
+
+      .sent-log-card span,
+      .sent-log-card small {
+        color: #94a3b8;
+        font-weight: 800;
+      }
+
+      .sent-log-card p {
+        margin: 4px 0 0;
+        color: #e2e8f0;
+        line-height: 1.5;
+      }
+
+      .sent-log-card details {
+        color: #e0f2fe;
+      }
+
+      .sent-log-card summary {
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 900;
+      }
+
+      .sent-log-card pre {
+        white-space: pre-wrap;
+        margin: 12px 0 0;
+        padding: 12px;
+        border-radius: 14px;
+        color: #cbd5e1;
+        background: rgba(15, 23, 42, 0.72);
+        border: 1px solid rgba(125, 211, 252, 0.12);
+        font-family: Arial, Helvetica, sans-serif;
+        line-height: 1.5;
       }
 
       @media (max-width: 900px) {

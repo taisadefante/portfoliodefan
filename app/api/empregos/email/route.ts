@@ -7,8 +7,24 @@ function getSmtpPort() {
   return Number(process.env.SMTP_PORT || 465);
 }
 
-function getSecureMode() {
-  return getSmtpPort() === 465;
+function getSmtpHost() {
+  return process.env.SMTP_HOST || "smtp.gmail.com";
+}
+
+function getSmtpUser() {
+  return process.env.SMTP_USER || "";
+}
+
+function getSmtpPass() {
+  return process.env.SMTP_PASS || "";
+}
+
+function getSmtpFrom() {
+  return process.env.SMTP_FROM || process.env.SMTP_USER || "";
+}
+
+function getSmtpFromName() {
+  return process.env.SMTP_FROM_NAME || "Taís Defante";
 }
 
 export async function POST(request: NextRequest) {
@@ -41,7 +57,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    const smtpUser = getSmtpUser();
+    const smtpPass = getSmtpPass();
+    const smtpFrom = getSmtpFrom();
+    const smtpFromName = getSmtpFromName();
+
+    if (!smtpUser || !smtpPass) {
       return NextResponse.json(
         {
           ok: false,
@@ -52,17 +73,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || "smtp.gmail.com",
-      port: getSmtpPort(),
-      secure: getSecureMode(),
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    });
-
-    const attachments = [];
+    const attachments: {
+      filename: string;
+      content: Buffer;
+      contentType: string;
+    }[] = [];
 
     if (resume instanceof File && resume.size > 0) {
       const buffer = Buffer.from(await resume.arrayBuffer());
@@ -74,24 +89,53 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    const transporter = nodemailer.createTransport({
+      host: getSmtpHost(),
+      port: getSmtpPort(),
+      secure: getSmtpPort() === 465,
+      auth: {
+        user: smtpUser,
+        pass: smtpPass,
+      },
+    });
+
     await transporter.sendMail({
-      from: process.env.SMTP_FROM || process.env.SMTP_USER,
+      from: `"${smtpFromName}" <${smtpFrom}>`,
+      replyTo: `"${smtpFromName}" <${smtpFrom}>`,
       to,
       subject,
       text: message,
-      html: message
-        .split("\n")
-        .map((line) => `<p style="margin:0 0 12px">${line || "&nbsp;"}</p>`)
-        .join(""),
+      html: `
+        <div style="font-family:Arial,sans-serif;padding:20px;color:#111;line-height:1.6">
+          ${message
+            .split("\n")
+            .map(
+              (line) =>
+                `<p style="margin:0 0 14px;line-height:1.6;">${
+                  line || "&nbsp;"
+                }</p>`,
+            )
+            .join("")}
+        </div>
+      `,
       attachments,
     });
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({
+      ok: true,
+      message: "E-mail enviado com sucesso.",
+    });
   } catch (error) {
     console.error("Erro ao enviar currículo:", error);
 
+    const errorMessage =
+      error instanceof Error ? error.message : "Erro ao enviar currículo.";
+
     return NextResponse.json(
-      { ok: false, error: "Erro ao enviar currículo." },
+      {
+        ok: false,
+        error: errorMessage,
+      },
       { status: 500 },
     );
   }
