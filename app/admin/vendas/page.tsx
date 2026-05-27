@@ -576,7 +576,7 @@ function buildReceivables(
   sales: LeadSale[],
   paymentsBySale: Record<string, LeadSalePayment[]>,
 ) {
-  return sales.flatMap((item) => {
+  return sales.flatMap<ReceivableItem>((item) => {
     const saleId = item.id || "";
     if (!saleId) return [];
 
