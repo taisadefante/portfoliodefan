@@ -49,7 +49,7 @@ import {
   LeadSale,
   LeadSalePayment,
 } from "@/lib/leadsTypes";
-import AdminMenu from "../../../components/admin/AdminMenu.tsx";
+import AdminMenu from "../../../components/admin/AdminMenu";
 
 const colors = {
   panel: "rgba(15, 23, 42, 0.78)",

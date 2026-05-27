@@ -11,29 +11,20 @@ import {
 import {
   ArrowLeft,
   ArrowRight,
-  CheckCircle2,
+  CalendarDays,
   CreditCard,
   Eye,
   EyeOff,
   Loader2,
   LogOut,
-  MessageCircle,
-  RotateCcw,
   Search,
-  X,
 } from "lucide-react";
 
-import { auth } from "@/lib/firebase";
-import {
-  cancelFutureLeadSalePayments,
-  confirmLeadSalePaymentAsPaid,
-  getLeadSalePayments,
-  markLeadSalePaymentAsPaid,
-  markLeadSalePaymentAsPending,
-  saveLeadSalePayment,
-} from "@/lib/leadsFirestore";
-import { LeadSalePayment } from "@/lib/leadsTypes";
-import AdminMenu from "../../../components/admin/AdminMenu.tsx";
+import { auth, db } from "@/lib/firebase";
+import { collection, getDocs, orderBy, query } from "firebase/firestore";
+import { getLeadSalePayments, getLeadSales } from "@/lib/leadsFirestore";
+import { LeadSale, LeadSalePayment } from "@/lib/leadsTypes";
+import AdminMenu from "../../../components/admin/AdminMenu";
 
 const colors = {
   panel: "rgba(15, 23, 42, 0.78)",
@@ -54,9 +45,10 @@ const styles: Record<string, CSSProperties> = {
     fontFamily: "Arial, Helvetica, sans-serif",
   },
   shell: {
-    width: "min(1500px, calc(100% - 40px))",
+    width: "100%",
+    maxWidth: "100%",
     margin: "0 auto",
-    padding: "28px 0 70px",
+    padding: "22px 18px 70px",
   },
   header: {
     display: "flex",
@@ -172,36 +164,27 @@ const styles: Record<string, CSSProperties> = {
     flexDirection: "column",
     justifyContent: "center",
   },
-  modalBackdrop: {
-    position: "fixed",
-    inset: 0,
-    zIndex: 90,
-    background: "rgba(2,6,23,0.78)",
-    display: "grid",
-    placeItems: "center",
-    padding: 18,
-  },
-  modal: {
-    width: "min(520px, 100%)",
-    borderRadius: 28,
-    padding: 24,
-    background: "#0f172a",
-    border: `1px solid ${colors.borderStrong}`,
-    boxShadow: "0 40px 120px rgba(0,0,0,0.5)",
-  },
-  modalHeader: {
-    display: "flex",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    gap: 16,
-    marginBottom: 18,
-  },
-  actions: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: 10,
-    marginTop: 20,
-  },
+};
+
+type MonthSummary = {
+  key: string;
+  year: string;
+  month: string;
+  label: string;
+  payments: LeadSalePayment[];
+  received: number;
+  pending: number;
+  overdue: number;
+  canceled: number;
+  forecast: number;
+  total: number;
+  quantity: number;
+  paidQuantity: number;
+  pendingQuantity: number;
+  overdueQuantity: number;
+  canceledQuantity: number;
+  companies: string[];
+  projects: string[];
 };
 
 const monthOptions = [
@@ -253,12 +236,8 @@ function getCurrentMonth() {
   return String(new Date().getMonth() + 1).padStart(2, "0");
 }
 
-function isOverdue(payment: LeadSalePayment) {
-  if (payment.status !== "pendente") return false;
-  if (!payment.dueDate) return false;
-
-  const today = new Date().toISOString().slice(0, 10);
-  return payment.dueDate < today;
+function getMonthName(month: string) {
+  return monthOptions.find((item) => item.value === month)?.label || month;
 }
 
 function getPaymentDateParts(payment: LeadSalePayment) {
@@ -266,6 +245,184 @@ function getPaymentDateParts(payment: LeadSalePayment) {
     "-",
   );
   return { year, month, day };
+}
+
+function getRealStatus(payment: LeadSalePayment) {
+  if (payment.status === "pago") return "pago";
+  if (payment.status === "cancelado") return "cancelado";
+
+  if (payment.status === "pendente" && payment.dueDate) {
+    const today = new Date().toISOString().slice(0, 10);
+    if (payment.dueDate < today) return "vencido";
+  }
+
+  return payment.status || "pendente";
+}
+
+function getSaleTypeLabel(payment: LeadSalePayment) {
+  if (payment.saleType === "recorrente") return "Recorrente";
+  if (payment.saleType === "parcelada") return "Parcelada";
+  return "Única";
+}
+
+function unique(values: string[]) {
+  return Array.from(new Set(values.filter(Boolean)));
+}
+
+function buildMonthSummaries(payments: LeadSalePayment[]): MonthSummary[] {
+  const map = new Map<string, MonthSummary>();
+
+  payments.forEach((payment) => {
+    const { year, month } = getPaymentDateParts(payment);
+
+    if (!year || !month) return;
+
+    const key = `${year}-${month}`;
+    const amount = parseMoney(payment.amount);
+    const status = getRealStatus(payment);
+
+    const current =
+      map.get(key) ||
+      ({
+        key,
+        year,
+        month,
+        label: `${getMonthName(month)} de ${year}`,
+        payments: [],
+        received: 0,
+        pending: 0,
+        overdue: 0,
+        canceled: 0,
+        forecast: 0,
+        total: 0,
+        quantity: 0,
+        paidQuantity: 0,
+        pendingQuantity: 0,
+        overdueQuantity: 0,
+        canceledQuantity: 0,
+        companies: [],
+        projects: [],
+      } as MonthSummary);
+
+    current.payments.push(payment);
+    current.total += amount;
+    current.quantity += 1;
+
+    if (status === "pago") {
+      current.received += amount;
+      current.paidQuantity += 1;
+    } else if (status === "cancelado") {
+      current.canceled += amount;
+      current.canceledQuantity += 1;
+    } else if (status === "vencido") {
+      current.overdue += amount;
+      current.overdueQuantity += 1;
+    } else {
+      current.pending += amount;
+      current.pendingQuantity += 1;
+    }
+
+    if (status !== "cancelado") {
+      current.forecast += amount;
+    }
+
+    current.companies = unique([
+      ...current.companies,
+      payment.companyName || "Cliente sem nome",
+    ]);
+
+    current.projects = unique([
+      ...current.projects,
+      payment.projectName || "Projeto sem nome",
+    ]);
+
+    map.set(key, current);
+  });
+
+  return Array.from(map.values()).sort((a, b) => b.key.localeCompare(a.key));
+}
+
+function normalizePaymentFromSale(
+  payment: LeadSalePayment,
+  sale: LeadSale,
+): LeadSalePayment {
+  return {
+    ...payment,
+    saleId: payment.saleId || sale.id || "",
+    leadId: payment.leadId || sale.leadId || "",
+    companyName: payment.companyName || sale.companyName || "Cliente sem nome",
+    projectName: payment.projectName || sale.projectName || "Projeto sem nome",
+    saleType: payment.saleType || sale.saleType || "recorrente",
+    number:
+      Number(payment.number || payment.installmentNumber || 0) ||
+      Number(payment.installmentNumber || 0) ||
+      1,
+    amount: payment.amount || sale.monthlyAmount || sale.amount || "0",
+    dueDate: payment.dueDate || sale.firstPaymentDueDate || sale.saleDate || "",
+    paidDate: payment.paidDate || "",
+    paymentMethod: payment.paymentMethod || sale.paymentMethod || "",
+    receiptLink: payment.receiptLink || "",
+    note: payment.note || "",
+    status: payment.status || "pendente",
+  };
+}
+
+async function getRecurringPaymentsFromSales() {
+  const sales = await getLeadSales();
+  const recurringSales = sales.filter(
+    (sale) => sale.id && sale.saleType === "recorrente",
+  );
+
+  const pairs = await Promise.all(
+    recurringSales.map(async (sale) => {
+      const snapshot = await getDocs(
+        query(
+          collection(db, "leadSales", sale.id || "", "payments"),
+          orderBy("dueDate", "asc"),
+        ),
+      );
+
+      return snapshot.docs.map((paymentDoc) =>
+        normalizePaymentFromSale(
+          {
+            id: paymentDoc.id,
+            ...paymentDoc.data(),
+          } as LeadSalePayment,
+          sale,
+        ),
+      );
+    }),
+  );
+
+  return pairs.flat();
+}
+
+function getPaymentUniqueKey(payment: LeadSalePayment) {
+  return [
+    payment.id || "",
+    payment.saleId || "",
+    payment.companyName || "",
+    payment.projectName || "",
+    payment.saleType || "",
+    payment.number || "",
+    payment.dueDate || "",
+    payment.amount || "",
+  ].join("|");
+}
+
+async function getAllFinancialPayments() {
+  const [regularPayments, recurringPayments] = await Promise.all([
+    getLeadSalePayments(),
+    getRecurringPaymentsFromSales(),
+  ]);
+
+  const map = new Map<string, LeadSalePayment>();
+
+  [...regularPayments, ...recurringPayments].forEach((payment) => {
+    map.set(getPaymentUniqueKey(payment), payment);
+  });
+
+  return Array.from(map.values());
 }
 
 export default function AdminFinanceiroPage() {
@@ -283,17 +440,9 @@ export default function AdminFinanceiroPage() {
   const [clientFilter, setClientFilter] = useState("todos");
   const [yearFilter, setYearFilter] = useState(getCurrentYear());
   const [monthFilter, setMonthFilter] = useState(getCurrentMonth());
-  const [dayFilter, setDayFilter] = useState("todos");
+  const [typeFilter, setTypeFilter] = useState("todos");
   const [statusFilter, setStatusFilter] = useState("todos");
   const [message, setMessage] = useState("");
-
-  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
-  const [paymentToPay, setPaymentToPay] = useState<LeadSalePayment | null>(
-    null,
-  );
-  const [paymentDate, setPaymentDate] = useState(
-    new Date().toISOString().slice(0, 10),
-  );
 
   const isAllowed = useMemo(() => {
     if (!user?.email || !adminEmail) return false;
@@ -301,7 +450,7 @@ export default function AdminFinanceiroPage() {
   }, [user, adminEmail]);
 
   async function loadPayments() {
-    const list = await getLeadSalePayments();
+    const list = await getAllFinancialPayments();
     setPayments(list);
   }
 
@@ -370,34 +519,12 @@ export default function AdminFinanceiroPage() {
     return Array.from(years).sort((a, b) => Number(b) - Number(a));
   }, [payments]);
 
-  const dayOptions = useMemo(() => {
-    const days = new Set<string>();
-
-    payments.forEach((payment) => {
-      const { year, month, day } = getPaymentDateParts(payment);
-
-      const matchesClient =
-        clientFilter === "todos" ||
-        payment.leadId === clientFilter ||
-        payment.companyName === clientFilter;
-
-      const matchesYear = !yearFilter || year === yearFilter;
-      const matchesMonth = monthFilter === "todos" || month === monthFilter;
-
-      if (matchesClient && matchesYear && matchesMonth && day) {
-        days.add(day);
-      }
-    });
-
-    return Array.from(days).sort((a, b) => Number(a) - Number(b));
-  }, [payments, clientFilter, yearFilter, monthFilter]);
-
   const filteredPayments = useMemo(() => {
     const term = normalizeText(search.trim());
 
     return payments.filter((payment) => {
-      const { year, month, day } = getPaymentDateParts(payment);
-      const realStatus = isOverdue(payment) ? "vencido" : payment.status;
+      const { year, month } = getPaymentDateParts(payment);
+      const realStatus = getRealStatus(payment);
 
       const matchesClient =
         clientFilter === "todos" ||
@@ -406,7 +533,8 @@ export default function AdminFinanceiroPage() {
 
       const matchesYear = !yearFilter || year === yearFilter;
       const matchesMonth = monthFilter === "todos" || month === monthFilter;
-      const matchesDay = dayFilter === "todos" || day === dayFilter;
+      const matchesType =
+        typeFilter === "todos" || payment.saleType === typeFilter;
       const matchesStatus =
         statusFilter === "todos" || realStatus === statusFilter;
 
@@ -417,6 +545,9 @@ export default function AdminFinanceiroPage() {
           payment.paymentMethod,
           payment.note,
           payment.status,
+          payment.saleType,
+          payment.amount,
+          payment.dueDate,
         ].join(" "),
       );
 
@@ -424,7 +555,7 @@ export default function AdminFinanceiroPage() {
         matchesClient &&
         matchesYear &&
         matchesMonth &&
-        matchesDay &&
+        matchesType &&
         matchesStatus &&
         (!term || text.includes(term))
       );
@@ -435,125 +566,45 @@ export default function AdminFinanceiroPage() {
     clientFilter,
     yearFilter,
     monthFilter,
-    dayFilter,
+    typeFilter,
     statusFilter,
   ]);
 
+  const monthSummaries = useMemo(
+    () => buildMonthSummaries(filteredPayments),
+    [filteredPayments],
+  );
+
   const totals = useMemo(() => {
-    const received = filteredPayments
-      .filter((item) => item.status === "pago")
-      .reduce((sum, item) => sum + parseMoney(item.amount), 0);
-
-    const pending = filteredPayments
-      .filter((item) => item.status === "pendente" && !isOverdue(item))
-      .reduce((sum, item) => sum + parseMoney(item.amount), 0);
-
-    const overdue = filteredPayments
-      .filter((item) => isOverdue(item))
-      .reduce((sum, item) => sum + parseMoney(item.amount), 0);
-
-    const canceled = filteredPayments
-      .filter((item) => item.status === "cancelado")
-      .reduce((sum, item) => sum + parseMoney(item.amount), 0);
-
-    return { received, pending, overdue, canceled };
-  }, [filteredPayments]);
+    return monthSummaries.reduce(
+      (acc, item) => ({
+        received: acc.received + item.received,
+        pending: acc.pending + item.pending,
+        overdue: acc.overdue + item.overdue,
+        canceled: acc.canceled + item.canceled,
+        forecast: acc.forecast + item.forecast,
+        total: acc.total + item.total,
+        quantity: acc.quantity + item.quantity,
+      }),
+      {
+        received: 0,
+        pending: 0,
+        overdue: 0,
+        canceled: 0,
+        forecast: 0,
+        total: 0,
+        quantity: 0,
+      },
+    );
+  }, [monthSummaries]);
 
   function clearFilters() {
     setSearch("");
     setClientFilter("todos");
     setYearFilter(getCurrentYear());
     setMonthFilter(getCurrentMonth());
-    setDayFilter("todos");
+    setTypeFilter("todos");
     setStatusFilter("todos");
-  }
-
-  function openPaymentModal(payment: LeadSalePayment) {
-    setPaymentToPay(payment);
-    setPaymentDate(payment.paidDate || new Date().toISOString().slice(0, 10));
-    setPaymentModalOpen(true);
-  }
-
-  function closePaymentModal() {
-    setPaymentModalOpen(false);
-    setPaymentToPay(null);
-    setPaymentDate(new Date().toISOString().slice(0, 10));
-  }
-
-  async function confirmPayment() {
-    if (!paymentToPay) return;
-
-    await confirmLeadSalePaymentAsPaid(
-      paymentToPay,
-      paymentDate || new Date().toISOString().slice(0, 10),
-    );
-
-    await loadPayments();
-    closePaymentModal();
-    setMessage("Pagamento marcado como pago.");
-  }
-
-  async function handlePending(payment: LeadSalePayment) {
-    await markLeadSalePaymentAsPending(payment);
-    await loadPayments();
-    setMessage("Baixa removida.");
-  }
-
-  async function handleReactivatePayment(payment: LeadSalePayment) {
-    const confirmed = window.confirm(
-      "Deseja reativar esta cobrança e voltar o status para pendente?",
-    );
-
-    if (!confirmed) return;
-
-    await saveLeadSalePayment({
-      ...payment,
-      status: "pendente",
-      paidDate: "",
-    });
-
-    await loadPayments();
-    setMessage("Cobrança reativada com sucesso.");
-  }
-
-  async function handleCancelFuture(payment: LeadSalePayment) {
-    if (!payment.saleId) return;
-
-    const confirmed = window.confirm(
-      "Deseja cancelar este pagamento e todos os próximos não pagos?",
-    );
-
-    if (!confirmed) return;
-
-    await cancelFutureLeadSalePayments(payment.saleId, payment.number);
-    await loadPayments();
-    setMessage("Pagamentos futuros cancelados.");
-  }
-
-  async function handleEditPayment(payment: LeadSalePayment) {
-    const newAmount = window.prompt("Novo valor:", payment.amount);
-    if (newAmount === null) return;
-
-    const newDueDate = window.prompt(
-      "Novo vencimento no formato AAAA-MM-DD:",
-      payment.dueDate,
-    );
-    if (newDueDate === null) return;
-
-    await saveLeadSalePayment({
-      ...payment,
-      amount: newAmount,
-      dueDate: newDueDate,
-    });
-
-    await loadPayments();
-    setMessage("Pagamento atualizado.");
-  }
-
-  function getWhatsAppMessage(payment: LeadSalePayment) {
-    return encodeURIComponent(
-      `Olá! Tudo bem?\n\nPassando para lembrar sobre o pagamento referente ao projeto ${payment.projectName}.\n\nCliente: ${payment.companyName}\nVencimento: ${formatDate(payment.dueDate)}\nValor: ${money(payment.amount)}\n\nQualquer dúvida, fico à disposição.`,
-    );
   }
 
   if (checkingAuth) {
@@ -609,8 +660,8 @@ export default function AdminFinanceiroPage() {
                     margin: 0,
                   }}
                 >
-                  Controle mensal de recebimentos, pendências, vencidos e
-                  cobranças.
+                  Visão mensal consolidada de recebimentos, pendências, vencidos
+                  e cancelados.
                 </p>
               </div>
             </div>
@@ -718,8 +769,8 @@ export default function AdminFinanceiroPage() {
             <div>
               <h1 style={styles.title}>Financeiro</h1>
               <p style={styles.subText}>
-                Visão estratégica mensal dos recebimentos, pendências e
-                cobranças.
+                Visão consolidada por mês, sem baixa individual. Os valores vêm
+                das vendas cadastradas, incluindo mensalidades recorrentes.
               </p>
             </div>
           </div>
@@ -741,10 +792,10 @@ export default function AdminFinanceiroPage() {
         <section style={styles.card}>
           <div className="list-toolbar">
             <div>
-              <h2 style={styles.cardTitle}>Financeiro mensal</h2>
+              <h2 style={styles.cardTitle}>Resumo financeiro por mês</h2>
               <p style={styles.cardSub}>
-                Exibindo por padrão o mês atual. Use os filtros para ver por
-                cliente, dia, mês, ano e status.
+                Cada linha representa a soma de um mês: recebido, a receber,
+                vencido, cancelado, previsão e quantidade de cobranças.
               </p>
             </div>
 
@@ -778,10 +829,7 @@ export default function AdminFinanceiroPage() {
               <span style={styles.label}>Ano</span>
               <select
                 value={yearFilter}
-                onChange={(event) => {
-                  setYearFilter(event.target.value);
-                  setDayFilter("todos");
-                }}
+                onChange={(event) => setYearFilter(event.target.value)}
                 style={styles.select}
               >
                 {yearOptions.map((year) => (
@@ -796,10 +844,7 @@ export default function AdminFinanceiroPage() {
               <span style={styles.label}>Mês</span>
               <select
                 value={monthFilter}
-                onChange={(event) => {
-                  setMonthFilter(event.target.value);
-                  setDayFilter("todos");
-                }}
+                onChange={(event) => setMonthFilter(event.target.value)}
                 style={styles.select}
               >
                 <option value="todos">Todos os meses</option>
@@ -812,18 +857,16 @@ export default function AdminFinanceiroPage() {
             </label>
 
             <label style={styles.field}>
-              <span style={styles.label}>Dia</span>
+              <span style={styles.label}>Tipo</span>
               <select
-                value={dayFilter}
-                onChange={(event) => setDayFilter(event.target.value)}
+                value={typeFilter}
+                onChange={(event) => setTypeFilter(event.target.value)}
                 style={styles.select}
               >
-                <option value="todos">Todos os dias</option>
-                {dayOptions.map((day) => (
-                  <option key={day} value={day}>
-                    {day}
-                  </option>
-                ))}
+                <option value="todos">Todos</option>
+                <option value="unica">Única</option>
+                <option value="parcelada">Parcelada</option>
+                <option value="recorrente">Recorrente</option>
               </select>
             </label>
 
@@ -857,20 +900,34 @@ export default function AdminFinanceiroPage() {
 
           <div className="kpi-grid">
             <div>
-              <strong>{money(totals.received)}</strong>
-              <span>Recebido no período</span>
+              <CreditCard size={22} />
+              <strong>{money(totals.forecast)}</strong>
+              <span>Previsão do período</span>
             </div>
             <div>
+              <CreditCard size={22} />
+              <strong>{money(totals.received)}</strong>
+              <span>Recebido</span>
+            </div>
+            <div>
+              <CreditCard size={22} />
               <strong>{money(totals.pending)}</strong>
               <span>A receber</span>
             </div>
             <div>
+              <CreditCard size={22} />
               <strong>{money(totals.overdue)}</strong>
               <span>Vencido</span>
             </div>
             <div>
+              <CreditCard size={22} />
               <strong>{money(totals.canceled)}</strong>
               <span>Cancelado</span>
+            </div>
+            <div>
+              <CalendarDays size={22} />
+              <strong>{totals.quantity}</strong>
+              <span>Cobranças no período</span>
             </div>
           </div>
 
@@ -878,117 +935,105 @@ export default function AdminFinanceiroPage() {
             <table className="admin-table">
               <thead>
                 <tr>
-                  <th>Cliente / Projeto</th>
-                  <th>Parcela</th>
-                  <th>Vencimento</th>
-                  <th>Valor</th>
-                  <th>Status</th>
-                  <th>Pagamento</th>
-                  <th>Ações</th>
+                  <th>Mês</th>
+                  <th>Previsão</th>
+                  <th>Recebido</th>
+                  <th>A receber</th>
+                  <th>Vencido</th>
+                  <th>Cancelado</th>
+                  <th>Cobranças</th>
+                  <th>Clientes</th>
+                  <th>Projetos / Informações</th>
                 </tr>
               </thead>
 
               <tbody>
-                {filteredPayments.map((payment) => {
-                  const realStatus = isOverdue(payment)
-                    ? "vencido"
-                    : payment.status;
+                {monthSummaries.map((summary) => (
+                  <tr key={summary.key}>
+                    <td>
+                      <strong>{summary.label}</strong>
+                      <span>{summary.key}</span>
+                    </td>
 
-                  return (
-                    <tr key={payment.id}>
-                      <td>
-                        <strong>{payment.companyName}</strong>
-                        <span>{payment.projectName}</span>
-                      </td>
+                    <td>
+                      <strong>{money(summary.forecast)}</strong>
+                      <span>Total não cancelado</span>
+                    </td>
 
-                      <td>
-                        {payment.saleType === "recorrente"
-                          ? `${payment.number}/12`
-                          : payment.saleType === "parcelada"
-                            ? `Parcela ${payment.number}`
-                            : "Única"}
-                      </td>
+                    <td>
+                      <strong className="money-success">
+                        {money(summary.received)}
+                      </strong>
+                      <span>{summary.paidQuantity} pago(s)</span>
+                    </td>
 
-                      <td>{formatDate(payment.dueDate)}</td>
+                    <td>
+                      <strong className="money-warning">
+                        {money(summary.pending)}
+                      </strong>
+                      <span>{summary.pendingQuantity} pendente(s)</span>
+                    </td>
 
-                      <td>{money(payment.amount)}</td>
+                    <td>
+                      <strong className="money-danger">
+                        {money(summary.overdue)}
+                      </strong>
+                      <span>{summary.overdueQuantity} vencido(s)</span>
+                    </td>
 
-                      <td>
-                        <span className={`status-badge status-${realStatus}`}>
-                          {realStatus}
-                        </span>
-                      </td>
+                    <td>
+                      <strong>{money(summary.canceled)}</strong>
+                      <span>{summary.canceledQuantity} cancelado(s)</span>
+                    </td>
 
-                      <td>
-                        <small>{payment.paymentMethod || "-"}</small>
-                        {payment.paidDate && (
-                          <small>Pago em {formatDate(payment.paidDate)}</small>
+                    <td>
+                      <strong>{summary.quantity}</strong>
+                      <span>Total no mês</span>
+                    </td>
+
+                    <td>
+                      <strong>{summary.companies.length}</strong>
+                      <span>{summary.companies.slice(0, 5).join(", ")}</span>
+                      {summary.companies.length > 5 && (
+                        <small>
+                          +{summary.companies.length - 5} cliente(s)
+                        </small>
+                      )}
+                    </td>
+
+                    <td>
+                      <div className="month-details">
+                        {summary.payments.slice(0, 12).map((payment) => (
+                          <div
+                            key={`${payment.id || payment.saleId}-${payment.number}-${payment.dueDate}`}
+                            className="month-detail-line"
+                          >
+                            <strong>
+                              {payment.companyName || "Cliente sem nome"}
+                            </strong>
+                            <span>
+                              {payment.projectName || "Projeto sem nome"} •{" "}
+                              {getSaleTypeLabel(payment)} •{" "}
+                              {formatDate(payment.dueDate)} •{" "}
+                              {money(payment.amount)} • {getRealStatus(payment)}
+                            </span>
+                          </div>
+                        ))}
+
+                        {summary.payments.length > 12 && (
+                          <small>
+                            +{summary.payments.length - 12} lançamento(s) neste
+                            mês
+                          </small>
                         )}
-                      </td>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
 
-                      <td>
-                        <div className="row-actions">
-                          {payment.status === "pago" ? (
-                            <button
-                              className="small-action danger"
-                              onClick={() => handlePending(payment)}
-                            >
-                              <X size={15} /> Remover baixa
-                            </button>
-                          ) : payment.status === "cancelado" ? (
-                            <button
-                              className="small-action reactivate"
-                              onClick={() => handleReactivatePayment(payment)}
-                            >
-                              <RotateCcw size={15} /> Reativar
-                            </button>
-                          ) : (
-                            <button
-                              className="small-action success"
-                              onClick={() => openPaymentModal(payment)}
-                            >
-                              <CheckCircle2 size={15} /> Pago
-                            </button>
-                          )}
-
-                          {payment.status !== "pago" &&
-                            payment.status !== "cancelado" && (
-                              <>
-                                <button
-                                  className="small-action"
-                                  onClick={() => handleEditPayment(payment)}
-                                >
-                                  <CreditCard size={15} /> Editar
-                                </button>
-
-                                <a
-                                  className="small-action whatsapp"
-                                  href={`https://wa.me/?text=${getWhatsAppMessage(
-                                    payment,
-                                  )}`}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                >
-                                  <MessageCircle size={15} /> Cobrar
-                                </a>
-
-                                <button
-                                  className="small-action danger"
-                                  onClick={() => handleCancelFuture(payment)}
-                                >
-                                  <X size={15} /> Cancelar próximos
-                                </button>
-                              </>
-                            )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-
-                {!filteredPayments.length && (
+                {!monthSummaries.length && (
                   <tr>
-                    <td colSpan={7}>Nenhum pagamento encontrado.</td>
+                    <td colSpan={9}>Nenhum mês encontrado.</td>
                   </tr>
                 )}
               </tbody>
@@ -996,66 +1041,6 @@ export default function AdminFinanceiroPage() {
           </div>
         </section>
       </div>
-
-      {paymentModalOpen && paymentToPay && (
-        <div style={styles.modalBackdrop}>
-          <section style={styles.modal}>
-            <header style={styles.modalHeader}>
-              <div>
-                <h2 style={styles.cardTitle}>Confirmar pagamento</h2>
-                <p style={styles.cardSub}>
-                  Informe a data em que o pagamento foi recebido.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                style={styles.secondaryButton}
-                onClick={closePaymentModal}
-              >
-                <X size={18} /> Fechar
-              </button>
-            </header>
-
-            <div style={{ display: "grid", gap: 14 }}>
-              <div className="payment-modal-info">
-                <strong>{paymentToPay.companyName}</strong>
-                <span>{paymentToPay.projectName}</span>
-                <small>
-                  Parcela {paymentToPay.number} • Valor{" "}
-                  {money(paymentToPay.amount)}
-                </small>
-                <small>Vencimento: {formatDate(paymentToPay.dueDate)}</small>
-              </div>
-
-              <Field
-                type="date"
-                label="Data do pagamento"
-                value={paymentDate}
-                onChange={setPaymentDate}
-              />
-            </div>
-
-            <div style={styles.actions}>
-              <button
-                type="button"
-                style={styles.button}
-                onClick={confirmPayment}
-              >
-                <CheckCircle2 size={16} /> Confirmar pagamento
-              </button>
-
-              <button
-                type="button"
-                style={styles.secondaryButton}
-                onClick={closePaymentModal}
-              >
-                Cancelar
-              </button>
-            </div>
-          </section>
-        </div>
-      )}
 
       <GlobalStyle />
     </main>
@@ -1094,6 +1079,17 @@ function GlobalStyle() {
     <style jsx global>{`
       a {
         text-decoration: none;
+      }
+
+      button,
+      input,
+      select {
+        font-family: inherit;
+      }
+
+      button:disabled {
+        opacity: 0.65;
+        cursor: not-allowed;
       }
 
       .spin {
@@ -1142,11 +1138,12 @@ function GlobalStyle() {
         justify-content: space-between;
         gap: 18px;
         margin-bottom: 18px;
+        flex-wrap: wrap;
       }
 
       .filters-grid {
         display: grid;
-        grid-template-columns: 1.2fr 140px 170px 140px 180px 1.4fr;
+        grid-template-columns: 1.2fr 140px 170px 170px 180px 1.4fr;
         gap: 14px;
         margin-bottom: 18px;
         align-items: end;
@@ -1173,7 +1170,7 @@ function GlobalStyle() {
 
       .kpi-grid {
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(6, minmax(0, 1fr));
         gap: 12px;
         margin-bottom: 18px;
       }
@@ -1183,18 +1180,20 @@ function GlobalStyle() {
         padding: 18px;
         background: rgba(2, 6, 23, 0.35);
         border: 1px solid rgba(125, 211, 252, 0.14);
+        display: grid;
+        gap: 8px;
       }
 
       .kpi-grid strong {
         display: block;
-        font-size: 24px;
+        font-size: 23px;
         color: #f8fafc;
         line-height: 1;
       }
 
       .kpi-grid span {
         display: block;
-        margin-top: 8px;
+        margin-top: 2px;
         color: #94a3b8;
         font-size: 13px;
         font-weight: 900;
@@ -1208,7 +1207,7 @@ function GlobalStyle() {
 
       .admin-table {
         width: 100%;
-        min-width: 1180px;
+        min-width: 1500px;
         border-collapse: collapse;
         background: rgba(2, 6, 23, 0.32);
       }
@@ -1244,109 +1243,54 @@ function GlobalStyle() {
       .admin-table td small {
         display: block;
         margin-top: 4px;
+        color: #94a3b8;
       }
 
-      .status-badge {
-        display: inline-flex !important;
-        width: fit-content;
-        padding: 7px 10px;
-        border-radius: 999px;
-        font-size: 12px;
-        font-weight: 900;
-        border: 1px solid rgba(125, 211, 252, 0.16);
-        text-transform: capitalize;
+      .money-success {
+        color: #bbf7d0 !important;
       }
 
-      .status-pendente {
-        color: #fef3c7;
-        background: rgba(245, 158, 11, 0.15);
+      .money-warning {
+        color: #fde68a !important;
       }
 
-      .status-vencido {
-        color: #fecaca;
-        background: rgba(239, 68, 68, 0.18);
+      .money-danger {
+        color: #fecaca !important;
       }
 
-      .status-pago {
-        color: #bbf7d0;
-        background: rgba(34, 197, 94, 0.14);
-      }
-
-      .status-cancelado {
-        color: #cbd5e1;
-        background: rgba(100, 116, 139, 0.22);
-      }
-
-      .row-actions {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
-
-      .small-action {
-        border: 0;
-        border-radius: 12px;
-        padding: 10px 12px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 7px;
-        color: #e0f2fe;
-        background: rgba(14, 165, 233, 0.16);
-        cursor: pointer;
-        font-weight: 900;
-      }
-
-      .small-action.success {
-        color: #fff;
-        background: rgba(34, 197, 94, 0.85);
-      }
-
-      .small-action.danger {
-        color: #fff;
-        background: rgba(239, 68, 68, 0.82);
-      }
-
-      .small-action.whatsapp {
-        color: #fff;
-        background: rgba(22, 163, 74, 0.82);
-      }
-
-      .small-action.reactivate {
-        color: #fff;
-        background: rgba(124, 58, 237, 0.86);
-      }
-
-      .payment-modal-info {
+      .month-details {
         display: grid;
-        gap: 6px;
-        border-radius: 18px;
-        padding: 16px;
-        background: rgba(2, 6, 23, 0.42);
-        border: 1px solid rgba(125, 211, 252, 0.16);
+        gap: 8px;
+        max-width: 520px;
       }
 
-      .payment-modal-info strong {
-        color: #f8fafc;
-        font-size: 18px;
+      .month-detail-line {
+        padding: 9px 10px;
+        border-radius: 12px;
+        background: rgba(15, 23, 42, 0.62);
+        border: 1px solid rgba(125, 211, 252, 0.1);
       }
 
-      .payment-modal-info span,
-      .payment-modal-info small {
-        color: #cbd5e1;
+      .month-detail-line strong {
+        font-size: 13px;
       }
 
-      @media (max-width: 1180px) {
+      .month-detail-line span {
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      @media (max-width: 1380px) {
         .filters-grid {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
+          grid-template-columns: repeat(3, minmax(0, 1fr));
         }
 
         .kpi-grid {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
+          grid-template-columns: repeat(3, minmax(0, 1fr));
         }
       }
 
-      @media (max-width: 760px) {
+      @media (max-width: 900px) {
         .filters-grid,
         .kpi-grid {
           grid-template-columns: 1fr;
@@ -1356,6 +1300,16 @@ function GlobalStyle() {
         .list-toolbar {
           flex-direction: column;
           align-items: flex-start !important;
+        }
+
+        .admin-top-header > div {
+          flex-wrap: wrap;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .admin-login-card {
+          grid-template-columns: 1fr !important;
         }
       }
     `}</style>
