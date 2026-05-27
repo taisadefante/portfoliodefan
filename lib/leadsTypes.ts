@@ -64,18 +64,25 @@ export type LeadPaymentStatus = "pendente" | "pago" | "vencido" | "cancelado";
 export type LeadSalePayment = {
   id?: string;
   saleId: string;
-  leadId: string;
-  companyName: string;
-  projectName: string;
-  saleType: LeadSaleType;
-  number: number;
+
+  leadId?: string;
+  companyName?: string;
+  projectName?: string;
+  saleType?: LeadSaleType;
+
+  number?: number;
+  installmentNumber?: number | null;
+
   amount: string;
   dueDate: string;
-  paidDate: string;
-  paymentMethod: string;
-  receiptLink: string;
-  note: string;
+  paidDate?: string;
+  paid?: boolean;
+
+  paymentMethod?: string;
+  receiptLink?: string;
+  note?: string;
   status: LeadPaymentStatus;
+
   createdAt?: string;
   updatedAt?: string;
 };
@@ -160,6 +167,7 @@ export const emptyLeadSale: LeadSale = {
   includedItems: "",
   accessInfo: "",
   notes: "",
+
   isInstallment: false,
   installmentsTotal: "",
   firstInstallmentDueDate: "",
