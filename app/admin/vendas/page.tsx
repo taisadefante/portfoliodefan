@@ -91,7 +91,7 @@ type ReceivableItem = {
   installmentPaidTotal?: number;
   installmentPaidCount?: number;
   installmentTotalAmount?: number;
-  installmentRemainingAmount?: number;
+  installmentRemainingTotal?: number;
   installmentTotalCount?: number;
 };
 
@@ -621,7 +621,7 @@ function buildReceivables(
         installmentPaidTotal: installmentSummary.paidTotal,
         installmentPaidCount: installmentSummary.paidCount,
         installmentTotalAmount: installmentSummary.totalAmount,
-        installmentRemainingAmount: installmentSummary.remainingTotal,
+        installmentRemainingTotal: installmentSummary.remainingTotal,
         installmentTotalCount: installmentSummary.totalCount,
       }));
     }
@@ -788,7 +788,7 @@ function getPendingLabel(
   isCanceled: boolean,
 ) {
   if (item.saleType === "parcelada") {
-    return money(isCanceled ? 0 : item.installmentRemainingAmount || 0);
+    return money(isCanceled ? 0 : item.installmentRemainingTotal || 0);
   }
 
   return isPaid || isCanceled ? money(0) : money(item.amount);
@@ -2412,7 +2412,7 @@ function PaymentModal({
           {receivable.saleType === "recorrente" && (
             <div>
               <span>Total já pago nesta recorrência</span>
-              <strong>{getRecurringPaidLabel(receivable)}</strong>
+              <strong>{getTotalPaidLabel(receivable)}</strong>
             </div>
           )}
         </div>
