@@ -610,7 +610,7 @@ export default function AdminEmpregosPage() {
         const bDate = b.lastSentDate || "";
         return aDate.localeCompare(bDate);
       });
-  }, [companies, search, statusFilter, modeFilter]);
+  }, [companies, search, statusFilter, modeFilter, jobTypeFilter]);
 
   const totalPages = Math.max(
     1,
@@ -655,13 +655,13 @@ export default function AdminEmpregosPage() {
   function openEditCompany(company: JobCompany) {
     setCompanyForm({
       ...emptyJobCompany,
-      jobType: getJobTypeValue(company),
       ...company,
+      jobType: getJobTypeValue(company),
       emails:
         company.emails && company.emails.length > 0
           ? company.emails
           : [{ id: crypto.randomUUID(), email: "" }],
-    });
+    } as JobCompany);
     setCompanyModalOpen(true);
   }
 

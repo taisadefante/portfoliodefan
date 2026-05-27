@@ -108,27 +108,35 @@ type PaymentFormState = {
 const styles: Record<string, CSSProperties> = {
   page: {
     minHeight: "100vh",
+    width: "100%",
+    maxWidth: "100%",
     background:
       "radial-gradient(circle at 15% 0%, rgba(14,165,233,0.24), transparent 32%), radial-gradient(circle at 90% 8%, rgba(56,189,248,0.12), transparent 30%), linear-gradient(180deg, #020617 0%, #071426 50%, #020617 100%)",
     color: colors.text,
     fontFamily: "Arial, Helvetica, sans-serif",
+    overflowX: "hidden",
   },
   shell: {
-    width: "min(1500px, calc(100% - 40px))",
-    margin: "0 auto",
-    padding: "28px 0 70px",
+    width: "100%",
+    maxWidth: "100%",
+    margin: 0,
+    padding: "24px",
+    boxSizing: "border-box",
   },
   header: {
+    width: "100%",
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
     gap: 22,
-    padding: 22,
+    padding: 24,
     borderRadius: 30,
     background: "rgba(15, 23, 42, 0.72)",
     border: `1px solid ${colors.border}`,
     boxShadow: "0 24px 80px rgba(0,0,0,0.24)",
     marginBottom: 22,
+    flexWrap: "wrap",
+    boxSizing: "border-box",
   },
   headerLogo: { width: "auto", height: 72, objectFit: "contain" },
   title: {
@@ -150,6 +158,7 @@ const styles: Record<string, CSSProperties> = {
     color: "#fff",
     background: "linear-gradient(135deg, #0ea5e9, #38bdf8)",
     boxShadow: "0 16px 38px rgba(14,165,233,0.22)",
+    whiteSpace: "nowrap",
   },
   secondaryButton: {
     borderRadius: 16,
@@ -163,6 +172,7 @@ const styles: Record<string, CSSProperties> = {
     color: "#e0f2fe",
     background: "rgba(15,23,42,0.7)",
     border: `1px solid ${colors.border}`,
+    whiteSpace: "nowrap",
   },
   dangerButton: {
     border: 0,
@@ -176,13 +186,16 @@ const styles: Record<string, CSSProperties> = {
     cursor: "pointer",
     color: "#fff",
     background: "rgba(239,68,68,0.92)",
+    whiteSpace: "nowrap",
   },
   card: {
+    width: "100%",
     borderRadius: 30,
     padding: 24,
     background: colors.panel,
     border: `1px solid ${colors.border}`,
     boxShadow: "0 24px 80px rgba(0,0,0,0.2)",
+    boxSizing: "border-box",
   },
   cardTitle: { margin: "0 0 6px", fontSize: 26, letterSpacing: "-0.04em" },
   cardSub: { margin: "0 0 22px", color: colors.soft, lineHeight: 1.55 },
@@ -194,6 +207,7 @@ const styles: Record<string, CSSProperties> = {
     outline: "none",
     borderRadius: 16,
     padding: "13px 14px",
+    boxSizing: "border-box",
   },
   textarea: {
     width: "100%",
@@ -205,6 +219,7 @@ const styles: Record<string, CSSProperties> = {
     outline: "none",
     borderRadius: 16,
     padding: "13px 14px",
+    boxSizing: "border-box",
   },
   select: {
     width: "100%",
@@ -214,22 +229,27 @@ const styles: Record<string, CSSProperties> = {
     outline: "none",
     borderRadius: 16,
     padding: "13px 14px",
+    boxSizing: "border-box",
   },
   label: { color: "#dbeafe", fontSize: 13, fontWeight: 900 },
-  field: { display: "grid", gap: 8 },
+  field: { display: "grid", gap: 8, minWidth: 0 },
   notice: {
+    width: "100%",
     borderRadius: 18,
     padding: "14px 16px",
     margin: "0 0 18px",
     color: "#e0f2fe",
     background: "rgba(14,165,233,0.12)",
     border: `1px solid ${colors.borderStrong}`,
+    boxSizing: "border-box",
   },
   loginWrap: {
     minHeight: "100vh",
+    width: "100%",
     display: "grid",
     placeItems: "center",
     padding: 22,
+    boxSizing: "border-box",
   },
   loginCard: {
     width: "min(1060px, 100%)",
@@ -240,6 +260,7 @@ const styles: Record<string, CSSProperties> = {
     background: colors.panelStrong,
     border: `1px solid ${colors.borderStrong}`,
     boxShadow: "0 40px 120px rgba(0,0,0,0.38)",
+    boxSizing: "border-box",
   },
   loginBrand: {
     padding: 46,
@@ -249,12 +270,14 @@ const styles: Record<string, CSSProperties> = {
     flexDirection: "column",
     justifyContent: "space-between",
     minHeight: 620,
+    boxSizing: "border-box",
   },
   loginForm: {
     padding: 46,
     display: "flex",
     flexDirection: "column",
     justifyContent: "center",
+    boxSizing: "border-box",
   },
   modalBackdrop: {
     position: "fixed",
@@ -264,16 +287,19 @@ const styles: Record<string, CSSProperties> = {
     display: "grid",
     placeItems: "center",
     padding: 18,
+    boxSizing: "border-box",
   },
   modal: {
-    width: "min(1180px, 100%)",
-    maxHeight: "92vh",
+    width: "96vw",
+    maxWidth: "1800px",
+    maxHeight: "95vh",
     overflow: "auto",
     borderRadius: 32,
     padding: 24,
     background: "#0f172a",
     border: `1px solid ${colors.borderStrong}`,
     boxShadow: "0 40px 120px rgba(0,0,0,0.5)",
+    boxSizing: "border-box",
   },
   modalHeader: {
     display: "flex",
@@ -281,11 +307,14 @@ const styles: Record<string, CSSProperties> = {
     justifyContent: "space-between",
     gap: 16,
     marginBottom: 20,
+    flexWrap: "wrap",
   },
   formGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+    gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
     gap: 16,
+    width: "100%",
+    boxSizing: "border-box",
   },
   actions: { display: "flex", flexWrap: "wrap", gap: 10, marginTop: 20 },
 };
@@ -2616,6 +2645,20 @@ function GlobalStyle() {
         text-decoration: none;
       }
 
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        max-width: 100%;
+        margin: 0;
+        padding: 0;
+        overflow-x: hidden;
+        background: #020617;
+      }
+
       .spin {
         animation: spin 0.8s linear infinite;
       }
@@ -2732,14 +2775,17 @@ function GlobalStyle() {
       }
 
       .list-toolbar {
+        width: 100%;
         display: flex;
         align-items: flex-start;
         justify-content: space-between;
         gap: 18px;
         margin-bottom: 18px;
+        flex-wrap: wrap;
       }
 
       .filters-header {
+        width: 100%;
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -2748,11 +2794,13 @@ function GlobalStyle() {
         color: #94a3b8;
         font-size: 13px;
         font-weight: 800;
+        flex-wrap: wrap;
       }
 
       .filters-grid {
+        width: 100%;
         display: grid;
-        grid-template-columns: 1.15fr 140px 170px 140px 180px 180px 1.4fr;
+        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
         gap: 14px;
         margin-bottom: 18px;
         align-items: end;
@@ -2778,8 +2826,9 @@ function GlobalStyle() {
       }
 
       .kpi-grid {
+        width: 100%;
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
         gap: 12px;
         margin-bottom: 18px;
       }
@@ -2807,14 +2856,17 @@ function GlobalStyle() {
       }
 
       .table-wrap {
-        overflow: auto;
+        width: 100%;
+        max-width: 100%;
+        overflow-x: auto;
+        overflow-y: visible;
         border-radius: 22px;
         border: 1px solid rgba(125, 211, 252, 0.16);
       }
 
       .admin-table {
         width: 100%;
-        min-width: 1280px;
+        min-width: 1500px;
         border-collapse: collapse;
         background: rgba(2, 6, 23, 0.32);
       }
@@ -2903,7 +2955,8 @@ function GlobalStyle() {
 
       .row-actions {
         display: flex;
-        flex-direction: column;
+        flex-direction: row;
+        flex-wrap: wrap;
         gap: 8px;
       }
 
@@ -3004,6 +3057,15 @@ function GlobalStyle() {
         .installment-config,
         .installment-line {
           grid-template-columns: 1fr !important;
+        }
+
+        .admin-table {
+          min-width: 1180px;
+        }
+
+        main > div {
+          padding-left: 14px !important;
+          padding-right: 14px !important;
         }
 
         .admin-top-header,
