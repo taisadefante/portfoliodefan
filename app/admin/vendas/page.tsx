@@ -11,9 +11,9 @@ import {
 import {
   ArrowLeft,
   ArrowRight,
-  CalendarDays,
+  CalendarCheck,
+  CheckCircle2,
   CreditCard,
-  DollarSign,
   Edit3,
   Eye,
   EyeOff,
@@ -28,10 +28,17 @@ import {
   X,
 } from "lucide-react";
 
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
+import {
+  collection,
+  doc,
+  getDocs,
+  orderBy,
+  query,
+  setDoc,
+} from "firebase/firestore";
 import {
   getLeads,
-  getLeadSalePaymentsBySale,
   getLeadSales,
   removeLeadSale,
   saveLeadSale,
@@ -52,6 +59,50 @@ const colors = {
   text: "#f8fafc",
   muted: "#cbd5e1",
   soft: "#94a3b8",
+};
+
+type ReceivableSource =
+  | "sale"
+  | "installment"
+  | "payment"
+  | "recurring-generated";
+
+type ReceivableItem = {
+  id: string;
+  saleId: string;
+  sale: LeadSale;
+  source: ReceivableSource;
+  paymentId?: string;
+  installmentId?: string;
+  installmentNumber?: number;
+  companyName: string;
+  projectName: string;
+  saleType: LeadSale["saleType"];
+  saleStatus: LeadSale["saleStatus"];
+  amount: string;
+  dueDate: string;
+  paidDate: string;
+  paid: boolean;
+  status: string;
+  paymentMethod: string;
+  note: string;
+  recurringPaidTotal?: number;
+  recurringPaidCount?: number;
+  installmentPaidTotal?: number;
+  installmentPaidCount?: number;
+  installmentTotalAmount?: number;
+  installmentRemainingTotal?: number;
+  installmentTotalCount?: number;
+};
+
+type LeadSaleWithPaymentDate = LeadSale & { paidDate?: string };
+
+type PaymentFormState = {
+  status: "pago" | "pendente" | "cancelado";
+  paid: boolean;
+  paidDate: string;
+  paymentMethod: string;
+  note: string;
 };
 
 const styles: Record<string, CSSProperties> = {
@@ -292,6 +343,47 @@ function getPendingTotal(payments: LeadSalePayment[]) {
     .reduce((total, payment) => total + parseMoney(payment.amount), 0);
 }
 
+function getRecurringPaidSummary(payments: LeadSalePayment[]) {
+  const paidPayments = payments.filter(
+    (payment) => getPaymentStatus(payment) === "pago",
+  );
+
+  return {
+    total: paidPayments.reduce(
+      (sum, payment) => sum + parseMoney(payment.amount),
+      0,
+    ),
+    count: paidPayments.length,
+  };
+}
+
+function getInstallmentFinancialSummary(
+  installments: LeadSale["installments"],
+) {
+  const safeInstallments = Array.isArray(installments) ? installments : [];
+  const paidInstallments = safeInstallments.filter((installment) =>
+    Boolean(installment.paid),
+  );
+
+  const totalAmount = safeInstallments.reduce(
+    (sum, installment) => sum + parseMoney(installment.amount),
+    0,
+  );
+
+  const paidTotal = paidInstallments.reduce(
+    (sum, installment) => sum + parseMoney(installment.amount),
+    0,
+  );
+
+  return {
+    totalAmount,
+    paidTotal,
+    remainingTotal: Math.max(totalAmount - paidTotal, 0),
+    totalCount: safeInstallments.length,
+    paidCount: paidInstallments.length,
+  };
+}
+
 function addMonthsToDate(dateString: string, monthsToAdd: number) {
   if (!dateString) return "";
 
@@ -314,6 +406,407 @@ function addMonthsToDate(dateString: string, monthsToAdd: number) {
   return `${targetDate.getFullYear()}-${String(
     targetDate.getMonth() + 1,
   ).padStart(2, "0")}-${String(targetDate.getDate()).padStart(2, "0")}`;
+}
+
+function dateMatchesFilters(
+  date: string,
+  year: string,
+  month: string,
+  day: string,
+) {
+  const [dateYear = "", dateMonth = "", dateDay = ""] = String(
+    date || "",
+  ).split("-");
+
+  return (
+    (!year || dateYear === year) &&
+    (month === "todos" || dateMonth === month) &&
+    (day === "todos" || dateDay === day)
+  );
+}
+
+function getSaleMonthAmount(item: LeadSale) {
+  if (item.saleType === "recorrente") {
+    return item.monthlyAmount || item.amount;
+  }
+
+  return item.amount;
+}
+
+function getRecurringPaymentId(
+  saleId: string,
+  installmentNumber: number,
+  dueDate: string,
+) {
+  const safeDate = String(dueDate || "").replace(/[^0-9]/g, "");
+  return `recorrente_${saleId}_${installmentNumber}_${safeDate}`;
+}
+
+function getPaymentStatus(
+  payment?: Partial<LeadSalePayment> & { paid?: boolean },
+) {
+  if (!payment) return "pendente";
+  if (String(payment.status || "") === "cancelado") return "cancelado";
+  if (String(payment.status || "") === "pago" || payment.paid) return "pago";
+  return "pendente";
+}
+
+function isReceivableCanceled(status?: string) {
+  return String(status || "") === "cancelado";
+}
+
+async function ensureSixRecurringPayments(
+  sale: LeadSale,
+  existingPayments: LeadSalePayment[],
+) {
+  const saleId = sale.id || "";
+  if (
+    !saleId ||
+    sale.saleType !== "recorrente" ||
+    sale.saleStatus === "cancelada"
+  ) {
+    return;
+  }
+
+  const firstDueDate = sale.firstPaymentDueDate || sale.saleDate || "";
+  if (!firstDueDate) return;
+
+  const payments = [...existingPayments];
+  const monthlyAmount = sale.monthlyAmount || sale.amount || "0";
+  let activeOpenCount = payments.filter((payment) => {
+    const status = getPaymentStatus(payment);
+    return status !== "pago" && status !== "cancelado";
+  }).length;
+
+  let installmentNumber = Math.max(
+    0,
+    ...payments.map((payment) => Number(payment.installmentNumber || 0)),
+  );
+
+  if (installmentNumber < 1) installmentNumber = 0;
+
+  while (activeOpenCount < 6) {
+    installmentNumber += 1;
+    const dueDate = addMonthsToDate(firstDueDate, installmentNumber - 1);
+    const existing = payments.find(
+      (payment) =>
+        Number(payment.installmentNumber || 0) === installmentNumber ||
+        String(payment.dueDate || "") === dueDate,
+    );
+
+    if (existing) {
+      const status = getPaymentStatus(existing);
+      if (status !== "pago" && status !== "cancelado") {
+        activeOpenCount += 1;
+      }
+      continue;
+    }
+
+    const paymentId = getRecurringPaymentId(saleId, installmentNumber, dueDate);
+    const payment = {
+      id: paymentId,
+      saleId,
+      amount: monthlyAmount,
+      dueDate,
+      status: "pendente",
+      paidDate: "",
+      paymentMethod: sale.paymentMethod || "",
+      note: "",
+      installmentNumber,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    } as LeadSalePayment;
+
+    await setDoc(doc(db, "leadSales", saleId, "payments", paymentId), payment, {
+      merge: true,
+    });
+
+    payments.push(payment);
+    activeOpenCount += 1;
+  }
+}
+
+async function cancelRecurringPayments(
+  saleId: string,
+  payments: LeadSalePayment[],
+  currentPaymentId: string,
+) {
+  const now = new Date().toISOString();
+
+  await Promise.all(
+    payments
+      .filter((payment) => getPaymentStatus(payment) !== "pago")
+      .map((payment) => {
+        const paymentId = payment.id || currentPaymentId;
+        if (!paymentId) return Promise.resolve();
+
+        return setDoc(
+          doc(db, "leadSales", saleId, "payments", paymentId),
+          {
+            ...payment,
+            status: "cancelado",
+            updatedAt: now,
+          },
+          { merge: true },
+        );
+      }),
+  );
+}
+
+async function fetchLeadSalePaymentsBySale(saleId: string) {
+  if (!saleId) return [];
+
+  const snapshot = await getDocs(
+    query(
+      collection(db, "leadSales", saleId, "payments"),
+      orderBy("dueDate", "asc"),
+    ),
+  );
+
+  return snapshot.docs.map(
+    (paymentDoc) =>
+      ({
+        id: paymentDoc.id,
+        ...paymentDoc.data(),
+      }) as LeadSalePayment,
+  );
+}
+
+function buildReceivables(
+  sales: LeadSale[],
+  paymentsBySale: Record<string, LeadSalePayment[]>,
+) {
+  return sales.flatMap((item) => {
+    const saleId = item.id || "";
+    if (!saleId) return [];
+
+    const saleType =
+      item.saleType || (item.isInstallment ? "parcelada" : "unica");
+    const companyName = item.companyName || "Cliente não informado";
+    const projectName = item.projectName || "Projeto sem nome";
+    const saleStatus = item.saleStatus || "ativa";
+    const payments = paymentsBySale[saleId] || [];
+
+    if (
+      saleType === "parcelada" &&
+      Array.isArray(item.installments) &&
+      item.installments.length > 0
+    ) {
+      const installmentSummary = getInstallmentFinancialSummary(
+        item.installments,
+      );
+
+      return item.installments.map((installment) => ({
+        id: `${saleId}-installment-${installment.id || installment.number}`,
+        saleId,
+        sale: item,
+        source: "installment" as const,
+        installmentId: installment.id,
+        installmentNumber: installment.number,
+        companyName,
+        projectName,
+        saleType,
+        saleStatus,
+        amount: installment.amount || "0",
+        dueDate:
+          installment.dueDate ||
+          item.firstInstallmentDueDate ||
+          item.saleDate ||
+          "",
+        paidDate: installment.paidDate || "",
+        paid: Boolean(installment.paid),
+        status: installment.paid ? "pago" : "pendente",
+        paymentMethod: installment.paymentMethod || item.paymentMethod || "",
+        note: installment.note || "",
+        installmentPaidTotal: installmentSummary.paidTotal,
+        installmentPaidCount: installmentSummary.paidCount,
+        installmentTotalAmount: installmentSummary.totalAmount,
+        installmentRemainingTotal: installmentSummary.remainingTotal,
+        installmentTotalCount: installmentSummary.totalCount,
+      }));
+    }
+
+    if (saleType === "recorrente") {
+      const monthsToShow = 6;
+      const firstDueDate = item.firstPaymentDueDate || item.saleDate || "";
+      const recurringPaidSummary = getRecurringPaidSummary(payments);
+      const generated = Array.from({ length: monthsToShow }, (_, index) => {
+        const installmentNumber = index + 1;
+        const dueDate = addMonthsToDate(firstDueDate, index);
+        const deterministicPaymentId = getRecurringPaymentId(
+          saleId,
+          installmentNumber,
+          dueDate,
+        );
+
+        const savedPayment = payments.find((payment) => {
+          const sameId = payment.id === deterministicPaymentId;
+          const sameInstallment =
+            Number(payment.installmentNumber || 0) === installmentNumber;
+          const sameDueDate = String(payment.dueDate || "") === dueDate;
+
+          return sameId || sameInstallment || sameDueDate;
+        });
+
+        const paymentId = savedPayment?.id || deterministicPaymentId;
+
+        return {
+          id: `${saleId}-recurring-${installmentNumber}`,
+          saleId,
+          sale: item,
+          source: savedPayment
+            ? ("payment" as const)
+            : ("recurring-generated" as const),
+          paymentId,
+          installmentNumber,
+          companyName,
+          projectName,
+          saleType,
+          saleStatus,
+          amount:
+            savedPayment?.amount || item.monthlyAmount || item.amount || "0",
+          dueDate: savedPayment?.dueDate || dueDate,
+          paidDate: savedPayment?.paidDate || "",
+          paid:
+            savedPayment?.status === "pago" ||
+            Boolean(
+              (
+                savedPayment as
+                  | (LeadSalePayment & { paid?: boolean })
+                  | undefined
+              )?.paid,
+            ),
+          status: savedPayment?.status || "pendente",
+          paymentMethod:
+            savedPayment?.paymentMethod || item.paymentMethod || "",
+          note: savedPayment?.note || "",
+          recurringPaidTotal: recurringPaidSummary.total,
+          recurringPaidCount: recurringPaidSummary.count,
+        };
+      });
+
+      const extraSavedPayments = payments
+        .filter((payment) => {
+          const alreadyGenerated = generated.some((generatedPayment) => {
+            const sameId = generatedPayment.paymentId === payment.id;
+            const sameInstallment =
+              Number(generatedPayment.installmentNumber || 0) ===
+              Number(payment.installmentNumber || 0);
+            const sameDueDate =
+              String(generatedPayment.dueDate || "") ===
+              String(payment.dueDate || "");
+
+            return sameId || sameInstallment || sameDueDate;
+          });
+
+          return !alreadyGenerated;
+        })
+        .map((payment) => ({
+          id: `${saleId}-payment-${payment.id || payment.dueDate}`,
+          saleId,
+          sale: item,
+          source: "payment" as const,
+          paymentId: payment.id,
+          installmentNumber:
+            Number(payment.installmentNumber || 0) || undefined,
+          companyName,
+          projectName,
+          saleType,
+          saleStatus,
+          amount: payment.amount || item.monthlyAmount || item.amount || "0",
+          dueDate:
+            payment.dueDate || item.firstPaymentDueDate || item.saleDate || "",
+          paidDate: payment.paidDate || "",
+          paid:
+            payment.status === "pago" ||
+            Boolean((payment as LeadSalePayment & { paid?: boolean }).paid),
+          status: payment.status || "pendente",
+          paymentMethod: payment.paymentMethod || item.paymentMethod || "",
+          note: payment.note || "",
+          recurringPaidTotal: recurringPaidSummary.total,
+          recurringPaidCount: recurringPaidSummary.count,
+        }));
+
+      return [...generated, ...extraSavedPayments];
+    }
+
+    if (payments.length > 0) {
+      return payments.map((payment) => ({
+        id: `${saleId}-payment-${payment.id || payment.dueDate}`,
+        saleId,
+        sale: item,
+        source: "payment" as const,
+        paymentId: payment.id,
+        companyName,
+        projectName,
+        saleType,
+        saleStatus,
+        amount: payment.amount || getSaleMonthAmount(item),
+        dueDate:
+          payment.dueDate || item.firstPaymentDueDate || item.saleDate || "",
+        paidDate: payment.paidDate || "",
+        paid:
+          payment.status === "pago" ||
+          Boolean((payment as LeadSalePayment & { paid?: boolean }).paid),
+        status: payment.status || "pendente",
+        paymentMethod: payment.paymentMethod || item.paymentMethod || "",
+        note: payment.note || "",
+      }));
+    }
+
+    return [
+      {
+        id: `${saleId}-sale`,
+        saleId,
+        sale: item,
+        source: "sale" as const,
+        companyName,
+        projectName,
+        saleType,
+        saleStatus,
+        amount: item.amount || "0",
+        dueDate: item.firstPaymentDueDate || item.saleDate || "",
+        paidDate: (item as LeadSaleWithPaymentDate).paidDate || "",
+        paid: item.paymentStatus === "pago",
+        status: item.paymentStatus || "pendente",
+        paymentMethod: item.paymentMethod || "",
+        note: "",
+      },
+    ];
+  });
+}
+
+function getInstallmentTotalLabel(item: ReceivableItem) {
+  if (item.saleType !== "parcelada") return money(item.amount);
+
+  return `${money(item.installmentTotalAmount || 0)} total`;
+}
+
+function getPendingLabel(
+  item: ReceivableItem,
+  isPaid: boolean,
+  isCanceled: boolean,
+) {
+  if (item.saleType === "parcelada") {
+    return money(isCanceled ? 0 : item.installmentRemainingTotal || 0);
+  }
+
+  return isPaid || isCanceled ? money(0) : money(item.amount);
+}
+
+function getTotalPaidLabel(item: ReceivableItem) {
+  if (item.saleType === "recorrente") {
+    const count = item.recurringPaidCount || 0;
+    return `${money(item.recurringPaidTotal || 0)} (${count} pago${count === 1 ? "" : "s"})`;
+  }
+
+  if (item.saleType === "parcelada") {
+    const count = item.installmentPaidCount || 0;
+    const totalCount = item.installmentTotalCount || 0;
+    return `${money(item.installmentPaidTotal || 0)} (${count}/${totalCount} paga${count === 1 ? "" : "s"})`;
+  }
+
+  return item.paid ? money(item.amount) : money(0);
 }
 
 export default function AdminVendasPage() {
@@ -343,6 +836,18 @@ export default function AdminVendasPage() {
   const [typeFilter, setTypeFilter] = useState("todos");
   const [statusFilter, setStatusFilter] = useState("todos");
   const [message, setMessage] = useState("");
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [overdueModalOpen, setOverdueModalOpen] = useState(false);
+  const [selectedReceivable, setSelectedReceivable] =
+    useState<ReceivableItem | null>(null);
+  const [paymentForm, setPaymentForm] = useState<PaymentFormState>({
+    status: "pago",
+    paid: true,
+    paidDate: new Date().toISOString().slice(0, 10),
+    paymentMethod: "",
+    note: "",
+  });
+  const [savingPayment, setSavingPayment] = useState(false);
 
   const isAllowed = useMemo(() => {
     if (!user?.email || !adminEmail) return false;
@@ -361,7 +866,7 @@ export default function AdminVendasPage() {
       saleList
         .filter((item) => item.id)
         .map(async (item) => {
-          const payments = await getLeadSalePaymentsBySale(item.id || "");
+          const payments = await fetchLeadSalePaymentsBySale(item.id || "");
           return [item.id || "", payments] as const;
         }),
     );
@@ -400,21 +905,21 @@ export default function AdminVendasPage() {
   const yearOptions = useMemo(() => {
     const years = new Set<string>();
 
-    sales.forEach((item) => {
-      const year = String(item.saleDate || "").slice(0, 4);
+    buildReceivables(sales, paymentsBySale).forEach((item) => {
+      const year = String(item.dueDate || "").slice(0, 4);
       if (year) years.add(year);
     });
 
     years.add(getCurrentYearFilter());
 
     return Array.from(years).sort((a, b) => Number(b) - Number(a));
-  }, [sales]);
+  }, [sales, paymentsBySale]);
 
   const dayOptions = useMemo(() => {
     const days = new Set<string>();
 
-    sales.forEach((item) => {
-      const date = String(item.saleDate || "");
+    buildReceivables(sales, paymentsBySale).forEach((item) => {
+      const date = String(item.dueDate || "");
       const [year = "", month = "", day = ""] = date.split("-");
 
       const matchesYear = !yearFilter || year === yearFilter;
@@ -426,58 +931,57 @@ export default function AdminVendasPage() {
     });
 
     return Array.from(days).sort((a, b) => Number(a) - Number(b));
-  }, [sales, yearFilter, monthFilter]);
+  }, [sales, paymentsBySale, yearFilter, monthFilter]);
 
-  const filteredSales = useMemo(() => {
+  const receivables = useMemo(() => {
     const term = normalizeText(search.trim());
+    const allReceivables = buildReceivables(sales, paymentsBySale);
 
-    return sales.filter((item) => {
-      const saleType =
-        item.saleType || (item.isInstallment ? "parcelada" : "unica");
-      const saleStatus = item.saleStatus || "ativa";
+    return allReceivables
+      .filter((item) => {
+        const matchesDate = dateMatchesFilters(
+          item.dueDate,
+          yearFilter,
+          monthFilter,
+          dayFilter,
+        );
 
-      const saleDate = String(item.saleDate || "");
-      const [saleYear = "", saleMonth = "", saleDay = ""] = saleDate.split("-");
+        const matchesClient =
+          clientFilter === "todos" ||
+          item.sale.leadId === clientFilter ||
+          item.companyName === clientFilter;
 
-      const matchesYear = !yearFilter || saleYear === yearFilter;
-      const matchesMonth = monthFilter === "todos" || saleMonth === monthFilter;
-      const matchesDay = dayFilter === "todos" || saleDay === dayFilter;
+        const matchesType =
+          typeFilter === "todos" || item.saleType === typeFilter;
+        const matchesStatus =
+          statusFilter === "todos" || item.saleStatus === statusFilter;
 
-      const matchesClient =
-        clientFilter === "todos" ||
-        item.leadId === clientFilter ||
-        item.companyName === clientFilter;
+        const text = normalizeText(
+          [
+            item.companyName,
+            item.projectName,
+            item.sale.projectType,
+            item.paymentMethod,
+            item.sale.paymentStatus,
+            item.sale.deployLink,
+            item.sale.projectLink,
+            item.sale.databaseName,
+            item.sale.notes,
+          ].join(" "),
+        );
 
-      const matchesType = typeFilter === "todos" || saleType === typeFilter;
-      const matchesStatus =
-        statusFilter === "todos" || saleStatus === statusFilter;
-
-      const text = normalizeText(
-        [
-          item.companyName,
-          item.projectName,
-          item.projectType,
-          item.paymentMethod,
-          item.paymentStatus,
-          item.deployLink,
-          item.projectLink,
-          item.databaseName,
-          item.notes,
-        ].join(" "),
-      );
-
-      return (
-        matchesYear &&
-        matchesMonth &&
-        matchesDay &&
-        matchesClient &&
-        matchesType &&
-        matchesStatus &&
-        (!term || text.includes(term))
-      );
-    });
+        return (
+          matchesDate &&
+          matchesClient &&
+          matchesType &&
+          matchesStatus &&
+          (!term || text.includes(term))
+        );
+      })
+      .sort((a, b) => String(a.dueDate).localeCompare(String(b.dueDate)));
   }, [
     sales,
+    paymentsBySale,
     search,
     clientFilter,
     yearFilter,
@@ -487,30 +991,229 @@ export default function AdminVendasPage() {
     statusFilter,
   ]);
 
+  const overdueReceivables = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10);
+
+    return buildReceivables(sales, paymentsBySale).filter(
+      (item) =>
+        item.dueDate &&
+        item.dueDate < today &&
+        !item.paid &&
+        !isReceivableCanceled(item.status) &&
+        item.saleStatus !== "cancelada",
+    );
+  }, [sales, paymentsBySale]);
+
+  const overdueTotal = useMemo(
+    () =>
+      overdueReceivables.reduce(
+        (sum, item) => sum + parseMoney(item.amount),
+        0,
+      ),
+    [overdueReceivables],
+  );
+
   const totals = useMemo(() => {
-    const totalSold = filteredSales.reduce((sum, item) => {
-      if (item.saleType === "recorrente") {
-        return (
-          sum +
-          parseMoney(item.monthlyAmount || item.amount) *
-            Number(item.recurringMonths || 12)
+    const totalToReceive = receivables.reduce(
+      (sum, item) => sum + parseMoney(item.amount),
+      0,
+    );
+
+    const paid = receivables.reduce(
+      (sum, item) => sum + (item.paid ? parseMoney(item.amount) : 0),
+      0,
+    );
+
+    const pending = receivables.reduce(
+      (sum, item) => sum + (!item.paid ? parseMoney(item.amount) : 0),
+      0,
+    );
+
+    return { totalToReceive, paid, pending };
+  }, [receivables]);
+
+  function openPaymentModal(receivable: ReceivableItem) {
+    setSelectedReceivable(receivable);
+    setPaymentForm({
+      status:
+        receivable.status === "cancelado"
+          ? "cancelado"
+          : receivable.paid
+            ? "pago"
+            : "pendente",
+      paid: receivable.paid,
+      paidDate:
+        receivable.paidDate ||
+        receivable.dueDate ||
+        new Date().toISOString().slice(0, 10),
+      paymentMethod:
+        receivable.paymentMethod || receivable.sale.paymentMethod || "",
+      note: receivable.note || "",
+    });
+    setPaymentModalOpen(true);
+  }
+
+  async function handleSavePayment() {
+    if (!selectedReceivable) return;
+
+    if (paymentForm.status === "pago" && !paymentForm.paidDate) {
+      setMessage("Informe a data do pagamento.");
+      return;
+    }
+
+    const targetSale = sales.find(
+      (item) => item.id === selectedReceivable.saleId,
+    );
+
+    if (!targetSale?.id) {
+      setMessage("Venda não encontrada para atualizar o pagamento.");
+      return;
+    }
+
+    const normalizedStatus = paymentForm.status;
+    const isPaid = normalizedStatus === "pago";
+    const isCanceled = normalizedStatus === "cancelado";
+
+    try {
+      setSavingPayment(true);
+
+      if (selectedReceivable.source === "installment") {
+        const updatedInstallments = (targetSale.installments || []).map(
+          (item) =>
+            item.id === selectedReceivable.installmentId ||
+            item.number === selectedReceivable.installmentNumber
+              ? {
+                  ...item,
+                  paid: isPaid,
+                  paidDate: isPaid ? paymentForm.paidDate : "",
+                  paymentMethod: paymentForm.paymentMethod,
+                  note: paymentForm.note,
+                }
+              : item,
         );
+
+        const allPaid =
+          updatedInstallments.length > 0 &&
+          updatedInstallments.every((item) => Boolean(item.paid));
+
+        await saveLeadSale({
+          ...targetSale,
+          installments: updatedInstallments,
+          paymentStatus: allPaid ? "pago" : "pendente",
+          saleStatus: allPaid ? "finalizada" : targetSale.saleStatus || "ativa",
+        });
+      } else if (
+        selectedReceivable.source === "payment" ||
+        selectedReceivable.source === "recurring-generated"
+      ) {
+        const paymentId =
+          selectedReceivable.saleType === "recorrente"
+            ? getRecurringPaymentId(
+                selectedReceivable.saleId,
+                selectedReceivable.installmentNumber || 1,
+                selectedReceivable.dueDate,
+              )
+            : selectedReceivable.paymentId ||
+              getRecurringPaymentId(
+                selectedReceivable.saleId,
+                selectedReceivable.installmentNumber || 1,
+                selectedReceivable.dueDate,
+              );
+
+        const paymentPayload = {
+          id: paymentId,
+          saleId: selectedReceivable.saleId,
+          amount: selectedReceivable.amount,
+          dueDate: selectedReceivable.dueDate,
+          status: normalizedStatus,
+          paid: isPaid,
+          paidDate: isPaid ? paymentForm.paidDate : "",
+          paymentMethod: paymentForm.paymentMethod,
+          note: paymentForm.note,
+          installmentNumber: selectedReceivable.installmentNumber || null,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        } as LeadSalePayment;
+
+        await setDoc(
+          doc(
+            db,
+            "leadSales",
+            selectedReceivable.saleId,
+            "payments",
+            paymentId,
+          ),
+          paymentPayload,
+          { merge: true },
+        );
+
+        if (isCanceled && selectedReceivable.saleType === "recorrente") {
+          const currentPayments =
+            paymentsBySale[selectedReceivable.saleId] || [];
+          await cancelRecurringPayments(
+            selectedReceivable.saleId,
+            [...currentPayments, paymentPayload],
+            paymentId,
+          );
+        }
+
+        setPaymentsBySale((prev) => {
+          const currentPayments = prev[selectedReceivable.saleId] || [];
+          const filteredPayments = currentPayments.filter((payment) => {
+            const sameId = payment.id === paymentId;
+            const sameInstallment =
+              Number(payment.installmentNumber || 0) ===
+              Number(selectedReceivable.installmentNumber || 0);
+            const sameDueDate =
+              String(payment.dueDate || "") === selectedReceivable.dueDate;
+
+            return !(sameId || sameInstallment || sameDueDate);
+          });
+
+          return {
+            ...prev,
+            [selectedReceivable.saleId]: [...filteredPayments, paymentPayload],
+          };
+        });
+
+        await saveLeadSale({
+          ...targetSale,
+          paymentStatus: isPaid ? "pago" : "pendente",
+          saleStatus: isCanceled
+            ? "cancelada"
+            : targetSale.saleStatus || "ativa",
+        });
+
+        if (selectedReceivable.saleType === "recorrente" && isPaid) {
+          const refreshedPayments = await fetchLeadSalePaymentsBySale(
+            selectedReceivable.saleId,
+          );
+          await ensureSixRecurringPayments(targetSale, refreshedPayments);
+        }
+      } else {
+        await saveLeadSale({
+          ...targetSale,
+          paymentStatus: isPaid ? "pago" : "pendente",
+          paidDate: isPaid ? paymentForm.paidDate : "",
+          paymentMethod: paymentForm.paymentMethod,
+        } as LeadSale);
       }
-      return sum + parseMoney(item.amount);
-    }, 0);
 
-    const paid = filteredSales.reduce((sum, item) => {
-      const payments = paymentsBySale[item.id || ""] || [];
-      return sum + getPaidTotal(payments);
-    }, 0);
-
-    const pending = filteredSales.reduce((sum, item) => {
-      const payments = paymentsBySale[item.id || ""] || [];
-      return sum + getPendingTotal(payments);
-    }, 0);
-
-    return { totalSold, paid, pending };
-  }, [filteredSales, paymentsBySale]);
+      await loadSales();
+      setPaymentModalOpen(false);
+      setSelectedReceivable(null);
+      setMessage(
+        isCanceled
+          ? "Serviço recorrente cancelado. Novos pagamentos não serão gerados."
+          : "Pagamento atualizado com sucesso.",
+      );
+    } catch (error) {
+      console.error(error);
+      setMessage("Erro ao atualizar pagamento.");
+    } finally {
+      setSavingPayment(false);
+    }
+  }
 
   function clearFilters() {
     setSearch("");
@@ -594,13 +1297,57 @@ export default function AdminVendasPage() {
     try {
       setSaving(true);
 
-      await saveLeadSale({
+      const saleToSave = {
         ...sale,
         isInstallment: sale.saleType === "parcelada",
         paymentStatus: sale.paymentStatus || "pendente",
         saleStatus: sale.saleStatus || "ativa",
-        recurringMonths: sale.recurringMonths || "12",
-      });
+        recurringMonths:
+          sale.saleType === "recorrente" ? "6" : sale.recurringMonths || "12",
+      };
+
+      const savedResult = (await saveLeadSale(saleToSave)) as unknown as
+        | { id?: string }
+        | string
+        | void;
+
+      let recurringSaleId = sale.id || "";
+
+      if (!recurringSaleId && typeof savedResult === "string") {
+        recurringSaleId = savedResult;
+      }
+
+      if (!recurringSaleId && savedResult && typeof savedResult === "object") {
+        recurringSaleId = savedResult.id || "";
+      }
+
+      if (saleToSave.saleType === "recorrente") {
+        let savedSale = recurringSaleId
+          ? ({ ...saleToSave, id: recurringSaleId } as LeadSale)
+          : undefined;
+
+        if (!savedSale?.id) {
+          const refreshedSales = await getLeadSales();
+          savedSale = refreshedSales
+            .filter(
+              (item) =>
+                item.saleType === "recorrente" &&
+                item.companyName === saleToSave.companyName &&
+                item.projectName === saleToSave.projectName &&
+                item.saleDate === saleToSave.saleDate,
+            )
+            .sort((a, b) =>
+              String(b.id || "").localeCompare(String(a.id || "")),
+            )[0];
+        }
+
+        if (savedSale?.id) {
+          const existingPayments = await fetchLeadSalePaymentsBySale(
+            savedSale.id,
+          );
+          await ensureSixRecurringPayments(savedSale, existingPayments);
+        }
+      }
 
       await loadSales();
       setSale(emptyLeadSale);
@@ -826,6 +1573,20 @@ export default function AdminVendasPage() {
 
         {message && <div style={styles.notice}>{message}</div>}
 
+        {overdueReceivables.length > 0 && (
+          <button
+            type="button"
+            className="overdue-alert"
+            onClick={() => setOverdueModalOpen(true)}
+          >
+            <strong>Pagamentos em atraso</strong>
+            <span>
+              Existem {overdueReceivables.length} pagamento(s) vencido(s),
+              totalizando {money(overdueTotal)}.
+            </span>
+          </button>
+        )}
+
         <section style={styles.card}>
           <div className="list-toolbar">
             <div>
@@ -968,20 +1729,20 @@ export default function AdminVendasPage() {
 
           <div className="kpi-grid">
             <div>
-              <strong>{money(totals.totalSold)}</strong>
-              <span>Total vendido / recebido em recorrências</span>
+              <strong>{money(totals.totalToReceive)}</strong>
+              <span>Valor previsto no mês</span>
             </div>
             <div>
               <strong>{money(totals.paid)}</strong>
-              <span>Total recebido</span>
+              <span>Recebido no mês</span>
             </div>
             <div>
               <strong>{money(totals.pending)}</strong>
-              <span>Total pendente</span>
+              <span>Pendente no mês</span>
             </div>
             <div>
-              <strong>{filteredSales.length}</strong>
-              <span>Vendas filtradas</span>
+              <strong>{receivables.length}</strong>
+              <span>Recebimentos do mês</span>
             </div>
           </div>
 
@@ -991,8 +1752,9 @@ export default function AdminVendasPage() {
                 <tr>
                   <th>Cliente / Projeto</th>
                   <th>Tipo</th>
-                  <th>Valor</th>
+                  <th>Valor / Total</th>
                   <th>Recebido</th>
+                  <th>Total já pago</th>
                   <th>Pendente</th>
                   <th>Status</th>
                   <th>Venda</th>
@@ -1002,25 +1764,18 @@ export default function AdminVendasPage() {
               </thead>
 
               <tbody>
-                {filteredSales.map((item) => {
-                  const payments = paymentsBySale[item.id || ""] || [];
-                  const paidTotal = getPaidTotal(payments);
-                  const pendingTotal = getPendingTotal(payments);
-                  const totalValue =
-                    item.saleType === "recorrente"
-                      ? paidTotal
-                      : parseMoney(item.amount);
+                {receivables.map((item) => {
+                  const isPaid = item.paid;
+                  const isCanceled = isReceivableCanceled(item.status);
 
                   return (
-                    <tr key={item.id || item.projectName}>
+                    <tr key={item.id}>
                       <td>
-                        <strong>
-                          {item.companyName || "Cliente não informado"}
-                        </strong>
+                        <strong>{item.companyName}</strong>
                         <span>{item.projectName}</span>
-                        {item.deployLink && (
+                        {item.sale.deployLink && (
                           <a
-                            href={item.deployLink}
+                            href={item.sale.deployLink}
                             target="_blank"
                             rel="noreferrer"
                           >
@@ -1033,46 +1788,89 @@ export default function AdminVendasPage() {
                         <span
                           className={`status-badge status-${item.saleType || "unica"}`}
                         >
-                          {getSaleTypeLabel(item)}
+                          {getSaleTypeLabel(item.sale)}
                         </span>
-                        {item.saleType === "recorrente" && (
-                          <small>Cria próxima ao pagar</small>
+                        {item.source === "installment" && (
+                          <small>Parcela {item.installmentNumber}</small>
+                        )}
+                        {item.source === "recurring-generated" && (
+                          <small>Mensalidade {item.installmentNumber}</small>
                         )}
                       </td>
 
-                      <td>{money(totalValue)}</td>
-                      <td>{money(paidTotal)}</td>
-                      <td>{money(pendingTotal)}</td>
+                      <td>
+                        {item.saleType === "parcelada" ? (
+                          <>
+                            <strong>{getInstallmentTotalLabel(item)}</strong>
+                            <small>Parcela: {money(item.amount)}</small>
+                          </>
+                        ) : (
+                          money(item.amount)
+                        )}
+                      </td>
+                      <td>{isPaid ? money(item.amount) : money(0)}</td>
+                      <td>
+                        {item.saleType === "recorrente" ||
+                        item.saleType === "parcelada" ? (
+                          <strong>{getTotalPaidLabel(item)}</strong>
+                        ) : item.paid ? (
+                          money(item.amount)
+                        ) : (
+                          money(0)
+                        )}
+                      </td>
+                      <td>
+                        <strong>
+                          {getPendingLabel(item, isPaid, isCanceled)}
+                        </strong>
+                        {item.saleType === "parcelada" && (
+                          <small>Falta receber</small>
+                        )}
+                      </td>
 
                       <td>
                         <span
-                          className={`status-badge status-${item.saleStatus || "ativa"}`}
+                          className={`status-badge ${isPaid ? "status-finalizada" : isCanceled ? "status-cancelada" : "status-pendente"}`}
                         >
-                          {item.saleStatus || "ativa"}
+                          {isPaid
+                            ? "Pago"
+                            : isCanceled
+                              ? "Cancelado"
+                              : "Pendente"}
                         </span>
-                      </td>
-
-                      <td>{formatDate(item.saleDate)}</td>
-                      <td>
-                        {formatDate(
-                          item.firstPaymentDueDate ||
-                            item.firstInstallmentDueDate,
+                        {item.paidDate && (
+                          <small>Pago em {formatDate(item.paidDate)}</small>
                         )}
                       </td>
+
+                      <td>{formatDate(item.sale.saleDate)}</td>
+                      <td>{formatDate(item.dueDate)}</td>
 
                       <td>
                         <div className="row-actions">
                           <button
-                            className="small-action"
-                            onClick={() => openEditSale(item)}
+                            className="small-action success icon-action"
+                            onClick={() => openPaymentModal(item)}
+                            title="Informar pagamento"
+                            aria-label="Informar pagamento"
                           >
-                            <Edit3 size={15} /> Editar
+                            <CheckCircle2 size={17} />
                           </button>
                           <button
-                            className="small-action danger"
-                            onClick={() => handleDeleteSale(item.id)}
+                            className="small-action icon-action"
+                            onClick={() => openEditSale(item.sale)}
+                            title="Editar venda"
+                            aria-label="Editar venda"
                           >
-                            <Trash2 size={15} /> Excluir
+                            <Edit3 size={17} />
+                          </button>
+                          <button
+                            className="small-action danger icon-action"
+                            onClick={() => handleDeleteSale(item.saleId)}
+                            title="Excluir venda"
+                            aria-label="Excluir venda"
+                          >
+                            <Trash2 size={17} />
                           </button>
                         </div>
                       </td>
@@ -1080,9 +1878,9 @@ export default function AdminVendasPage() {
                   );
                 })}
 
-                {!filteredSales.length && (
+                {!receivables.length && (
                   <tr>
-                    <td colSpan={9}>Nenhuma venda encontrada.</td>
+                    <td colSpan={10}>Nenhuma venda encontrada.</td>
                   </tr>
                 )}
               </tbody>
@@ -1100,6 +1898,28 @@ export default function AdminVendasPage() {
           saveSale={handleSaveSale}
           deleteSale={handleDeleteSale}
           saving={saving}
+        />
+      )}
+
+      {paymentModalOpen && selectedReceivable && (
+        <PaymentModal
+          receivable={selectedReceivable}
+          form={paymentForm}
+          setForm={setPaymentForm}
+          close={() => setPaymentModalOpen(false)}
+          save={handleSavePayment}
+          saving={savingPayment}
+        />
+      )}
+
+      {overdueModalOpen && (
+        <OverduePaymentsModal
+          receivables={overdueReceivables}
+          close={() => setOverdueModalOpen(false)}
+          openPayment={(item) => {
+            setOverdueModalOpen(false);
+            openPaymentModal(item);
+          }}
         />
       )}
 
@@ -1125,6 +1945,27 @@ function SaleModal({
   deleteSale: (id?: string) => void;
   saving: boolean;
 }) {
+  const clientLeads = useMemo(() => {
+    return leads
+      .filter((item) => {
+        const leadWithOptionalStatus = item as Lead & {
+          status?: string;
+          leadStatus?: string;
+        };
+
+        const status = normalizeText(
+          String(
+            leadWithOptionalStatus.status ||
+              leadWithOptionalStatus.leadStatus ||
+              "",
+          ),
+        );
+
+        return status === "cliente";
+      })
+      .sort((a, b) => (a.companyName || "").localeCompare(b.companyName || ""));
+  }, [leads]);
+
   function generateInstallments() {
     const total = Number(sale.installmentsTotal || 0);
     const amount = parseMoney(sale.amount);
@@ -1186,6 +2027,8 @@ function SaleModal({
         </header>
 
         <div style={styles.formGrid} className="admin-form-grid">
+          <h3 className="form-section-title">Dados principais</h3>
+
           <label style={styles.field}>
             <span style={styles.label}>Cliente / empresa *</span>
             <select
@@ -1203,7 +2046,7 @@ function SaleModal({
               style={styles.select}
             >
               <option value="">Selecione um cliente cadastrado</option>
-              {leads.map((item) => (
+              {clientLeads.map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.companyName}
                 </option>
@@ -1243,6 +2086,8 @@ function SaleModal({
             value={sale.projectType}
             onChange={(v) => setSale((p) => ({ ...p, projectType: v }))}
           />
+
+          <h3 className="form-section-title">Valores e cobrança</h3>
 
           {sale.saleType === "recorrente" ? (
             <>
@@ -1288,6 +2133,45 @@ function SaleModal({
           />
 
           <label style={styles.field}>
+            <span style={styles.label}>Pagamento</span>
+            <select
+              value={sale.paymentStatus || "pendente"}
+              onChange={(event) =>
+                setSale(
+                  (p) =>
+                    ({
+                      ...p,
+                      paymentStatus: event.target
+                        .value as LeadSale["paymentStatus"],
+                      paidDate:
+                        event.target.value === "pago"
+                          ? (p as LeadSaleWithPaymentDate).paidDate ||
+                            new Date().toISOString().slice(0, 10)
+                          : "",
+                    }) as LeadSale,
+                )
+              }
+              style={styles.select}
+            >
+              <option value="pendente">Pendente</option>
+              <option value="pago">Pago</option>
+            </select>
+          </label>
+
+          {sale.paymentStatus === "pago" && (
+            <Field
+              type="date"
+              label="Data do pagamento"
+              value={(sale as LeadSaleWithPaymentDate).paidDate || ""}
+              onChange={(v) =>
+                setSale((p) => ({ ...p, paidDate: v }) as LeadSale)
+              }
+            />
+          )}
+
+          <h3 className="form-section-title">Status e datas</h3>
+
+          <label style={styles.field}>
             <span style={styles.label}>Status da venda</span>
             <select
               value={sale.saleStatus}
@@ -1330,6 +2214,8 @@ function SaleModal({
             onChange={(v) => setSale((p) => ({ ...p, deliveryDate: v }))}
           />
 
+          <h3 className="form-section-title">Links e informações técnicas</h3>
+
           <Field
             label="Link do projeto"
             value={sale.projectLink}
@@ -1359,6 +2245,10 @@ function SaleModal({
             value={sale.contractLink}
             onChange={(v) => setSale((p) => ({ ...p, contractLink: v }))}
           />
+
+          {sale.saleType === "parcelada" && (
+            <h3 className="form-section-title">Parcelamento</h3>
+          )}
 
           {sale.saleType === "parcelada" && (
             <div className="payment-box">
@@ -1404,6 +2294,8 @@ function SaleModal({
               ))}
             </div>
           )}
+
+          <h3 className="form-section-title">Descrição e observações</h3>
 
           <label style={{ ...styles.field, gridColumn: "1 / -1" }}>
             <span style={styles.label}>Itens inclusos</span>
@@ -1470,6 +2362,226 @@ function SaleModal({
   );
 }
 
+function PaymentModal({
+  receivable,
+  form,
+  setForm,
+  close,
+  save,
+  saving,
+}: {
+  receivable: ReceivableItem;
+  form: PaymentFormState;
+  setForm: React.Dispatch<React.SetStateAction<PaymentFormState>>;
+  close: () => void;
+  save: () => void;
+  saving: boolean;
+}) {
+  return (
+    <div style={styles.modalBackdrop}>
+      <section style={{ ...styles.modal, width: "min(620px, 100%)" }}>
+        <header style={styles.modalHeader}>
+          <div>
+            <h2 style={styles.cardTitle}>Informar pagamento</h2>
+            <p style={styles.cardSub}>
+              {receivable.companyName} • {receivable.projectName}
+            </p>
+          </div>
+          <button type="button" style={styles.secondaryButton} onClick={close}>
+            <X size={18} /> Fechar
+          </button>
+        </header>
+
+        <div className="payment-summary">
+          <div>
+            <span>Valor</span>
+            <strong>{money(receivable.amount)}</strong>
+          </div>
+          <div>
+            <span>Vencimento</span>
+            <strong>{formatDate(receivable.dueDate)}</strong>
+          </div>
+          <div>
+            <span>Tipo</span>
+            <strong>
+              {receivable.source === "installment"
+                ? `Parcela ${receivable.installmentNumber}`
+                : getSaleTypeLabel(receivable.sale)}
+            </strong>
+          </div>
+          {receivable.saleType === "recorrente" && (
+            <div>
+              <span>Total já pago nesta recorrência</span>
+              <strong>{getRecurringPaidLabel(receivable)}</strong>
+            </div>
+          )}
+        </div>
+
+        <div style={{ display: "grid", gap: 16 }}>
+          <label style={styles.field}>
+            <span style={styles.label}>Status do pagamento</span>
+            <select
+              value={form.status}
+              onChange={(event) => {
+                const status = event.target.value as PaymentFormState["status"];
+
+                setForm((prev) => ({
+                  ...prev,
+                  status,
+                  paid: status === "pago",
+                  paidDate:
+                    status === "pago"
+                      ? prev.paidDate || new Date().toISOString().slice(0, 10)
+                      : "",
+                }));
+              }}
+              style={styles.select}
+            >
+              <option value="pago">Pago</option>
+              <option value="pendente">Pendente</option>
+              {receivable.saleType === "recorrente" && (
+                <option value="cancelado">Cancelar serviço</option>
+              )}
+            </select>
+          </label>
+
+          {form.status === "pago" && (
+            <Field
+              type="date"
+              label="Data do pagamento"
+              value={form.paidDate}
+              onChange={(value) =>
+                setForm((prev) => ({ ...prev, paidDate: value }))
+              }
+            />
+          )}
+
+          <Field
+            label="Forma de pagamento"
+            value={form.paymentMethod}
+            onChange={(value) =>
+              setForm((prev) => ({ ...prev, paymentMethod: value }))
+            }
+            placeholder="Pix, boleto, cartão..."
+          />
+
+          <label style={styles.field}>
+            <span style={styles.label}>Observação do pagamento</span>
+            <textarea
+              style={styles.textarea}
+              value={form.note}
+              onChange={(event) =>
+                setForm((prev) => ({ ...prev, note: event.target.value }))
+              }
+            />
+          </label>
+        </div>
+
+        <div style={styles.actions}>
+          <button style={styles.button} onClick={save} disabled={saving}>
+            {saving ? (
+              <>
+                <Loader2 className="spin" size={16} /> Salvando...
+              </>
+            ) : (
+              <>
+                <CalendarCheck size={16} /> Salvar pagamento
+              </>
+            )}
+          </button>
+          <button style={styles.secondaryButton} onClick={close}>
+            Cancelar
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function OverduePaymentsModal({
+  receivables,
+  close,
+  openPayment,
+}: {
+  receivables: ReceivableItem[];
+  close: () => void;
+  openPayment: (item: ReceivableItem) => void;
+}) {
+  const total = receivables.reduce(
+    (sum, item) => sum + parseMoney(item.amount),
+    0,
+  );
+
+  return (
+    <div style={styles.modalBackdrop}>
+      <section style={{ ...styles.modal, width: "min(980px, 100%)" }}>
+        <header style={styles.modalHeader}>
+          <div>
+            <h2 style={styles.cardTitle}>Pagamentos vencidos</h2>
+            <p style={styles.cardSub}>
+              {receivables.length} pagamento(s) em atraso • Total {money(total)}
+            </p>
+          </div>
+          <button type="button" style={styles.secondaryButton} onClick={close}>
+            <X size={18} /> Fechar
+          </button>
+        </header>
+
+        <div className="table-wrap">
+          <table className="admin-table overdue-table">
+            <thead>
+              <tr>
+                <th>Cliente / Projeto</th>
+                <th>Tipo</th>
+                <th>Valor / Total</th>
+                <th>Vencimento</th>
+                <th>Ação</th>
+              </tr>
+            </thead>
+            <tbody>
+              {receivables.map((item) => (
+                <tr key={`overdue-${item.id}`}>
+                  <td>
+                    <strong>{item.companyName}</strong>
+                    <span>{item.projectName}</span>
+                  </td>
+                  <td>
+                    <span
+                      className={`status-badge status-${item.saleType || "unica"}`}
+                    >
+                      {getSaleTypeLabel(item.sale)}
+                    </span>
+                    {item.installmentNumber && (
+                      <small>Nº {item.installmentNumber}</small>
+                    )}
+                  </td>
+                  <td>{money(item.amount)}</td>
+                  <td>{formatDate(item.dueDate)}</td>
+                  <td>
+                    <button
+                      type="button"
+                      className="small-action success"
+                      onClick={() => openPayment(item)}
+                    >
+                      <CheckCircle2 size={16} /> Pagar
+                    </button>
+                  </td>
+                </tr>
+              ))}
+
+              {!receivables.length && (
+                <tr>
+                  <td colSpan={5}>Nenhum pagamento vencido.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function Field({
   label,
   value,
@@ -1512,6 +2624,67 @@ function GlobalStyle() {
         to {
           transform: rotate(360deg);
         }
+      }
+
+      .overdue-alert {
+        width: 100%;
+        border: 0;
+        cursor: pointer;
+        text-align: left;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        margin: 0 0 18px;
+        padding: 16px 18px;
+        border-radius: 22px;
+        background: rgba(239, 68, 68, 0.18);
+        border: 1px solid rgba(248, 113, 113, 0.45);
+        color: #fee2e2;
+        box-shadow: 0 18px 50px rgba(239, 68, 68, 0.14);
+      }
+
+      .overdue-alert strong {
+        display: block;
+        font-size: 16px;
+      }
+
+      .overdue-alert span {
+        color: #fecaca;
+        font-weight: 800;
+      }
+
+      .form-section {
+        grid-column: 1 / -1;
+        border-radius: 24px;
+        padding: 18px;
+        background: rgba(2, 6, 23, 0.26);
+        border: 1px solid rgba(125, 211, 252, 0.14);
+        display: grid;
+        gap: 16px;
+      }
+
+      .form-section h3 {
+        margin: 0;
+        color: #e0f2fe;
+        font-size: 18px;
+      }
+
+      .form-section-title {
+        grid-column: 1 / -1;
+        margin: 14px 0 0;
+        padding: 12px 14px;
+        border-radius: 16px;
+        color: #e0f2fe;
+        background: rgba(14, 165, 233, 0.1);
+        border: 1px solid rgba(125, 211, 252, 0.16);
+        font-size: 15px;
+      }
+
+      .form-section-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
       }
 
       .admin-badge {
@@ -1718,6 +2891,11 @@ function GlobalStyle() {
         background: rgba(239, 68, 68, 0.18);
       }
 
+      .status-pendente {
+        color: #fef3c7;
+        background: rgba(245, 158, 11, 0.16);
+      }
+
       .status-finalizada {
         color: #ddd6fe;
         background: rgba(124, 58, 237, 0.18);
@@ -1746,6 +2924,43 @@ function GlobalStyle() {
       .small-action.danger {
         color: #fff;
         background: rgba(239, 68, 68, 0.82);
+      }
+
+      .small-action.success {
+        color: #dcfce7;
+        background: rgba(34, 197, 94, 0.18);
+      }
+
+      .icon-action {
+        width: 42px;
+        height: 42px;
+        padding: 0;
+      }
+
+      .payment-summary {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 18px;
+      }
+
+      .payment-summary > div {
+        border-radius: 18px;
+        padding: 14px;
+        background: rgba(2, 6, 23, 0.35);
+        border: 1px solid rgba(125, 211, 252, 0.14);
+      }
+
+      .payment-summary span {
+        display: block;
+        color: #94a3b8;
+        font-size: 12px;
+        font-weight: 900;
+        margin-bottom: 6px;
+      }
+
+      .payment-summary strong {
+        color: #f8fafc;
       }
 
       .payment-box,
@@ -1782,8 +2997,10 @@ function GlobalStyle() {
 
       @media (max-width: 900px) {
         .admin-form-grid,
+        .form-section-grid,
         .filters-grid,
         .kpi-grid,
+        .payment-summary,
         .installment-config,
         .installment-line {
           grid-template-columns: 1fr !important;
