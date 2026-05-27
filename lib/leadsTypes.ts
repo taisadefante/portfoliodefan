@@ -63,39 +63,73 @@ export type LeadPaymentStatus = "pendente" | "pago" | "vencido" | "cancelado";
 
 export type LeadSalePayment = {
   id?: string;
-
   saleId: string;
 
   leadId?: string;
-
   companyName?: string;
-
   projectName?: string;
-
   saleType?: LeadSaleType;
 
+  /**
+   * Usado principalmente na tela Financeiro.
+   * Mantido obrigatório porque funções como cancelFutureLeadSalePayments
+   * recebem payment.number como number.
+   */
   number: number;
 
+  /**
+   * Usado na tela Vendas para mensalidades recorrentes.
+   */
   installmentNumber?: number | null;
 
   amount: string;
-
   dueDate: string;
 
   paidDate?: string;
-
   paid?: boolean;
 
   paymentMethod?: string;
-
   receiptLink?: string;
-
   note?: string;
 
   status: LeadPaymentStatus;
 
   createdAt?: string;
+  updatedAt?: string;
+};
 
+export type LeadSale = {
+  id?: string;
+  leadId: string;
+  companyName: string;
+  projectName: string;
+  projectType: string;
+  projectLink: string;
+  deployLink: string;
+  databaseName: string;
+  image: string;
+  amount: string;
+  paymentMethod: string;
+  paymentStatus: string;
+  saleDate: string;
+  deliveryDate: string;
+  contractLink: string;
+  includedItems: string;
+  accessInfo: string;
+  notes: string;
+
+  isInstallment: boolean;
+  installmentsTotal: string;
+  firstInstallmentDueDate: string;
+  installments: LeadSaleInstallment[];
+
+  saleType: LeadSaleType;
+  saleStatus: LeadSaleStatus;
+  monthlyAmount: string;
+  recurringMonths: string;
+  firstPaymentDueDate: string;
+
+  createdAt?: string;
   updatedAt?: string;
 };
 
