@@ -87,6 +87,25 @@ type JobCompanyWithType = JobCompany & {
   jobType?: JobType;
 };
 
+type FollowUpDateFilter =
+  | "todos"
+  | "vencidos"
+  | "hoje"
+  | "proximos7"
+  | "sem_data"
+  | "com_data"
+  | "personalizado";
+
+const followUpDateFilterLabels: Record<FollowUpDateFilter, string> = {
+  todos: "Todas as datas",
+  vencidos: "Retornos vencidos",
+  hoje: "Retorno hoje",
+  proximos7: "Próximos 7 dias",
+  sem_data: "Sem data de retorno",
+  com_data: "Com data de retorno",
+  personalizado: "Período personalizado",
+};
+
 const jobTypeLabels: Record<JobType, string> = {
   tudo: "Tudo",
   administrativo: "Administrativo",
@@ -330,6 +349,56 @@ function addDays(date: string, days: number) {
   return base.toISOString().slice(0, 10);
 }
 
+function dateToTime(value?: string) {
+  if (!value) return 0;
+
+  const date = new Date(`${value}T00:00:00`);
+
+  if (Number.isNaN(date.getTime())) return 0;
+
+  return date.getTime();
+}
+
+function isDateBetween(value: string, start: string, end: string) {
+  const valueTime = dateToTime(value);
+
+  if (!valueTime) return false;
+
+  const startTime = start ? dateToTime(start) : 0;
+  const endTime = end ? dateToTime(end) : 0;
+
+  if (startTime && valueTime < startTime) return false;
+  if (endTime && valueTime > endTime) return false;
+
+  return true;
+}
+
+function matchesFollowUpDateFilter(
+  company: JobCompany,
+  filter: FollowUpDateFilter,
+  startDate: string,
+  endDate: string,
+) {
+  const followUpDate = company.nextFollowUpDate || "";
+  const todayValue = today();
+  const nextSevenDays = addDays(todayValue, 7);
+
+  if (filter === "todos") return true;
+  if (filter === "sem_data") return !followUpDate;
+  if (filter === "com_data") return Boolean(followUpDate);
+  if (!followUpDate) return false;
+  if (filter === "vencidos") return followUpDate < todayValue;
+  if (filter === "hoje") return followUpDate === todayValue;
+  if (filter === "proximos7") {
+    return followUpDate >= todayValue && followUpDate <= nextSevenDays;
+  }
+  if (filter === "personalizado") {
+    return isDateBetween(followUpDate, startDate, endDate);
+  }
+
+  return true;
+}
+
 function normalizeText(value: string) {
   return value
     .toLowerCase()
@@ -538,6 +607,10 @@ export default function AdminEmpregosPage() {
   const [jobTypeFilter, setJobTypeFilter] = useState<JobType | "todos">(
     "todos",
   );
+  const [followUpDateFilter, setFollowUpDateFilter] =
+    useState<FollowUpDateFilter>("todos");
+  const [followUpStartDate, setFollowUpStartDate] = useState("");
+  const [followUpEndDate, setFollowUpEndDate] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
 
   async function loadCompanies() {
@@ -564,7 +637,15 @@ export default function AdminEmpregosPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, statusFilter, modeFilter, jobTypeFilter]);
+  }, [
+    search,
+    statusFilter,
+    modeFilter,
+    jobTypeFilter,
+    followUpDateFilter,
+    followUpStartDate,
+    followUpEndDate,
+  ]);
 
   const filteredCompanies = useMemo(() => {
     const term = normalizeText(search.trim());
@@ -579,6 +660,13 @@ export default function AdminEmpregosPage() {
         const matchesJobType =
           jobTypeFilter === "todos" ||
           getJobTypeValue(company) === jobTypeFilter;
+
+        const matchesFollowUpDate = matchesFollowUpDateFilter(
+          company,
+          followUpDateFilter,
+          followUpStartDate,
+          followUpEndDate,
+        );
 
         const text = normalizeText(
           [
@@ -602,15 +690,32 @@ export default function AdminEmpregosPage() {
           matchesStatus &&
           matchesMode &&
           matchesJobType &&
+          matchesFollowUpDate &&
           (!term || text.includes(term))
         );
       })
       .sort((a, b) => {
-        const aDate = a.lastSentDate || "";
-        const bDate = b.lastSentDate || "";
-        return aDate.localeCompare(bDate);
+        const aFollowUpDate = a.nextFollowUpDate || "9999-12-31";
+        const bFollowUpDate = b.nextFollowUpDate || "9999-12-31";
+        const followUpOrder = aFollowUpDate.localeCompare(bFollowUpDate);
+
+        if (followUpOrder !== 0) return followUpOrder;
+
+        const aLastSentDate = a.lastSentDate || "9999-12-31";
+        const bLastSentDate = b.lastSentDate || "9999-12-31";
+
+        return aLastSentDate.localeCompare(bLastSentDate);
       });
-  }, [companies, search, statusFilter, modeFilter, jobTypeFilter]);
+  }, [
+    companies,
+    search,
+    statusFilter,
+    modeFilter,
+    jobTypeFilter,
+    followUpDateFilter,
+    followUpStartDate,
+    followUpEndDate,
+  ]);
 
   const totalPages = Math.max(
     1,
@@ -1235,6 +1340,47 @@ export default function AdminEmpregosPage() {
                 ))}
               </select>
             </label>
+
+            <label style={styles.field}>
+              <span style={styles.label}>Data de retorno</span>
+              <select
+                value={followUpDateFilter}
+                onChange={(event) =>
+                  setFollowUpDateFilter(
+                    event.target.value as FollowUpDateFilter,
+                  )
+                }
+                style={styles.select}
+              >
+                {Object.entries(followUpDateFilterLabels).map(
+                  ([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ),
+                )}
+              </select>
+            </label>
+
+            <Field
+              type="date"
+              label="Retorno de"
+              value={followUpStartDate}
+              onChange={(value) => {
+                setFollowUpStartDate(value);
+                setFollowUpDateFilter("personalizado");
+              }}
+            />
+
+            <Field
+              type="date"
+              label="Retorno até"
+              value={followUpEndDate}
+              onChange={(value) => {
+                setFollowUpEndDate(value);
+                setFollowUpDateFilter("personalizado");
+              }}
+            />
           </div>
 
           <div className="pagination-info">
@@ -1386,7 +1532,20 @@ export default function AdminEmpregosPage() {
                             </small>
                           )}
                         </td>
-                        <td>{company.nextFollowUpDate || "-"}</td>
+                        <td>
+                          <strong>
+                            {formatDate(company.nextFollowUpDate)}
+                          </strong>
+                          {company.nextFollowUpDate &&
+                            company.nextFollowUpDate < today() && (
+                              <small className="follow-up-overdue">
+                                Vencido
+                              </small>
+                            )}
+                          {company.nextFollowUpDate === today() && (
+                            <small className="follow-up-today">Hoje</small>
+                          )}
+                        </td>
                         <td>
                           <div className="row-actions">
                             <button
@@ -2356,7 +2515,7 @@ function GlobalStyle() {
 
       .filters-grid {
         display: grid;
-        grid-template-columns: 1.4fr 0.7fr 0.7fr 0.7fr;
+        grid-template-columns: 1.3fr 0.72fr 0.72fr 0.72fr 0.8fr 0.62fr 0.62fr;
         gap: 14px;
         margin: 0 0 20px;
       }
@@ -2523,6 +2682,26 @@ function GlobalStyle() {
       .status-recusado {
         background: rgba(239, 68, 68, 0.16);
         color: #fecaca !important;
+      }
+
+      .follow-up-overdue {
+        width: fit-content;
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: rgba(239, 68, 68, 0.16);
+        color: #fecaca !important;
+        border: 1px solid rgba(239, 68, 68, 0.28);
+        font-weight: 900;
+      }
+
+      .follow-up-today {
+        width: fit-content;
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: rgba(245, 158, 11, 0.16);
+        color: #fde68a !important;
+        border: 1px solid rgba(245, 158, 11, 0.28);
+        font-weight: 900;
       }
 
       .row-actions {
