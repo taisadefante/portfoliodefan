@@ -666,10 +666,65 @@ export default function AdminEmpregosPage() {
   }
 
   async function handleSaveCompany() {
-    const validEmails = companyForm.emails.filter((item) => item.email.trim());
+    const validEmails = companyForm.emails
+      .map((item) => ({
+        ...item,
+        email: item.email.trim().toLowerCase(),
+      }))
+      .filter((item) => item.email);
 
     if (validEmails.length === 0) {
       setMessage("Informe ao menos um e-mail da empresa.");
+      return;
+    }
+
+    const duplicatedEmailsInForm = validEmails
+      .map((item) => item.email)
+      .filter((email, index, list) => list.indexOf(email) !== index);
+
+    const uniqueDuplicatedEmailsInForm = Array.from(
+      new Set(duplicatedEmailsInForm),
+    );
+
+    if (uniqueDuplicatedEmailsInForm.length > 0) {
+      setMessage(
+        `E-mail repetido nesta empresa: ${uniqueDuplicatedEmailsInForm.join(
+          ", ",
+        )}. Remova o repetido para salvar.`,
+      );
+      return;
+    }
+
+    const existingEmails = new Map<string, string>();
+
+    companies.forEach((company) => {
+      if (company.id && companyForm.id && company.id === companyForm.id) {
+        return;
+      }
+
+      emailList(company).forEach((email) => {
+        const normalizedEmail = email.trim().toLowerCase();
+
+        if (!normalizedEmail) return;
+
+        existingEmails.set(
+          normalizedEmail,
+          company.companyName || getDisplayCompanyName(company),
+        );
+      });
+    });
+
+    const duplicatedExistingEmails = validEmails
+      .map((item) => item.email)
+      .filter((email) => existingEmails.has(email));
+
+    if (duplicatedExistingEmails.length > 0) {
+      const email = duplicatedExistingEmails[0];
+      const companyName = existingEmails.get(email) || "outra empresa";
+
+      setMessage(
+        `O e-mail "${email}" já está cadastrado em "${companyName}". O cadastro não foi salvo.`,
+      );
       return;
     }
 
@@ -835,6 +890,15 @@ export default function AdminEmpregosPage() {
   }
 
   async function handleImportCompanies() {
+    const allEmailsFromText =
+      importEmailsText.match(
+        /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
+      ) || [];
+
+    const normalizedEmailsFromText = allEmailsFromText.map((email) =>
+      email.trim().toLowerCase(),
+    );
+
     const extractedEmails = extractEmailsFromText(importEmailsText);
 
     if (extractedEmails.length === 0) {
@@ -842,25 +906,56 @@ export default function AdminEmpregosPage() {
       return;
     }
 
-    const existingEmails = new Set(
-      companies.flatMap((company) =>
-        emailList(company).map((email) => email.toLowerCase()),
-      ),
+    const duplicatedEmailsInText = normalizedEmailsFromText.filter(
+      (email, index, list) => list.indexOf(email) !== index,
     );
 
-    const emailsToCreate = extractedEmails.filter(
-      (email) => !existingEmails.has(email),
+    const uniqueDuplicatedEmailsInText = Array.from(
+      new Set(duplicatedEmailsInText),
     );
 
-    if (emailsToCreate.length === 0) {
-      setMessage("Todos os e-mails informados já estavam cadastrados.");
+    if (uniqueDuplicatedEmailsInText.length > 0) {
+      setMessage(
+        `Existem e-mails repetidos na lista: ${uniqueDuplicatedEmailsInText.join(
+          ", ",
+        )}. Remova os repetidos para importar.`,
+      );
+      return;
+    }
+
+    const existingEmails = new Map<string, string>();
+
+    companies.forEach((company) => {
+      emailList(company).forEach((email) => {
+        const normalizedEmail = email.trim().toLowerCase();
+
+        if (!normalizedEmail) return;
+
+        existingEmails.set(
+          normalizedEmail,
+          company.companyName || getDisplayCompanyName(company),
+        );
+      });
+    });
+
+    const duplicatedExistingEmails = extractedEmails.filter((email) =>
+      existingEmails.has(email),
+    );
+
+    if (duplicatedExistingEmails.length > 0) {
+      const email = duplicatedExistingEmails[0];
+      const companyName = existingEmails.get(email) || "outra empresa";
+
+      setMessage(
+        `O e-mail "${email}" já está cadastrado em "${companyName}". A importação foi cancelada.`,
+      );
       return;
     }
 
     try {
       setImportingCompanies(true);
 
-      for (const email of emailsToCreate) {
+      for (const email of extractedEmails) {
         const companyNameByEmail = getCompanyNameFromEmail(email);
 
         await saveJobCompany({
@@ -890,11 +985,7 @@ export default function AdminEmpregosPage() {
       setImportNotes("");
       setImportModalOpen(false);
 
-      setMessage(
-        `${emailsToCreate.length} empresa(s) importada(s). ${
-          extractedEmails.length - emailsToCreate.length
-        } e-mail(s) repetido(s) foram ignorados.`,
-      );
+      setMessage(`${extractedEmails.length} empresa(s) importada(s).`);
     } catch (error) {
       console.error(error);
       setMessage("Erro ao importar empresas.");
