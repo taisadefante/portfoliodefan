@@ -406,6 +406,70 @@ function normalizeText(value: string) {
     .replace(/[\u0300-\u036f]/g, "");
 }
 
+function normalizeSearchValue(value: string) {
+  return normalizeText(value)
+    .replace(/[^a-z0-9@._+\-\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function compactSearchValue(value: string) {
+  return normalizeSearchValue(value).replace(/[^a-z0-9]/g, "");
+}
+
+function getSearchTokens(value: string) {
+  return normalizeSearchValue(value)
+    .split(" ")
+    .map((token) => token.trim())
+    .filter(Boolean);
+}
+
+function buildCompanySearchText(company: JobCompany) {
+  return [
+    company.companyName,
+    company.contactName,
+    company.phone,
+    company.linkedin,
+    company.instagram,
+    company.facebook,
+    company.description,
+    company.jobsPageLink,
+    company.desiredRole,
+    jobTypeLabels[getJobTypeValue(company)],
+    jobWorkModeLabels[company.workMode],
+    jobStatusLabels[company.status],
+    company.city,
+    company.state,
+    emailList(company).join(" "),
+    emailList(company)
+      .map((email) => email.split("@")[0])
+      .join(" "),
+    emailList(company)
+      .map((email) => email.split("@")[1] || "")
+      .join(" "),
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+function matchesSearchText(searchValue: string, targetValue: string) {
+  const tokens = getSearchTokens(searchValue);
+
+  if (tokens.length === 0) return true;
+
+  const normalizedTarget = normalizeSearchValue(targetValue);
+  const compactTarget = compactSearchValue(targetValue);
+
+  return tokens.every((token) => {
+    const compactToken = compactSearchValue(token);
+
+    return (
+      normalizedTarget.includes(token) ||
+      Boolean(compactToken && compactTarget.includes(compactToken))
+    );
+  });
+}
+
 function emailList(company: JobCompany) {
   return (company.emails || [])
     .map((item) => item.email.trim())
@@ -723,7 +787,7 @@ export default function AdminEmpregosPage() {
   ]);
 
   const filteredCompanies = useMemo(() => {
-    const term = normalizeText(search.trim());
+    const searchValue = search.trim();
 
     return companies
       .filter((company) => {
@@ -743,22 +807,9 @@ export default function AdminEmpregosPage() {
           followUpEndDate,
         );
 
-        const text = normalizeText(
-          [
-            company.companyName,
-            company.contactName,
-            company.phone,
-            company.linkedin,
-            company.instagram,
-            company.facebook,
-            company.description,
-            company.jobsPageLink,
-            company.desiredRole,
-            jobTypeLabels[getJobTypeValue(company)],
-            company.city,
-            company.state,
-            emailList(company).join(" "),
-          ].join(" "),
+        const matchesSearch = matchesSearchText(
+          searchValue,
+          buildCompanySearchText(company),
         );
 
         return (
@@ -766,7 +817,7 @@ export default function AdminEmpregosPage() {
           matchesMode &&
           matchesJobType &&
           matchesFollowUpDate &&
-          (!term || text.includes(term))
+          matchesSearch
         );
       })
       .sort((a, b) => compareCompaniesByPriority(a, b, emailLogs));
@@ -779,6 +830,7 @@ export default function AdminEmpregosPage() {
     followUpDateFilter,
     followUpStartDate,
     followUpEndDate,
+    emailLogs,
   ]);
 
   const totalPages = Math.max(
