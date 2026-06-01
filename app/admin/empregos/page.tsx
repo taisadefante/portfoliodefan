@@ -85,6 +85,8 @@ type JobType =
 
 type JobCompanyWithType = JobCompany & {
   jobType?: JobType;
+  followUpClosedReason?: string;
+  followUpClosedAt?: string;
 };
 
 type FollowUpDateFilter =
@@ -121,6 +123,28 @@ const jobTypeLabels: Record<JobType, string> = {
 };
 
 const ITEMS_PER_PAGE = 50;
+
+type ListView = "ativos" | "separados" | "todos";
+
+const closedFollowUpStatuses: JobCompanyStatus[] = [
+  "respondeu",
+  "entrevista",
+  "sem_retorno",
+  "recusado",
+  "contratado",
+];
+
+function isClosedFollowUpStatus(status: JobCompanyStatus) {
+  return closedFollowUpStatuses.includes(status);
+}
+
+function getFollowUpClosedReason(company: JobCompany) {
+  return (company as JobCompanyWithType).followUpClosedReason || "";
+}
+
+function getFollowUpClosedAt(company: JobCompany) {
+  return (company as JobCompanyWithType).followUpClosedAt || "";
+}
 
 function getJobTypeValue(company: JobCompany): JobType {
   const value = (company as JobCompanyWithType).jobType;
@@ -615,6 +639,10 @@ function getCompanyPriority(company: JobCompany, logs: JobEmailLog[]) {
   const followUpDate = company.nextFollowUpDate || "";
   const alreadySent = hasCompanyAlreadyReceivedEmail(company, logs);
 
+  if (isClosedFollowUpStatus(company.status)) {
+    return 5;
+  }
+
   if (!alreadySent || company.status === "nao_enviado") {
     return 0;
   }
@@ -664,6 +692,11 @@ function compareCompaniesByPriority(
 
 function getPriorityLabel(company: JobCompany, logs: JobEmailLog[]) {
   const priority = getCompanyPriority(company, logs);
+  const closedReason = getFollowUpClosedReason(company);
+
+  if (priority === 5) {
+    return closedReason || "Lista separada: não reenviar currículo";
+  }
 
   if (priority === 0) return "Prioridade: enviar currículo";
   if (priority === 1) return "Prioridade: fazer retorno";
@@ -751,6 +784,7 @@ export default function AdminEmpregosPage() {
   const [followUpStartDate, setFollowUpStartDate] = useState("");
   const [followUpEndDate, setFollowUpEndDate] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [listView, setListView] = useState<ListView>("ativos");
 
   async function loadCompanies() {
     setLoading(true);
@@ -784,6 +818,7 @@ export default function AdminEmpregosPage() {
     followUpDateFilter,
     followUpStartDate,
     followUpEndDate,
+    listView,
     emailLogs,
   ]);
 
@@ -813,7 +848,14 @@ export default function AdminEmpregosPage() {
           buildCompanySearchText(company),
         );
 
+        const companyIsClosed = isClosedFollowUpStatus(company.status);
+        const matchesListView =
+          listView === "todos" ||
+          (listView === "ativos" && !companyIsClosed) ||
+          (listView === "separados" && companyIsClosed);
+
         return (
+          matchesListView &&
           matchesStatus &&
           matchesMode &&
           matchesJobType &&
@@ -831,6 +873,7 @@ export default function AdminEmpregosPage() {
     followUpDateFilter,
     followUpStartDate,
     followUpEndDate,
+    listView,
     emailLogs,
   ]);
 
@@ -868,6 +911,12 @@ export default function AdminEmpregosPage() {
       ).length,
       interviews: companies.filter((item) => item.status === "entrevista")
         .length,
+      activeFollowUps: companies.filter(
+        (item) => !isClosedFollowUpStatus(item.status),
+      ).length,
+      closedFollowUps: companies.filter((item) =>
+        isClosedFollowUpStatus(item.status),
+      ).length,
     };
   }, [companies]);
 
@@ -1010,11 +1059,37 @@ export default function AdminEmpregosPage() {
     if (!company.id) return;
     if (company.status === newStatus) return;
 
+    const statusIsClosed = isClosedFollowUpStatus(newStatus);
+    const previousStatusWasClosed = isClosedFollowUpStatus(company.status);
+    const defaultClosedReason = `Removido da rotina de reenvio porque o status mudou para ${
+      jobStatusLabels[newStatus] || newStatus
+    }.`;
+
+    let closedReason = getFollowUpClosedReason(company);
+
+    if (statusIsClosed && !previousStatusWasClosed) {
+      const typedReason = window.prompt(
+        "Motivo para tirar esta empresa da lista de reenvio/retorno:",
+        defaultClosedReason,
+      );
+
+      if (typedReason === null) {
+        return;
+      }
+
+      closedReason = typedReason.trim() || defaultClosedReason;
+    }
+
     const previousCompanies = companies;
     const updatedCompany = {
       ...company,
       status: newStatus,
-    };
+      nextFollowUpDate: statusIsClosed ? "" : company.nextFollowUpDate,
+      followUpClosedReason: statusIsClosed
+        ? closedReason || defaultClosedReason
+        : "",
+      followUpClosedAt: statusIsClosed ? new Date().toISOString() : "",
+    } as JobCompanyWithType;
 
     setSavingStatusIds((prev) => [...prev, company.id || ""]);
     setCompanies((prev) =>
@@ -1022,8 +1097,12 @@ export default function AdminEmpregosPage() {
     );
 
     try {
-      await saveJobCompany(updatedCompany);
-      setMessage(`Status atualizado para "${jobStatusLabels[newStatus]}".`);
+      await saveJobCompany(updatedCompany as JobCompany);
+      setMessage(
+        statusIsClosed
+          ? `Status atualizado para "${jobStatusLabels[newStatus]}". Empresa movida para a lista separada e removida dos retornos.`
+          : `Status atualizado para "${jobStatusLabels[newStatus]}".`,
+      );
     } catch (error) {
       console.error(error);
       setCompanies(previousCompanies);
@@ -1405,6 +1484,7 @@ export default function AdminEmpregosPage() {
             onClick={() => {
               setStatusFilter("todos");
               setFollowUpDateFilter("todos");
+              setListView("todos");
             }}
           >
             <BriefcaseBusiness size={22} />
@@ -1427,6 +1507,7 @@ export default function AdminEmpregosPage() {
             onClick={() => {
               setStatusFilter("nao_enviado");
               setFollowUpDateFilter("todos");
+              setListView("ativos");
             }}
           >
             <Mail size={22} />
@@ -1438,6 +1519,7 @@ export default function AdminEmpregosPage() {
             onClick={() => {
               setFollowUpDateFilter("vencidos");
               setStatusFilter("todos");
+              setListView("ativos");
             }}
           >
             <CalendarClock size={22} />
@@ -1449,6 +1531,7 @@ export default function AdminEmpregosPage() {
             onClick={() => {
               setFollowUpDateFilter("hoje");
               setStatusFilter("todos");
+              setListView("ativos");
             }}
           >
             <CalendarClock size={22} />
@@ -1460,11 +1543,70 @@ export default function AdminEmpregosPage() {
             onClick={() => {
               setStatusFilter("entrevista");
               setFollowUpDateFilter("todos");
+              setListView("separados");
             }}
           >
             <CheckCircle2 size={22} />
             <strong>{kpis.interviews}</strong>
             <span>Entrevistas</span>
+          </button>
+        </section>
+
+        <section className="list-view-grid">
+          <button
+            type="button"
+            className={
+              listView === "ativos" ? "list-view-card active" : "list-view-card"
+            }
+            onClick={() => {
+              setListView("ativos");
+              setStatusFilter("todos");
+              setFollowUpDateFilter("todos");
+            }}
+          >
+            <span>Lista de envio e retorno</span>
+            <strong>{kpis.activeFollowUps}</strong>
+            <small>
+              Empresas que ainda podem receber currículo ou retorno.
+            </small>
+          </button>
+
+          <button
+            type="button"
+            className={
+              listView === "separados"
+                ? "list-view-card separated active"
+                : "list-view-card separated"
+            }
+            onClick={() => {
+              setListView("separados");
+              setStatusFilter("todos");
+              setFollowUpDateFilter("todos");
+            }}
+          >
+            <span>Lista separada / não reenviar</span>
+            <strong>{kpis.closedFollowUps}</strong>
+            <small>
+              Entrevista, resposta, recusado, contratado ou sem retorno.
+            </small>
+          </button>
+
+          <button
+            type="button"
+            className={
+              listView === "todos"
+                ? "list-view-card all active"
+                : "list-view-card all"
+            }
+            onClick={() => {
+              setListView("todos");
+              setStatusFilter("todos");
+              setFollowUpDateFilter("todos");
+            }}
+          >
+            <span>Ver tudo</span>
+            <strong>{companies.length}</strong>
+            <small>Mostra ativos e separados juntos.</small>
           </button>
         </section>
 
@@ -1479,6 +1621,9 @@ export default function AdminEmpregosPage() {
               onClick={() => {
                 setStatusFilter(card.status);
                 setFollowUpDateFilter("todos");
+                setListView(
+                  isClosedFollowUpStatus(card.status) ? "separados" : "ativos",
+                );
               }}
             >
               <span>{card.label}</span>
@@ -1492,8 +1637,11 @@ export default function AdminEmpregosPage() {
             <div>
               <h2 style={styles.cardTitle}>Empresas e candidaturas</h2>
               <p style={styles.cardSub}>
-                Use esta lista todos os dias para enviar currículo e controlar
-                retorno.
+                {listView === "ativos"
+                  ? "Use esta lista todos os dias para enviar currículo e controlar retorno."
+                  : listView === "separados"
+                    ? "Empresas removidas da rotina de reenvio. Aqui ficam entrevistas, respostas, recusas, contratadas ou sem retorno."
+                    : "Visualização completa com empresas ativas e separadas."}
               </p>
             </div>
           </div>
@@ -1801,27 +1949,52 @@ export default function AdminEmpregosPage() {
                           )}
                         </td>
                         <td>
-                          <strong>
-                            {formatDate(company.nextFollowUpDate)}
-                          </strong>
-                          {company.nextFollowUpDate &&
-                            company.nextFollowUpDate < today() && (
-                              <small className="follow-up-overdue">
-                                Vencido
+                          {isClosedFollowUpStatus(company.status) ? (
+                            <>
+                              <strong className="closed-follow-up-title">
+                                Fora do reenvio
+                              </strong>
+                              <small className="closed-follow-up-reason">
+                                {getFollowUpClosedReason(company) ||
+                                  "Empresa movida para a lista separada."}
                               </small>
-                            )}
-                          {company.nextFollowUpDate === today() && (
-                            <small className="follow-up-today">Hoje</small>
+                              {getFollowUpClosedAt(company) && (
+                                <small>
+                                  {formatDateTime(getFollowUpClosedAt(company))}
+                                </small>
+                              )}
+                            </>
+                          ) : (
+                            <>
+                              <strong>
+                                {formatDate(company.nextFollowUpDate)}
+                              </strong>
+                              {company.nextFollowUpDate &&
+                                company.nextFollowUpDate < today() && (
+                                  <small className="follow-up-overdue">
+                                    Vencido
+                                  </small>
+                                )}
+                              {company.nextFollowUpDate === today() && (
+                                <small className="follow-up-today">Hoje</small>
+                              )}
+                            </>
                           )}
                         </td>
                         <td>
                           <div className="row-actions">
-                            <button
-                              className="small-action success"
-                              onClick={() => openEmailModal(company)}
-                            >
-                              <Send size={16} /> Enviar
-                            </button>
+                            {isClosedFollowUpStatus(company.status) ? (
+                              <span className="small-action blocked-action">
+                                Não reenviar
+                              </span>
+                            ) : (
+                              <button
+                                className="small-action success"
+                                onClick={() => openEmailModal(company)}
+                              >
+                                <Send size={16} /> Enviar
+                              </button>
+                            )}
                             <button
                               className="small-action"
                               onClick={() => openEditCompany(company)}
@@ -2767,6 +2940,65 @@ function GlobalStyle() {
       .status-card:hover {
         border-color: rgba(56, 189, 248, 0.48);
         transform: translateY(-1px);
+      }
+
+      .list-view-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 14px;
+        margin: 0 0 18px;
+      }
+
+      .list-view-card {
+        display: grid;
+        gap: 8px;
+        text-align: left;
+        color: #e0f2fe;
+        padding: 18px;
+        border-radius: 24px;
+        cursor: pointer;
+        background: rgba(15, 23, 42, 0.74);
+        border: 1px solid rgba(125, 211, 252, 0.18);
+      }
+
+      .list-view-card strong {
+        font-size: 30px;
+        line-height: 1;
+      }
+
+      .list-view-card span {
+        font-weight: 950;
+      }
+
+      .list-view-card small {
+        color: #94a3b8;
+        line-height: 1.45;
+      }
+
+      .list-view-card.active {
+        border-color: rgba(56, 189, 248, 0.72);
+        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+      }
+
+      .list-view-card.separated.active {
+        border-color: rgba(168, 85, 247, 0.85);
+        box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.12);
+      }
+
+      .blocked-action {
+        background: rgba(100, 116, 139, 0.18) !important;
+        color: #cbd5e1 !important;
+        border: 1px solid rgba(148, 163, 184, 0.22) !important;
+        cursor: not-allowed !important;
+      }
+
+      .closed-follow-up-title {
+        color: #f0abfc;
+      }
+
+      .closed-follow-up-reason {
+        color: #c4b5fd;
+        max-width: 260px;
       }
 
       .status-cards-grid {
