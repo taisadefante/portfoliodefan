@@ -535,6 +535,80 @@ function getCompanyEmailStatus(company: JobCompany, logs: JobEmailLog[]) {
   };
 }
 
+function hasCompanyAlreadyReceivedEmail(
+  company: JobCompany,
+  logs: JobEmailLog[],
+) {
+  return Boolean(
+    getLastEmailLogForCompany(logs, company) ||
+    company.lastSentDate ||
+    company.status === "curriculo_enviado",
+  );
+}
+
+function getCompanyPriority(company: JobCompany, logs: JobEmailLog[]) {
+  const todayValue = today();
+  const followUpDate = company.nextFollowUpDate || "";
+  const alreadySent = hasCompanyAlreadyReceivedEmail(company, logs);
+
+  if (!alreadySent || company.status === "nao_enviado") {
+    return 0;
+  }
+
+  if (followUpDate && followUpDate <= todayValue) {
+    return 1;
+  }
+
+  if (followUpDate && followUpDate > todayValue) {
+    return 2;
+  }
+
+  if (!followUpDate) {
+    return 3;
+  }
+
+  return 4;
+}
+
+function compareCompaniesByPriority(
+  a: JobCompany,
+  b: JobCompany,
+  logs: JobEmailLog[],
+) {
+  const priorityOrder =
+    getCompanyPriority(a, logs) - getCompanyPriority(b, logs);
+
+  if (priorityOrder !== 0) return priorityOrder;
+
+  const aFollowUpDate = a.nextFollowUpDate || "9999-12-31";
+  const bFollowUpDate = b.nextFollowUpDate || "9999-12-31";
+  const followUpOrder = aFollowUpDate.localeCompare(bFollowUpDate);
+
+  if (followUpOrder !== 0) return followUpOrder;
+
+  const aLastSentDate = a.lastSentDate || "9999-12-31";
+  const bLastSentDate = b.lastSentDate || "9999-12-31";
+  const sentOrder = aLastSentDate.localeCompare(bLastSentDate);
+
+  if (sentOrder !== 0) return sentOrder;
+
+  return getDisplayCompanyName(a).localeCompare(
+    getDisplayCompanyName(b),
+    "pt-BR",
+  );
+}
+
+function getPriorityLabel(company: JobCompany, logs: JobEmailLog[]) {
+  const priority = getCompanyPriority(company, logs);
+
+  if (priority === 0) return "Prioridade: enviar currículo";
+  if (priority === 1) return "Prioridade: fazer retorno";
+  if (priority === 2) return "Próximo retorno agendado";
+  if (priority === 3) return "Sem retorno definido";
+
+  return "Acompanhar";
+}
+
 function Field({
   label,
   value,
@@ -645,6 +719,7 @@ export default function AdminEmpregosPage() {
     followUpDateFilter,
     followUpStartDate,
     followUpEndDate,
+    emailLogs,
   ]);
 
   const filteredCompanies = useMemo(() => {
@@ -694,18 +769,7 @@ export default function AdminEmpregosPage() {
           (!term || text.includes(term))
         );
       })
-      .sort((a, b) => {
-        const aFollowUpDate = a.nextFollowUpDate || "9999-12-31";
-        const bFollowUpDate = b.nextFollowUpDate || "9999-12-31";
-        const followUpOrder = aFollowUpDate.localeCompare(bFollowUpDate);
-
-        if (followUpOrder !== 0) return followUpOrder;
-
-        const aLastSentDate = a.lastSentDate || "9999-12-31";
-        const bLastSentDate = b.lastSentDate || "9999-12-31";
-
-        return aLastSentDate.localeCompare(bLastSentDate);
-      });
+      .sort((a, b) => compareCompaniesByPriority(a, b, emailLogs));
   }, [
     companies,
     search,
@@ -742,11 +806,19 @@ export default function AdminEmpregosPage() {
       total: companies.length,
       sentToday: companies.filter((item) => item.lastSentDate === todayValue)
         .length,
-      notSent: companies.filter((item) => item.status === "nao_enviado").length,
+      notSent: companies.filter(
+        (item) => !hasCompanyAlreadyReceivedEmail(item, emailLogs),
+      ).length,
+      followUpToday: companies.filter(
+        (item) => item.nextFollowUpDate === todayValue,
+      ).length,
+      followUpOverdue: companies.filter(
+        (item) => item.nextFollowUpDate && item.nextFollowUpDate < todayValue,
+      ).length,
       interviews: companies.filter((item) => item.status === "entrevista")
         .length,
     };
-  }, [companies]);
+  }, [companies, emailLogs]);
 
   function openNewCompany() {
     setCompanyForm({
@@ -1256,6 +1328,16 @@ export default function AdminEmpregosPage() {
           </div>
           <div>
             <CalendarClock size={22} />
+            <strong>{kpis.followUpOverdue}</strong>
+            <span>Retornos vencidos</span>
+          </div>
+          <div>
+            <CalendarClock size={22} />
+            <strong>{kpis.followUpToday}</strong>
+            <span>Retornos para hoje</span>
+          </div>
+          <div>
+            <CheckCircle2 size={22} />
             <strong>{kpis.interviews}</strong>
             <span>Entrevistas</span>
           </div>
@@ -1419,6 +1501,7 @@ export default function AdminEmpregosPage() {
                     <th>Vaga / Modalidade</th>
                     <th>Tipo</th>
                     <th>Status</th>
+                    <th>Prioridade</th>
                     <th>Último envio</th>
                     <th>Retorno</th>
                     <th>Ações</th>
@@ -1525,6 +1608,16 @@ export default function AdminEmpregosPage() {
                           </span>
                         </td>
                         <td>
+                          <span
+                            className={`priority-pill priority-${getCompanyPriority(
+                              company,
+                              emailLogs,
+                            )}`}
+                          >
+                            {getPriorityLabel(company, emailLogs)}
+                          </span>
+                        </td>
+                        <td>
                           <strong>{formatDate(company.lastSentDate)}</strong>
                           {emailStatus.sentDate && (
                             <small>
@@ -1574,7 +1667,7 @@ export default function AdminEmpregosPage() {
 
                   {!filteredCompanies.length && (
                     <tr>
-                      <td colSpan={10}>Nenhuma empresa encontrada.</td>
+                      <td colSpan={11}>Nenhuma empresa encontrada.</td>
                     </tr>
                   )}
                 </tbody>
@@ -2475,7 +2568,7 @@ function GlobalStyle() {
 
       .kpi-grid {
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
         gap: 14px;
         margin: 0 0 22px;
       }
