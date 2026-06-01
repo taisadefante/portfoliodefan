@@ -705,6 +705,7 @@ export default function AdminEmpregosPage() {
   const [emailLogs, setEmailLogs] = useState<JobEmailLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
+  const [savingStatusIds, setSavingStatusIds] = useState<string[]>([]);
   const [sentLogsModalOpen, setSentLogsModalOpen] = useState(false);
 
   const [companyModalOpen, setCompanyModalOpen] = useState(false);
@@ -858,9 +859,7 @@ export default function AdminEmpregosPage() {
       total: companies.length,
       sentToday: companies.filter((item) => item.lastSentDate === todayValue)
         .length,
-      notSent: companies.filter(
-        (item) => !hasCompanyAlreadyReceivedEmail(item, emailLogs),
-      ).length,
+      notSent: companies.filter((item) => item.status === "nao_enviado").length,
       followUpToday: companies.filter(
         (item) => item.nextFollowUpDate === todayValue,
       ).length,
@@ -870,7 +869,15 @@ export default function AdminEmpregosPage() {
       interviews: companies.filter((item) => item.status === "entrevista")
         .length,
     };
-  }, [companies, emailLogs]);
+  }, [companies]);
+
+  const statusCards = useMemo(() => {
+    return Object.entries(jobStatusLabels).map(([status, label]) => ({
+      status: status as JobCompanyStatus,
+      label,
+      total: companies.filter((company) => company.status === status).length,
+    }));
+  }, [companies]);
 
   function openNewCompany() {
     setCompanyForm({
@@ -993,6 +1000,36 @@ export default function AdminEmpregosPage() {
     } catch (error) {
       console.error(error);
       setMessage("Erro ao excluir empresa.");
+    }
+  }
+
+  async function handleUpdateCompanyStatus(
+    company: JobCompany,
+    newStatus: JobCompanyStatus,
+  ) {
+    if (!company.id) return;
+    if (company.status === newStatus) return;
+
+    const previousCompanies = companies;
+    const updatedCompany = {
+      ...company,
+      status: newStatus,
+    };
+
+    setSavingStatusIds((prev) => [...prev, company.id || ""]);
+    setCompanies((prev) =>
+      prev.map((item) => (item.id === company.id ? updatedCompany : item)),
+    );
+
+    try {
+      await saveJobCompany(updatedCompany);
+      setMessage(`Status atualizado para "${jobStatusLabels[newStatus]}".`);
+    } catch (error) {
+      console.error(error);
+      setCompanies(previousCompanies);
+      setMessage("Erro ao atualizar status. Tente novamente.");
+    } finally {
+      setSavingStatusIds((prev) => prev.filter((id) => id !== company.id));
     }
   }
 
@@ -1363,36 +1400,91 @@ export default function AdminEmpregosPage() {
         {message && <div style={styles.notice}>{message}</div>}
 
         <section className="kpi-grid">
-          <div>
+          <button
+            type="button"
+            onClick={() => {
+              setStatusFilter("todos");
+              setFollowUpDateFilter("todos");
+            }}
+          >
             <BriefcaseBusiness size={22} />
             <strong>{kpis.total}</strong>
             <span>Empresas cadastradas</span>
-          </div>
-          <div>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setFollowUpDateFilter("todos");
+              setStatusFilter("todos");
+            }}
+          >
             <Send size={22} />
             <strong>{kpis.sentToday}</strong>
             <span>Currículos enviados hoje</span>
-          </div>
-          <div>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setStatusFilter("nao_enviado");
+              setFollowUpDateFilter("todos");
+            }}
+          >
             <Mail size={22} />
             <strong>{kpis.notSent}</strong>
             <span>Ainda não enviados</span>
-          </div>
-          <div>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setFollowUpDateFilter("vencidos");
+              setStatusFilter("todos");
+            }}
+          >
             <CalendarClock size={22} />
             <strong>{kpis.followUpOverdue}</strong>
             <span>Retornos vencidos</span>
-          </div>
-          <div>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setFollowUpDateFilter("hoje");
+              setStatusFilter("todos");
+            }}
+          >
             <CalendarClock size={22} />
             <strong>{kpis.followUpToday}</strong>
             <span>Retornos para hoje</span>
-          </div>
-          <div>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setStatusFilter("entrevista");
+              setFollowUpDateFilter("todos");
+            }}
+          >
             <CheckCircle2 size={22} />
             <strong>{kpis.interviews}</strong>
             <span>Entrevistas</span>
-          </div>
+          </button>
+        </section>
+
+        <section className="status-cards-grid">
+          {statusCards.map((card) => (
+            <button
+              key={card.status}
+              type="button"
+              className={`status-card status-card-${card.status} ${
+                statusFilter === card.status ? "status-card-active" : ""
+              }`}
+              onClick={() => {
+                setStatusFilter(card.status);
+                setFollowUpDateFilter("todos");
+              }}
+            >
+              <span>{card.label}</span>
+              <strong>{card.total}</strong>
+            </button>
+          ))}
         </section>
 
         <section style={styles.card}>
@@ -1655,9 +1747,40 @@ export default function AdminEmpregosPage() {
                           </span>
                         </td>
                         <td>
-                          <span className={emailStatus.className}>
-                            {emailStatus.label}
-                          </span>
+                          <div className="status-inline-editor">
+                            <select
+                              value={company.status}
+                              onChange={(event) =>
+                                void handleUpdateCompanyStatus(
+                                  company,
+                                  event.target.value as JobCompanyStatus,
+                                )
+                              }
+                              disabled={savingStatusIds.includes(
+                                company.id || "",
+                              )}
+                              className={`status-select status-${company.status}`}
+                            >
+                              {Object.entries(jobStatusLabels).map(
+                                ([value, label]) => (
+                                  <option key={value} value={value}>
+                                    {label}
+                                  </option>
+                                ),
+                              )}
+                            </select>
+
+                            {savingStatusIds.includes(company.id || "") ? (
+                              <small className="status-saving">
+                                <Loader2 className="spin" size={13} />{" "}
+                                Salvando...
+                              </small>
+                            ) : emailStatus.sentDate ? (
+                              <small className="status-email-info">
+                                E-mail enviado
+                              </small>
+                            ) : null}
+                          </div>
                         </td>
                         <td>
                           <span
@@ -2625,13 +2748,99 @@ function GlobalStyle() {
         margin: 0 0 22px;
       }
 
-      .kpi-grid > div {
+      .kpi-grid > button {
         display: grid;
         gap: 8px;
         padding: 18px;
         border-radius: 24px;
         background: rgba(15, 23, 42, 0.74);
         border: 1px solid rgba(125, 211, 252, 0.18);
+      }
+
+      .kpi-grid > button {
+        color: inherit;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .kpi-grid > button:hover,
+      .status-card:hover {
+        border-color: rgba(56, 189, 248, 0.48);
+        transform: translateY(-1px);
+      }
+
+      .status-cards-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+        gap: 12px;
+        margin: 0 0 22px;
+      }
+
+      .status-card {
+        border: 1px solid rgba(125, 211, 252, 0.18);
+        background: rgba(15, 23, 42, 0.72);
+        color: #e2e8f0;
+        border-radius: 20px;
+        padding: 14px 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        cursor: pointer;
+        transition: 0.18s ease;
+      }
+
+      .status-card span {
+        font-size: 13px;
+        font-weight: 900;
+        color: #cbd5e1;
+      }
+
+      .status-card strong {
+        font-size: 26px;
+        color: #ffffff;
+      }
+
+      .status-card-active {
+        border-color: rgba(56, 189, 248, 0.92);
+        background: linear-gradient(
+          135deg,
+          rgba(14, 165, 233, 0.32),
+          rgba(56, 189, 248, 0.16)
+        );
+      }
+
+      .status-inline-editor {
+        display: grid;
+        gap: 6px;
+        min-width: 170px;
+      }
+
+      .status-select {
+        width: 100%;
+        border: 1px solid rgba(125, 211, 252, 0.22);
+        border-radius: 999px;
+        padding: 8px 10px;
+        color: #f8fafc;
+        font-size: 12px;
+        font-weight: 900;
+        outline: none;
+        background: rgba(15, 23, 42, 0.92);
+      }
+
+      .status-select:disabled {
+        opacity: 0.68;
+        cursor: wait;
+      }
+
+      .status-saving,
+      .status-email-info {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        color: #93c5fd;
+        font-size: 11px;
+        font-weight: 800;
       }
 
       .kpi-grid strong {
