@@ -2833,6 +2833,42 @@ function GlobalStyle() {
         cursor: wait;
       }
 
+      /* Correção do select de status na lista:
+         o select tinha a classe do status, e essas classes mudavam o fundo do dropdown.
+         Aqui forçamos o select e as opções a ficarem escuros e legíveis. */
+      .status-inline-editor .status-select,
+      .status-inline-editor .status-select.status-nao_enviado,
+      .status-inline-editor .status-select.status-curriculo_enviado,
+      .status-inline-editor .status-select.status-respondeu,
+      .status-inline-editor .status-select.status-entrevista,
+      .status-inline-editor .status-select.status-sem_retorno,
+      .status-inline-editor .status-select.status-recusado,
+      .status-inline-editor .status-select.status-contratada {
+        appearance: auto;
+        -webkit-appearance: menulist;
+        background-color: #0f172a !important;
+        color: #ffffff !important;
+        border: 1px solid rgba(125, 211, 252, 0.38) !important;
+        box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.45);
+      }
+
+      .status-inline-editor .status-select option,
+      select option {
+        background-color: #0f172a !important;
+        color: #ffffff !important;
+      }
+
+      .status-inline-editor .status-select option:checked {
+        background-color: #1e293b !important;
+        color: #ffffff !important;
+        font-weight: 900;
+      }
+
+      .status-inline-editor .status-select:focus {
+        border-color: rgba(56, 189, 248, 0.9) !important;
+        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.16);
+      }
+
       .status-saving,
       .status-email-info {
         display: inline-flex;
