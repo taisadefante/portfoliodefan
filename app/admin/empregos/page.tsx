@@ -395,7 +395,7 @@ const closedFollowUpStatuses: JobCompanyStatus[] = [
   "entrevista",
   "sem_retorno",
   "recusado",
-  "contratado",
+  "contratada",
 ];
 
 function isClosedFollowUpStatus(status: JobCompanyStatus) {
