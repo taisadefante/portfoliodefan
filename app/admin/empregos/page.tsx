@@ -70,6 +70,270 @@ taisadefante@hotmail.com
 LinkedIn: linkedin.com/in/taisadefante/
 Portfólio: taisdefante.defan.com.br`;
 
+type TargetedJobArea =
+  | "tecnologia_fullstack"
+  | "backend_dados"
+  | "administrativo"
+  | "financeiro"
+  | "gestao_projetos"
+  | "customer_success"
+  | "operacoes_processos"
+  | "comercial_atendimento"
+  | "geral_hibrida";
+
+const targetedJobAreaLabels: Record<TargetedJobArea, string> = {
+  tecnologia_fullstack: "Tecnologia / Full Stack",
+  backend_dados: "Backend / Dados / Banco de Dados",
+  administrativo: "Administrativo",
+  financeiro: "Financeiro",
+  gestao_projetos: "Gestão de Projetos",
+  customer_success: "Customer Success / Suporte",
+  operacoes_processos: "Operações / Processos",
+  comercial_atendimento: "Comercial / Atendimento",
+  geral_hibrida: "Geral / Híbrida",
+};
+
+type TargetedJobEmailForm = {
+  companyName: string;
+  toEmail: string;
+  jobTitle: string;
+  jobArea: TargetedJobArea;
+  jobLink: string;
+  subject: string;
+  message: string;
+  resumeFile: File | null;
+};
+
+function createTargetedEmailSubject(jobTitle: string, companyName = "") {
+  const cleanJobTitle = jobTitle.trim();
+  const cleanCompany = companyName.trim();
+
+  if (cleanJobTitle && cleanCompany) {
+    return `Candidatura para ${cleanJobTitle} - ${cleanCompany} | Taís Defante`;
+  }
+
+  return cleanJobTitle
+    ? `Candidatura para ${cleanJobTitle} - Taís Defante`
+    : DEFAULT_EMAIL_SUBJECT;
+}
+
+function inferTargetedJobArea(jobTitle: string): TargetedJobArea {
+  const content = normalizeText(jobTitle);
+
+  if (
+    content.includes("backend") ||
+    content.includes("back-end") ||
+    content.includes("node") ||
+    content.includes("python") ||
+    content.includes("api") ||
+    content.includes("banco") ||
+    content.includes("dados") ||
+    content.includes("sql") ||
+    content.includes("postgres") ||
+    content.includes("mysql") ||
+    content.includes("supabase") ||
+    content.includes("firebase")
+  ) {
+    return "backend_dados";
+  }
+
+  if (
+    content.includes("tecnologia") ||
+    content.includes("desenvolvedor") ||
+    content.includes("programador") ||
+    content.includes("frontend") ||
+    content.includes("front-end") ||
+    content.includes("full stack") ||
+    content.includes("fullstack") ||
+    content.includes("react") ||
+    content.includes("next") ||
+    content.includes("sistema") ||
+    content.includes("automacao") ||
+    content.includes("dashboard")
+  ) {
+    return "tecnologia_fullstack";
+  }
+
+  if (
+    content.includes("projeto") ||
+    content.includes("scrum") ||
+    content.includes("agil") ||
+    content.includes("ágil") ||
+    content.includes("product") ||
+    content.includes("pmo") ||
+    content.includes("processos")
+  ) {
+    return "gestao_projetos";
+  }
+
+  if (
+    content.includes("financeiro") ||
+    content.includes("contas") ||
+    content.includes("faturamento") ||
+    content.includes("cobranca") ||
+    content.includes("cobrança") ||
+    content.includes("controladoria") ||
+    content.includes("auditoria")
+  ) {
+    return "financeiro";
+  }
+
+  if (
+    content.includes("customer success") ||
+    content.includes("sucesso do cliente") ||
+    content.includes("suporte") ||
+    content.includes("relacionamento") ||
+    content.includes("implantacao") ||
+    content.includes("implantação")
+  ) {
+    return "customer_success";
+  }
+
+  if (
+    content.includes("operacoes") ||
+    content.includes("operações") ||
+    content.includes("operacional") ||
+    content.includes("processo") ||
+    content.includes("qualidade")
+  ) {
+    return "operacoes_processos";
+  }
+
+  if (
+    content.includes("comercial") ||
+    content.includes("vendas") ||
+    content.includes("sdr") ||
+    content.includes("bdr") ||
+    content.includes("atendimento") ||
+    content.includes("cliente")
+  ) {
+    return "comercial_atendimento";
+  }
+
+  if (
+    content.includes("administrativo") ||
+    content.includes("assistente") ||
+    content.includes("auxiliar") ||
+    content.includes("administração") ||
+    content.includes("administracao")
+  ) {
+    return "administrativo";
+  }
+
+  return "geral_hibrida";
+}
+
+function getStrategicProfileForArea(jobArea: TargetedJobArea) {
+  const technologyBase =
+    "Atuo com tecnologia aplicada ao negócio, desenvolvimento de sistemas web, automações, dashboards, integração de APIs, organização de dados e criação de soluções digitais para melhorar processos e produtividade.";
+
+  const backendBase =
+    "Tenho conhecimento em backend com Node.js e Python, integração de APIs, estruturação de banco de dados, Firebase, PostgreSQL, MySQL e Supabase, além de noções de organização, segurança e fluxo de informações em sistemas.";
+
+  const businessBase =
+    "Também possuo experiência administrativa e financeira, controle de processos, atendimento, organização operacional, análise de informações, relatórios gerenciais, Power BI, CRM/ERP e apoio à tomada de decisão.";
+
+  const projectBase =
+    "Tenho formação e experiência voltadas à gestão de projetos, metodologias ágeis, Scrum, planejamento, acompanhamento de prazos, organização de demandas, comunicação entre áreas e melhoria contínua de processos.";
+
+  if (jobArea === "tecnologia_fullstack") {
+    return `${technologyBase}
+
+Tenho prática com React.js, Next.js, JavaScript, Node.js, Python, Firebase, PostgreSQL, MySQL, Supabase, Git/GitHub, APIs, dashboards e sistemas administrativos. Minha atuação une desenvolvimento, automação e visão de processos para criar soluções funcionais, organizadas e úteis para a operação.`;
+  }
+
+  if (jobArea === "backend_dados") {
+    return `${backendBase}
+
+Além da parte técnica, tenho visão administrativa e financeira, o que facilita entender regras de negócio, estruturar dados, criar automações, relatórios e soluções que apoiem a operação com mais controle, produtividade e clareza.`;
+  }
+
+  if (jobArea === "administrativo") {
+    return `${businessBase}
+
+Tenho vivência em rotinas administrativas, controle de documentos e informações, organização de demandas, atendimento, suporte operacional, planilhas, processos internos e uso de tecnologia para reduzir retrabalho, melhorar controles e aumentar a eficiência da rotina.`;
+  }
+
+  if (jobArea === "financeiro") {
+    return `Tenho experiência em rotinas financeiras, controle de informações, organização de processos, negociação, acompanhamento de dados, relatórios, planilhas, análise financeira, auditoria/controladoria e apoio à gestão.
+
+Também aplico tecnologia para automatizar tarefas, estruturar dados, criar dashboards, melhorar controles e tornar a rotina financeira mais eficiente e segura.`;
+  }
+
+  if (jobArea === "gestao_projetos") {
+    return `${projectBase}
+
+Minha experiência combina gestão administrativa, financeira, processos e tecnologia. Consigo apoiar projetos desde a organização das demandas até o acompanhamento da execução, alinhando pessoas, prazos, dados, ferramentas e resultados.`;
+  }
+
+  if (jobArea === "customer_success") {
+    return `Tenho experiência com atendimento, relacionamento com clientes, suporte operacional, organização de demandas, análise de processos e comunicação clara entre áreas.
+
+Também possuo conhecimento em tecnologia, sistemas web, automações, dashboards, APIs e dados, o que me permite entender necessidades do cliente, orientar o uso de soluções, identificar melhorias e apoiar a adoção de ferramentas digitais.`;
+  }
+
+  if (jobArea === "operacoes_processos") {
+    return `Tenho experiência em organização operacional, controle de processos, atendimento, rotinas administrativas e financeiras, análise de informações e melhoria de fluxos internos.
+
+Também atuo com tecnologia, automações, dashboards, sistemas web, bancos de dados e integrações, contribuindo para reduzir retrabalho, melhorar produtividade e dar mais clareza à operação.`;
+  }
+
+  if (jobArea === "comercial_atendimento") {
+    return `Tenho experiência em atendimento, relacionamento com clientes, rotinas comerciais/operacionais, organização de contatos, controle de informações, negociação e comunicação clara.
+
+Também possuo conhecimento em tecnologia, CRM, automações, dashboards e sistemas, o que ajuda a acompanhar oportunidades, organizar processos e melhorar a experiência do cliente.`;
+  }
+
+  return `${technologyBase}
+
+${backendBase}
+
+${businessBase}
+
+${projectBase}
+
+Minha trajetória une tecnologia, administração, finanças, processos e projetos, permitindo contribuir com visão ampla, organização, análise e soluções práticas para diferentes áreas da empresa.`;
+}
+
+function createTargetedEmailText({
+  companyName,
+  jobTitle,
+  jobArea,
+  jobLink,
+}: {
+  companyName: string;
+  jobTitle: string;
+  jobArea: TargetedJobArea;
+  jobLink: string;
+}) {
+  const company = companyName.trim() || "empresa";
+  const role = jobTitle.trim() || "vaga anunciada";
+  const strategicText = getStrategicProfileForArea(jobArea);
+  const cleanJobLink = jobLink.trim();
+  const linkText = cleanJobLink
+    ? `
+
+Link da vaga: ${cleanJobLink}`
+    : "";
+
+  return `Olá, equipe ${company}, tudo bem?
+
+Encaminho meu currículo para a vaga de ${role}.
+
+${strategicText}
+
+Tenho perfil profissional, organizado, proativo e facilidade para aprender novas ferramentas, entender demandas e transformar necessidades em soluções práticas.${linkText}
+
+Segue meu currículo em anexo para avaliação.
+
+Atenciosamente,
+Taís Defante
+(21) 98835-9825
+taisadefante@hotmail.com
+LinkedIn: linkedin.com/in/taisadefante/
+Portfólio: taisdefante.defan.com.br`;
+}
+
 type JobType =
   | "tudo"
   | "administrativo"
@@ -762,6 +1026,9 @@ export default function AdminEmpregosPage() {
   const [bulkResumeFile, setBulkResumeFile] = useState<File | null>(null);
   const [bulkSending, setBulkSending] = useState(false);
 
+  const [targetedEmailModalOpen, setTargetedEmailModalOpen] = useState(false);
+  const [targetedEmailSending, setTargetedEmailSending] = useState(false);
+
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [importEmailsText, setImportEmailsText] = useState("");
   const [importCompanyPrefix, setImportCompanyPrefix] = useState("Empresa");
@@ -921,11 +1188,18 @@ export default function AdminEmpregosPage() {
   }, [companies]);
 
   const statusCards = useMemo(() => {
-    return Object.entries(jobStatusLabels).map(([status, label]) => ({
-      status: status as JobCompanyStatus,
-      label,
-      total: companies.filter((company) => company.status === status).length,
-    }));
+    return [
+      {
+        status: "todos" as const,
+        label: "Todos",
+        total: companies.length,
+      },
+      ...Object.entries(jobStatusLabels).map(([status, label]) => ({
+        status: status as JobCompanyStatus,
+        label,
+        total: companies.filter((company) => company.status === status).length,
+      })),
+    ];
   }, [companies]);
 
   function openNewCompany() {
@@ -1234,6 +1508,130 @@ export default function AdminEmpregosPage() {
     }
   }
 
+  async function handleSendTargetedJobEmail(form: TargetedJobEmailForm) {
+    const toEmail = form.toEmail.trim().toLowerCase();
+    const companyName =
+      form.companyName.trim() || getCompanyNameFromEmail(toEmail);
+    const jobTitle = form.jobTitle.trim();
+    const subject = form.subject.trim() || createTargetedEmailSubject(jobTitle);
+    const messageText = form.message.trim();
+
+    if (!toEmail) {
+      setMessage("Informe o e-mail para enviar a candidatura.");
+      return;
+    }
+
+    if (!jobTitle) {
+      setMessage("Informe o cargo/vaga da candidatura personalizada.");
+      return;
+    }
+
+    if (!messageText) {
+      setMessage("Gere ou escreva o texto do e-mail personalizado.");
+      return;
+    }
+
+    try {
+      setTargetedEmailSending(true);
+
+      const formData = new FormData();
+      formData.append("to", toEmail);
+      formData.append("subject", subject);
+      formData.append("message", messageText);
+
+      if (form.resumeFile) {
+        formData.append("resume", form.resumeFile);
+      }
+
+      const response = await fetch("/api/empregos/email", {
+        method: "POST",
+        body: formData,
+      });
+
+      const result = (await response.json()) as {
+        ok?: boolean;
+        error?: string;
+      };
+
+      if (!response.ok || !result.ok) {
+        throw new Error(
+          result.error || "Erro ao enviar candidatura personalizada.",
+        );
+      }
+
+      const sentDate = today();
+      const existingCompany = companies.find((company) =>
+        emailList(company)
+          .map((email) => email.toLowerCase())
+          .includes(toEmail),
+      );
+
+      if (existingCompany) {
+        await saveJobEmailLog({
+          companyId: existingCompany.id || "",
+          companyName: existingCompany.companyName || companyName,
+          toEmails: [toEmail],
+          subject,
+          message: messageText,
+          resumeFileName: form.resumeFile?.name || "",
+          sentAt: new Date().toISOString(),
+        });
+
+        await saveJobCompany({
+          ...existingCompany,
+          companyName: existingCompany.companyName || companyName,
+          desiredRole: jobTitle || existingCompany.desiredRole,
+          jobsPageLink: form.jobLink.trim() || existingCompany.jobsPageLink,
+          description: existingCompany.description,
+          status: "curriculo_enviado",
+          lastSentDate: sentDate,
+          nextFollowUpDate: addDays(sentDate, 7),
+        });
+      } else {
+        const newCompany: JobCompanyWithType = {
+          ...emptyJobCompany,
+          companyName,
+          emails: [{ id: crypto.randomUUID(), email: toEmail }],
+          desiredRole: jobTitle,
+          jobsPageLink: form.jobLink.trim(),
+          description:
+            "Candidatura personalizada enviada para vaga específica.",
+          notes: "Candidatura personalizada enviada para vaga específica.",
+          status: "curriculo_enviado",
+          workMode: "nao_informado",
+          jobType: "tudo",
+          lastSentDate: sentDate,
+          nextFollowUpDate: addDays(sentDate, 7),
+        };
+
+        await saveJobCompany(newCompany as JobCompany);
+
+        await saveJobEmailLog({
+          companyId: "",
+          companyName,
+          toEmails: [toEmail],
+          subject,
+          message: messageText,
+          resumeFileName: form.resumeFile?.name || "",
+          sentAt: new Date().toISOString(),
+        });
+      }
+
+      await loadCompanies();
+      setTargetedEmailModalOpen(false);
+      setMessage("Candidatura personalizada enviada com sucesso.");
+    } catch (error) {
+      console.error(error);
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Erro ao enviar candidatura personalizada.",
+      );
+    } finally {
+      setTargetedEmailSending(false);
+    }
+  }
+
   async function handleImportCompanies() {
     const allEmailsFromText =
       importEmailsText.match(
@@ -1460,6 +1858,14 @@ export default function AdminEmpregosPage() {
             </button>
 
             <button
+              style={styles.button}
+              onClick={() => setTargetedEmailModalOpen(true)}
+            >
+              <FileText size={18} />
+              E-mail vaga certa
+            </button>
+
+            <button
               style={styles.secondaryButton}
               onClick={openBulkEmailModal}
               disabled={selectedCompanyIds.length === 0}
@@ -1621,6 +2027,12 @@ export default function AdminEmpregosPage() {
               onClick={() => {
                 setStatusFilter(card.status);
                 setFollowUpDateFilter("todos");
+
+                if (card.status === "todos") {
+                  setListView("todos");
+                  return;
+                }
+
                 setListView(
                   isClosedFollowUpStatus(card.status) ? "separados" : "ativos",
                 );
@@ -2130,6 +2542,14 @@ export default function AdminEmpregosPage() {
           send={handleSendEmail}
           saving={sendingEmail}
           close={() => setEmailModalOpen(false)}
+        />
+      )}
+
+      {targetedEmailModalOpen && (
+        <TargetedJobEmailModal
+          saving={targetedEmailSending}
+          send={handleSendTargetedJobEmail}
+          close={() => setTargetedEmailModalOpen(false)}
         />
       )}
 
@@ -2795,6 +3215,187 @@ function EmailModal({
   );
 }
 
+function TargetedJobEmailModal({
+  saving,
+  send,
+  close,
+}: {
+  saving: boolean;
+  send: (form: TargetedJobEmailForm) => void;
+  close: () => void;
+}) {
+  const [companyName, setCompanyName] = useState("");
+  const [toEmail, setToEmail] = useState("");
+  const [jobTitle, setJobTitle] = useState("");
+  const [jobArea, setJobArea] = useState<TargetedJobArea>("geral_hibrida");
+  const [jobLink, setJobLink] = useState("");
+  const [subject, setSubject] = useState(DEFAULT_EMAIL_SUBJECT);
+  const [message, setMessage] = useState("");
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
+
+  function generateStrategicText() {
+    const generatedSubject = createTargetedEmailSubject(jobTitle, companyName);
+    const generatedMessage = createTargetedEmailText({
+      companyName,
+      jobTitle,
+      jobArea,
+      jobLink,
+    });
+
+    setSubject(generatedSubject);
+    setMessage(generatedMessage);
+  }
+
+  function handleSend() {
+    send({
+      companyName,
+      toEmail,
+      jobTitle,
+      jobArea,
+      jobLink,
+      subject,
+      message,
+      resumeFile,
+    });
+  }
+
+  return (
+    <div style={styles.modalBackdrop}>
+      <section style={styles.modal}>
+        <header style={styles.modalHeader}>
+          <div>
+            <h2 style={styles.cardTitle}>
+              E-mail personalizado para vaga certa
+            </h2>
+            <p style={styles.cardSub}>
+              Preencha o cargo, escolha a área da vaga e anexe seu currículo. O
+              sistema gera um texto profissional específico para tecnologia,
+              backend, dados, administrativo, financeiro, projetos, atendimento
+              ou processos.
+            </p>
+          </div>
+          <button type="button" style={styles.secondaryButton} onClick={close}>
+            <X size={18} /> Fechar
+          </button>
+        </header>
+
+        <div className="form-grid">
+          <Field
+            label="Nome da empresa"
+            value={companyName}
+            onChange={setCompanyName}
+            placeholder="Ex: Empresa XPTO"
+          />
+
+          <Field
+            label="E-mail para envio *"
+            value={toEmail}
+            onChange={setToEmail}
+            placeholder="rh@empresa.com.br"
+            type="email"
+          />
+
+          <Field
+            label="Cargo / vaga certa *"
+            value={jobTitle}
+            onChange={(value) => {
+              setJobTitle(value);
+              setSubject(createTargetedEmailSubject(value, companyName));
+              setJobArea(inferTargetedJobArea(value));
+            }}
+            placeholder="Ex: Assistente Administrativo, Analista Backend, Gestão de Projetos..."
+          />
+
+          <label style={styles.field}>
+            <span style={styles.label}>Área da vaga *</span>
+            <select
+              value={jobArea}
+              onChange={(event) =>
+                setJobArea(event.target.value as TargetedJobArea)
+              }
+              style={styles.select}
+            >
+              {Object.entries(targetedJobAreaLabels).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+            <small>
+              A área define o texto estratégico: tecnologia, backend/dados,
+              administrativo, financeiro, projetos e mais.
+            </small>
+          </label>
+
+          <Field
+            label="Link da vaga"
+            value={jobLink}
+            onChange={setJobLink}
+            placeholder="Cole o link do LinkedIn, Gupy, site da empresa..."
+          />
+
+          <label style={{ ...styles.field, gridColumn: "1 / -1" }}>
+            <span style={styles.label}>Anexar currículo</span>
+            <input
+              type="file"
+              accept=".pdf,.doc,.docx"
+              style={styles.input}
+              onChange={(event) =>
+                setResumeFile(event.target.files?.[0] || null)
+              }
+            />
+            {resumeFile && (
+              <small>Arquivo selecionado: {resumeFile.name}</small>
+            )}
+          </label>
+        </div>
+
+        <div className="modal-actions">
+          <button
+            type="button"
+            style={styles.secondaryButton}
+            onClick={generateStrategicText}
+          >
+            <FileText size={16} /> Gerar texto pela área escolhida
+          </button>
+        </div>
+
+        <div className="form-grid one">
+          <Field label="Assunto" value={subject} onChange={setSubject} />
+
+          <label style={styles.field}>
+            <span style={styles.label}>Texto personalizado do e-mail</span>
+            <textarea
+              style={{ ...styles.textarea, minHeight: 300 }}
+              value={message}
+              onChange={(event) => setMessage(event.target.value)}
+              placeholder="Clique em Gerar texto estratégico para criar um e-mail específico para o cargo informado."
+            />
+          </label>
+        </div>
+
+        <div className="modal-actions">
+          <button style={styles.button} onClick={handleSend} disabled={saving}>
+            {saving ? (
+              <>
+                <Loader2 className="spin" size={16} /> Enviando...
+              </>
+            ) : (
+              <>
+                <Send size={16} /> Enviar candidatura personalizada
+              </>
+            )}
+          </button>
+
+          <button style={styles.secondaryButton} onClick={close}>
+            Cancelar
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function BulkEmailModal({
   selectedCount,
   subject,
@@ -3031,6 +3632,15 @@ function GlobalStyle() {
       .status-card strong {
         font-size: 26px;
         color: #ffffff;
+      }
+
+      .status-card-todos {
+        border-color: rgba(56, 189, 248, 0.34);
+        background: linear-gradient(
+          135deg,
+          rgba(14, 165, 233, 0.22),
+          rgba(99, 102, 241, 0.16)
+        );
       }
 
       .status-card-active {
