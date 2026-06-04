@@ -577,6 +577,27 @@ function getProjectImages(project: Project) {
   return project.imageUrl ? [project.imageUrl] : [];
 }
 
+function TextParagraphs({
+  text,
+  fallback,
+}: {
+  text?: string;
+  fallback: string;
+}) {
+  const paragraphs = String(text || fallback)
+    .split(/\n\s*\n|\n/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean);
+
+  return (
+    <div className="project-description-paragraphs">
+      {paragraphs.map((paragraph, index) => (
+        <p key={`${paragraph}-${index}`}>{paragraph}</p>
+      ))}
+    </div>
+  );
+}
+
 function DetailList({ title, items }: { title: string; items?: string[] }) {
   const cleanItems = safeArray(items).filter(Boolean);
   if (!cleanItems.length) return null;
@@ -671,6 +692,12 @@ function ProjectDetailsModal({
               >
                 {project.name}
               </h2>
+
+              {project.cardSummary && (
+                <p className="project-modal-summary-inline">
+                  {project.cardSummary}
+                </p>
+              )}
             </div>
 
             <button type="button" onClick={onClose} style={styles.closeButton}>
@@ -792,12 +819,12 @@ function ProjectDetailsModal({
             <aside style={{ display: "grid", gap: 16, alignContent: "start" }}>
               <section style={styles.modalPanel}>
                 <h3 style={{ margin: "0 0 10px", fontSize: 24 }}>
-                  Resumo do projeto
+                  Descrição completa
                 </h3>
-                <p style={{ color: colors.muted, lineHeight: 1.7, margin: 0 }}>
-                  {project.fullDescription ||
-                    "Projeto cadastrado no portfólio Defan."}
-                </p>
+                <TextParagraphs
+                  text={project.fullDescription}
+                  fallback="Projeto cadastrado no portfólio Defan."
+                />
 
                 <div
                   style={styles.detailGrid}
@@ -1464,6 +1491,25 @@ export default function ProjetosPage() {
         .project-modal-box-inline::-webkit-scrollbar-thumb {
           background: rgba(56, 189, 248, 0.75);
           border-radius: 999px;
+        }
+
+        .project-modal-summary-inline {
+          max-width: 920px;
+          margin: 14px 0 0;
+          color: #cbd5e1;
+          font-size: clamp(15px, 1.15vw, 18px);
+          line-height: 1.65;
+        }
+
+        .project-description-paragraphs {
+          display: grid;
+          gap: 14px;
+          color: ${colors.muted};
+          line-height: 1.75;
+        }
+
+        .project-description-paragraphs p {
+          margin: 0;
         }
 
         @media (max-width: 1180px) {
