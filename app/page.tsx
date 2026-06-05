@@ -7,7 +7,6 @@ import Hero from "@/components/home/Hero";
 import TechMarquee from "@/components/home/TechMarquee";
 import Services from "@/components/home/Services";
 import About from "@/components/home/About";
-import ProjectsSection from "@/components/home/ProjectsSection";
 import SocialProof from "@/components/home/SocialProof";
 import Testimonials from "@/components/home/Testimonials";
 import FaqSection from "@/components/home/FaqSection";
