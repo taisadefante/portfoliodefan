@@ -1058,6 +1058,10 @@ export default function AdminEmpregosPage() {
   const [importJobType, setImportJobType] = useState<JobType>("tudo");
   const [importDescription, setImportDescription] = useState("");
   const [importNotes, setImportNotes] = useState("");
+  const [importModalMessage, setImportModalMessage] = useState("");
+  const [importModalMessageType, setImportModalMessageType] = useState<
+    "success" | "error" | "info"
+  >("info");
   const [importingCompanies, setImportingCompanies] = useState(false);
 
   const [search, setSearch] = useState("");
@@ -1698,8 +1702,14 @@ export default function AdminEmpregosPage() {
 
     const extractedEmails = extractEmailsFromText(importEmailsText);
 
+    setImportModalMessage("");
+    setImportModalMessageType("info");
+
     if (extractedEmails.length === 0) {
-      setMessage("Cole ao menos um e-mail válido para importar.");
+      const errorMessage = "Cole ao menos um e-mail válido para importar.";
+      setImportModalMessage(errorMessage);
+      setImportModalMessageType("error");
+      setMessage(errorMessage);
       return;
     }
 
@@ -1712,11 +1722,13 @@ export default function AdminEmpregosPage() {
     );
 
     if (uniqueDuplicatedEmailsInText.length > 0) {
-      setMessage(
-        `Existem e-mails repetidos na lista: ${uniqueDuplicatedEmailsInText.join(
-          ", ",
-        )}. Remova os repetidos para importar.`,
-      );
+      const errorMessage = `Existem e-mails repetidos na lista: ${uniqueDuplicatedEmailsInText.join(
+        ", ",
+      )}. Remova os repetidos para importar.`;
+
+      setImportModalMessage(errorMessage);
+      setImportModalMessageType("error");
+      setMessage(errorMessage);
       return;
     }
 
@@ -1743,9 +1755,11 @@ export default function AdminEmpregosPage() {
       const email = duplicatedExistingEmails[0];
       const companyName = existingEmails.get(email) || "outra empresa";
 
-      setMessage(
-        `O e-mail "${email}" já está cadastrado em "${companyName}". A importação foi cancelada.`,
-      );
+      const errorMessage = `O e-mail "${email}" já está cadastrado em "${companyName}". A importação foi cancelada.`;
+
+      setImportModalMessage(errorMessage);
+      setImportModalMessageType("error");
+      setMessage(errorMessage);
       return;
     }
 
@@ -1782,10 +1796,20 @@ export default function AdminEmpregosPage() {
       setImportNotes("");
       setImportModalOpen(false);
 
+      setImportModalMessage("");
+      setImportModalMessageType("info");
       setMessage(`${extractedEmails.length} empresa(s) importada(s).`);
     } catch (error) {
-      console.error(error);
-      setMessage("Erro ao importar empresas.");
+      console.error("Erro ao importar empresas:", error);
+
+      const errorMessage =
+        error instanceof Error
+          ? `Erro ao importar empresas: ${error.message}`
+          : "Erro ao importar empresas.";
+
+      setImportModalMessage(errorMessage);
+      setImportModalMessageType("error");
+      setMessage(errorMessage);
     } finally {
       setImportingCompanies(false);
     }
@@ -1905,7 +1929,11 @@ export default function AdminEmpregosPage() {
 
             <button
               style={styles.secondaryButton}
-              onClick={() => setImportModalOpen(true)}
+              onClick={() => {
+                setImportModalMessage("");
+                setImportModalMessageType("info");
+                setImportModalOpen(true);
+              }}
             >
               <Upload size={18} />
               Importar e-mails
@@ -2567,7 +2595,13 @@ export default function AdminEmpregosPage() {
           setNotes={setImportNotes}
           importing={importingCompanies}
           save={handleImportCompanies}
-          close={() => setImportModalOpen(false)}
+          close={() => {
+            setImportModalOpen(false);
+            setImportModalMessage("");
+            setImportModalMessageType("info");
+          }}
+          modalMessage={importModalMessage}
+          modalMessageType={importModalMessageType}
         />
       )}
 
@@ -2723,6 +2757,8 @@ function ImportCompaniesModal({
   importing,
   save,
   close,
+  modalMessage,
+  modalMessageType,
 }: {
   emailsText: string;
   setEmailsText: (value: string) => void;
@@ -2739,6 +2775,8 @@ function ImportCompaniesModal({
   importing: boolean;
   save: () => void;
   close: () => void;
+  modalMessage: string;
+  modalMessageType: "success" | "error" | "info";
 }) {
   const previewEmails = extractEmailsFromText(emailsText);
 
