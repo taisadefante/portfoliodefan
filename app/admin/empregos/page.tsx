@@ -2600,8 +2600,8 @@ export default function AdminEmpregosPage() {
             setImportModalMessage("");
             setImportModalMessageType("info");
           }}
-          companyModalMessage={importModalMessage}
-          companyModalMessageType={importModalMessageType}
+          modalMessage={importModalMessage}
+          modalMessageType={importModalMessageType}
         />
       )}
 
@@ -2616,8 +2616,8 @@ export default function AdminEmpregosPage() {
           }}
           save={handleSaveCompany}
           saving={savingCompany}
-          companyModalMessage={companyModalMessage}
-          companyModalMessageType={companyModalMessageType}
+          modalMessage={companyModalMessage}
+          modalMessageType={companyModalMessageType}
         />
       )}
 
@@ -2757,8 +2757,8 @@ function ImportCompaniesModal({
   importing,
   save,
   close,
-  companyModalMessage,
-  companyModalMessageType,
+  modalMessage,
+  modalMessageType,
 }: {
   emailsText: string;
   setEmailsText: (value: string) => void;
@@ -2775,8 +2775,8 @@ function ImportCompaniesModal({
   importing: boolean;
   save: () => void;
   close: () => void;
-  companyModalMessage: string;
-  companyModalMessageType: "success" | "error" | "info";
+  modalMessage: string;
+  modalMessageType: "success" | "error" | "info";
 }) {
   const previewEmails = extractEmailsFromText(emailsText);
 
@@ -2796,15 +2796,15 @@ function ImportCompaniesModal({
           </button>
         </header>
 
-        {companyModalMessage && (
+        {modalMessage && (
           <div
             style={
-              companyModalMessageType === "error"
+              modalMessageType === "error"
                 ? styles.modalError
                 : styles.modalNotice
             }
           >
-            {companyModalMessage}
+            {modalMessage}
           </div>
         )}
 
@@ -2901,16 +2901,16 @@ function CompanyModal({
   close,
   save,
   saving,
-  companyModalMessage,
-  companyModalMessageType,
+  modalMessage,
+  modalMessageType,
 }: {
   company: JobCompany;
   setCompany: React.Dispatch<React.SetStateAction<JobCompany>>;
   close: () => void;
   save: () => void;
   saving: boolean;
-  companyModalMessage: string;
-  companyModalMessageType: "success" | "error" | "info";
+  modalMessage: string;
+  modalMessageType: "success" | "error" | "info";
 }) {
   function addEmail() {
     setCompany((prev) => ({
@@ -2946,15 +2946,15 @@ function CompanyModal({
           </button>
         </header>
 
-        {companyModalMessage && (
+        {modalMessage && (
           <div
             style={
-              companyModalMessageType === "error"
+              modalMessageType === "error"
                 ? styles.modalError
                 : styles.modalNotice
             }
           >
-            {companyModalMessage}
+            {modalMessage}
           </div>
         )}
 
@@ -3404,18 +3404,6 @@ function TargetedJobEmailModal({
             <X size={18} /> Fechar
           </button>
         </header>
-
-        {companyModalMessage && (
-          <div
-            style={
-              companyModalMessageType === "error"
-                ? styles.modalError
-                : styles.modalNotice
-            }
-          >
-            {companyModalMessage}
-          </div>
-        )}
 
         <div className="form-grid">
           <Field
