@@ -3,7 +3,6 @@
 import { CSSProperties, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import {
-  ArrowLeft,
   ArrowRight,
   BadgeCheck,
   CheckCircle2,
@@ -52,20 +51,31 @@ type Project = {
   seoFaqs?: SeoFaqItem[];
 };
 
+type Filters = {
+  search: string;
+  niche: string;
+};
+
 const WHATSAPP_NUMBER = "5521988359825";
+
+const initialFilters: Filters = {
+  search: "",
+  niche: "Todos",
+};
 
 const colors = {
   bg: "#020617",
   panel: "rgba(15, 23, 42, 0.76)",
   panelStrong: "rgba(15, 23, 42, 0.92)",
-  border: "rgba(125, 211, 252, 0.16)",
-  borderStrong: "rgba(125, 211, 252, 0.32)",
+  border: "rgba(56, 189, 248, 0.18)",
+  borderStrong: "rgba(56, 189, 248, 0.34)",
   text: "#f8fafc",
   muted: "#cbd5e1",
   soft: "#94a3b8",
   blue: "#38bdf8",
-  lightBlue: "#bae6fd",
-  green: "#22c55e",
+  blue2: "#0ea5e9",
+  blue3: "#60a5fa",
+  lightBlue: "#dbeafe",
 };
 
 const styles: Record<string, CSSProperties> = {
@@ -74,7 +84,7 @@ const styles: Record<string, CSSProperties> = {
     color: colors.text,
     fontFamily: "Arial, Helvetica, sans-serif",
     background:
-      "radial-gradient(circle at 18% 0%, rgba(14,165,233,0.16), transparent 30%), radial-gradient(circle at 84% 10%, rgba(56,189,248,0.1), transparent 26%), linear-gradient(180deg, #020617 0%, #061120 48%, #020617 100%)",
+      "radial-gradient(circle at 15% 0%, rgba(37,99,235,0.32), transparent 34%), radial-gradient(circle at 88% 12%, rgba(14,165,233,0.24), transparent 30%), linear-gradient(180deg, #020617 0%, #061a33 42%, #020617 100%)",
     overflowX: "hidden",
   },
   container: {
@@ -85,8 +95,8 @@ const styles: Record<string, CSSProperties> = {
     position: "sticky",
     top: 0,
     zIndex: 40,
-    background: "rgba(2, 6, 23, 0.86)",
-    backdropFilter: "blur(20px)",
+    background: "rgba(2, 6, 23, 0.82)",
+    backdropFilter: "blur(22px)",
     borderBottom: `1px solid ${colors.border}`,
   },
   nav: {
@@ -100,12 +110,12 @@ const styles: Record<string, CSSProperties> = {
     width: "auto",
     height: 64,
     objectFit: "contain",
-    filter: "drop-shadow(0 0 16px rgba(125,211,252,0.14))",
+    filter: "drop-shadow(0 0 20px rgba(56,189,248,0.2))",
   },
   navLinks: {
     display: "flex",
     alignItems: "center",
-    gap: 14,
+    gap: 16,
     flexWrap: "wrap",
     justifyContent: "flex-end",
   },
@@ -118,7 +128,7 @@ const styles: Record<string, CSSProperties> = {
   cta: {
     border: 0,
     borderRadius: 999,
-    padding: "13px 18px",
+    padding: "13px 20px",
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
@@ -127,8 +137,8 @@ const styles: Record<string, CSSProperties> = {
     textDecoration: "none",
     fontWeight: 950,
     cursor: "pointer",
-    background: "linear-gradient(135deg, #0ea5e9, #38bdf8)",
-    boxShadow: "0 16px 40px rgba(14,165,233,0.22)",
+    background: "linear-gradient(135deg, #2563eb, #0ea5e9, #38bdf8)",
+    boxShadow: "0 18px 50px rgba(14,165,233,0.28)",
   },
   ghost: {
     borderRadius: 999,
@@ -141,73 +151,106 @@ const styles: Record<string, CSSProperties> = {
     textDecoration: "none",
     fontWeight: 950,
     cursor: "pointer",
-    background: "rgba(15, 23, 42, 0.72)",
+    background: "rgba(15, 23, 42, 0.62)",
     border: `1px solid ${colors.borderStrong}`,
   },
   hero: {
-    padding: "64px 0 36px",
+    padding: "74px 0 38px",
     textAlign: "center",
+    position: "relative",
   },
   badge: {
     display: "inline-flex",
     alignItems: "center",
     gap: 8,
-    padding: "9px 14px",
+    padding: "10px 16px",
     borderRadius: 999,
-    color: colors.lightBlue,
-    fontWeight: 900,
-    background: "rgba(14,165,233,0.1)",
-    border: `1px solid ${colors.border}`,
+    color: "#dbeafe",
+    fontWeight: 950,
+    background: "rgba(37, 99, 235, 0.22)",
+    border: `1px solid ${colors.borderStrong}`,
+    boxShadow: "0 0 34px rgba(14,165,233,0.14)",
   },
   h1: {
-    maxWidth: 1000,
-    margin: "22px auto 0",
-    fontSize: "clamp(34px, 5vw, 64px)",
-    lineHeight: 1.04,
-    letterSpacing: "-0.055em",
+    maxWidth: 980,
+    margin: "26px auto 0",
+    fontSize: "clamp(34px, 4.6vw, 64px)",
+    lineHeight: 1.08,
+    letterSpacing: "-0.065em",
   },
   gradientText: {
-    background: "linear-gradient(135deg, #7dd3fc, #ffffff)",
+    background: "linear-gradient(135deg, #38bdf8, #60a5fa, #ffffff)",
     WebkitBackgroundClip: "text",
     color: "transparent",
   },
   heroText: {
-    maxWidth: 780,
-    margin: "20px auto 0",
+    maxWidth: 800,
+    margin: "24px auto 0",
     color: colors.muted,
-    fontSize: "clamp(16px, 1.25vw, 19px)",
-    lineHeight: 1.7,
+    fontSize: "clamp(16px, 1.3vw, 20px)",
+    lineHeight: 1.75,
   },
   trustRow: {
     display: "flex",
     flexWrap: "wrap",
     justifyContent: "center",
     gap: 12,
-    marginTop: 26,
+    marginTop: 28,
   },
   trustPill: {
     display: "inline-flex",
     alignItems: "center",
-    gap: 7,
+    gap: 8,
     color: "#dbeafe",
     fontSize: 13,
     fontWeight: 900,
-    padding: "9px 11px",
+    padding: "10px 13px",
     borderRadius: 999,
     background: "rgba(15, 23, 42, 0.58)",
-    border: "1px solid rgba(125, 211, 252, 0.13)",
+    border: `1px solid ${colors.border}`,
+  },
+  statsGrid: {
+    width: "min(980px, 100%)",
+    display: "grid",
+    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+    gap: 16,
+    margin: "36px auto 0",
+  },
+  statCard: {
+    padding: 22,
+    borderRadius: 26,
+    background:
+      "linear-gradient(180deg, rgba(15,23,42,0.82), rgba(8,47,73,0.48))",
+    border: `1px solid ${colors.border}`,
+    boxShadow: "0 24px 70px rgba(0,0,0,0.2)",
+  },
+  statNumber: {
+    display: "block",
+    fontSize: 36,
+    letterSpacing: "-0.05em",
+    background: "linear-gradient(135deg, #38bdf8, #ffffff)",
+    WebkitBackgroundClip: "text",
+    color: "transparent",
+  },
+  statLabel: {
+    display: "block",
+    marginTop: 4,
+    color: colors.soft,
+    fontWeight: 850,
   },
   filtersTop: {
-    marginTop: 30,
-    padding: 20,
-    borderRadius: 26,
-    background: "rgba(15, 23, 42, 0.68)",
+    width: "min(1180px, 100%)",
+    margin: "36px auto 0",
+    padding: 22,
+    borderRadius: 30,
+    background:
+      "linear-gradient(180deg, rgba(15,23,42,0.82), rgba(8,47,73,0.46))",
     border: `1px solid ${colors.border}`,
-    boxShadow: "0 18px 58px rgba(0,0,0,0.16)",
+    boxShadow: "0 24px 80px rgba(0,0,0,0.24)",
   },
-  filtersGridGlobal: {
+  filtersGrid: {
     display: "grid",
-    gridTemplateColumns: "1fr auto",
+    gridTemplateColumns: "1.5fr minmax(220px, 0.7fr)",
     gap: 12,
     alignItems: "end",
   },
@@ -226,7 +269,7 @@ const styles: Record<string, CSSProperties> = {
     gap: 9,
     borderRadius: 16,
     padding: "0 13px",
-    background: "rgba(2, 6, 23, 0.46)",
+    background: "rgba(2, 6, 23, 0.52)",
     border: `1px solid ${colors.border}`,
   },
   input: {
@@ -235,55 +278,63 @@ const styles: Record<string, CSSProperties> = {
     outline: "none",
     color: colors.text,
     background: "transparent",
-    padding: "13px 0",
+    padding: "14px 0",
+  },
+  select: {
+    width: "100%",
+    border: `1px solid ${colors.border}`,
+    background: "rgba(2, 6, 23, 0.9)",
+    color: colors.text,
+    outline: "none",
+    borderRadius: 16,
+    padding: "14px",
   },
   content: {
-    padding: "42px 0 88px",
+    padding: "34px 0 90px",
   },
   topResult: {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
     gap: 16,
-    marginBottom: 24,
+    marginBottom: 26,
   },
   kicker: {
     display: "block",
     color: colors.blue,
     textTransform: "uppercase",
-    letterSpacing: "0.14em",
+    letterSpacing: "0.16em",
     fontSize: 12,
     fontWeight: 950,
     marginBottom: 8,
   },
   h2: {
     margin: 0,
-    fontSize: "clamp(26px, 3.2vw, 44px)",
-    letterSpacing: "-0.055em",
+    fontSize: "clamp(28px, 3.4vw, 50px)",
+    letterSpacing: "-0.06em",
+    lineHeight: 1.03,
   },
   grid: {
     display: "grid",
     gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-    gap: 22,
+    gap: 24,
   },
   card: {
     overflow: "hidden",
     position: "relative",
-    borderRadius: 32,
+    borderRadius: 34,
     background:
-      "linear-gradient(180deg, rgba(15,23,42,0.82), rgba(8,47,73,0.52))",
+      "linear-gradient(180deg, rgba(15,23,42,0.86), rgba(8,47,73,0.56))",
     border: `1px solid ${colors.border}`,
-    boxShadow: "0 22px 70px rgba(0,0,0,0.22)",
+    boxShadow: "0 24px 76px rgba(0,0,0,0.24)",
     display: "flex",
     flexDirection: "column",
     height: "100%",
     cursor: "pointer",
-    transition:
-      "transform .22s ease, border-color .22s ease, box-shadow .22s ease",
   },
   imageWrap: {
     position: "relative",
-    height: 320,
+    height: 350,
     overflow: "hidden",
     background: "rgba(8,47,73,0.42)",
   },
@@ -299,20 +350,20 @@ const styles: Record<string, CSSProperties> = {
     position: "absolute",
     inset: 0,
     background:
-      "linear-gradient(180deg, rgba(2,6,23,0.04) 35%, rgba(2,6,23,0.84) 100%)",
+      "linear-gradient(180deg, rgba(2,6,23,0.02) 35%, rgba(2,6,23,0.88) 100%)",
     pointerEvents: "none",
   },
   imageEmpty: {
     height: "100%",
     display: "grid",
     placeItems: "center",
-    color: colors.lightBlue,
+    color: "#dbeafe",
     fontWeight: 950,
     background:
       "radial-gradient(circle at 30% 20%, rgba(56,189,248,0.22), transparent 40%), rgba(8,47,73,0.42)",
   },
   cardBody: {
-    padding: 24,
+    padding: 25,
     display: "flex",
     flexDirection: "column",
     gap: 16,
@@ -330,21 +381,21 @@ const styles: Record<string, CSSProperties> = {
     width: "fit-content",
     padding: "7px 10px",
     borderRadius: 999,
-    color: colors.lightBlue,
-    background: "rgba(14,165,233,0.1)",
+    color: "#dbeafe",
+    background: "rgba(14,165,233,0.11)",
     border: `1px solid ${colors.border}`,
     fontSize: 11,
     letterSpacing: "0.02em",
     fontWeight: 950,
   },
-  tagGreen: {
-    color: "#bbf7d0",
-    background: "rgba(34,197,94,0.12)",
-    border: "1px solid rgba(74,222,128,0.22)",
+  tagBlue: {
+    color: "#bfdbfe",
+    background: "rgba(37,99,235,0.18)",
+    border: "1px solid rgba(96,165,250,0.26)",
   },
   cardTitle: {
     margin: 0,
-    fontSize: 25,
+    fontSize: 26,
     lineHeight: 1.08,
     letterSpacing: "-0.045em",
   },
@@ -361,7 +412,7 @@ const styles: Record<string, CSSProperties> = {
     width: "100%",
     height: 1,
     background:
-      "linear-gradient(90deg, rgba(56,189,248,0.5), rgba(125,211,252,0.04))",
+      "linear-gradient(90deg, rgba(56,189,248,0.55), rgba(125,211,252,0.04))",
   },
   priceRow: {
     display: "grid",
@@ -369,7 +420,7 @@ const styles: Record<string, CSSProperties> = {
     gap: 10,
   },
   priceCard: {
-    padding: 13,
+    padding: 14,
     borderRadius: 18,
     background: "rgba(2, 6, 23, 0.35)",
     border: `1px solid ${colors.border}`,
@@ -471,6 +522,20 @@ const styles: Record<string, CSSProperties> = {
     background: "rgba(15, 23, 42, 0.62)",
     border: "1px solid rgba(125, 211, 252, 0.12)",
   },
+  footer: {
+    position: "relative",
+    overflow: "hidden",
+    padding: "74px 0 42px",
+    borderTop: `1px solid ${colors.border}`,
+    background:
+      "radial-gradient(circle at 50% 0%, rgba(14,165,233,0.18), transparent 35%), rgba(2, 6, 23, 0.78)",
+  },
+  footerGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr auto",
+    gap: 28,
+    alignItems: "center",
+  },
   finalCta: {
     padding: "90px 0",
     borderTop: `1px solid ${colors.border}`,
@@ -486,7 +551,7 @@ const styles: Record<string, CSSProperties> = {
     width: 54,
     height: 54,
     borderRadius: 999,
-    background: "linear-gradient(135deg, #0ea5e9, #38bdf8)",
+    background: "linear-gradient(135deg, #2563eb, #0ea5e9, #38bdf8)",
     color: "#fff",
     display: "grid",
     placeItems: "center",
@@ -548,15 +613,24 @@ function getProjectKey(project: Project, index: number) {
   return project.id || `${project.name}-${index}`;
 }
 
+function getUniqueOptions(
+  projects: Project[],
+  getter: (project: Project) => string | string[] | undefined,
+) {
+  const values = projects.flatMap((project) => {
+    const value = getter(project);
+    if (Array.isArray(value)) return value;
+    return value ? [value] : [];
+  });
+
+  return Array.from(
+    new Set(values.map((item) => String(item).trim()).filter(Boolean)),
+  ).sort((a, b) => a.localeCompare(b, "pt-BR"));
+}
+
 function projectMatchesGlobalSearch(project: Project, search: string) {
   const normalizedSearch = search.trim().toLowerCase();
   if (!normalizedSearch) return true;
-
-  const technologies = safeArray(project.technologies);
-  const modules = safeArray(project.modules);
-  const integrations = safeArray(project.integrations);
-  const indicatedBusinesses = safeArray(project.indicatedBusinesses);
-  const basicFlow = safeArray(project.basicFlow);
 
   const searchableText = [
     project.name,
@@ -567,17 +641,46 @@ function projectMatchesGlobalSearch(project: Project, search: string) {
     project.fullDescription,
     project.startingPrice,
     project.monthlyPrice,
-    ...technologies,
-    ...modules,
-    ...integrations,
-    ...indicatedBusinesses,
-    ...basicFlow,
+    ...safeArray(project.technologies),
+    ...safeArray(project.modules),
+    ...safeArray(project.integrations),
+    ...safeArray(project.indicatedBusinesses),
+    ...safeArray(project.basicFlow),
   ]
     .filter(Boolean)
     .join(" ")
     .toLowerCase();
 
   return searchableText.includes(normalizedSearch);
+}
+
+function projectMatchesFilters(project: Project, filters: Filters) {
+  const matchSearch = projectMatchesGlobalSearch(project, filters.search);
+  const matchNiche =
+    filters.niche === "Todos" || project.niche === filters.niche;
+
+  return matchSearch && matchNiche;
+}
+
+function TextParagraphs({
+  text,
+  fallback,
+}: {
+  text?: string;
+  fallback: string;
+}) {
+  const paragraphs = String(text || fallback)
+    .split(/\n\s*\n|\n/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean);
+
+  return (
+    <div className="project-description-paragraphs">
+      {paragraphs.map((paragraph, index) => (
+        <p key={`${paragraph}-${index}`}>{paragraph}</p>
+      ))}
+    </div>
+  );
 }
 
 function DetailList({ title, items }: { title: string; items?: string[] }) {
@@ -641,7 +744,7 @@ function ProjectDetailsModal({
     <div style={styles.modalBackdrop} onClick={onClose}>
       <section
         style={styles.modalBox}
-        className="project-modal-box-inline"
+        className="project-modal-box-inline modal-reveal"
         onClick={(event) => event.stopPropagation()}
       >
         <header style={styles.modalHeader}>
@@ -649,7 +752,7 @@ function ProjectDetailsModal({
             <div style={styles.tags}>
               {project.type && <span style={styles.tag}>{project.type}</span>}
               {project.commercialModel && (
-                <span style={{ ...styles.tag, ...styles.tagGreen }}>
+                <span style={{ ...styles.tag, ...styles.tagBlue }}>
                   {project.commercialModel}
                 </span>
               )}
@@ -665,9 +768,19 @@ function ProjectDetailsModal({
             >
               {project.name}
             </h2>
+            {project.cardSummary && (
+              <p className="project-modal-summary-inline">
+                {project.cardSummary}
+              </p>
+            )}
           </div>
 
-          <button type="button" onClick={onClose} style={styles.closeButton}>
+          <button
+            type="button"
+            onClick={onClose}
+            style={styles.closeButton}
+            aria-label="Fechar modal"
+          >
             <X size={22} />
           </button>
         </header>
@@ -684,10 +797,7 @@ function ProjectDetailsModal({
               <img
                 src={activeImage}
                 alt={project.name}
-                style={{
-                  ...styles.modalImage,
-                  height: isMobile ? 260 : 420,
-                }}
+                style={{ ...styles.modalImage, height: isMobile ? 260 : 420 }}
                 className="project-modal-image-inline"
               />
             ) : (
@@ -743,11 +853,10 @@ function ProjectDetailsModal({
               <h3 style={{ margin: "0 0 10px", fontSize: 24 }}>
                 Resumo do sistema
               </h3>
-              <p style={{ color: colors.muted, lineHeight: 1.7, margin: 0 }}>
-                {project.fullDescription ||
-                  project.cardSummary ||
-                  "Sistema por assinatura cadastrado no portfólio Defan."}
-              </p>
+              <TextParagraphs
+                text={project.fullDescription || project.cardSummary}
+                fallback="Sistema por assinatura cadastrado no portfólio Defan."
+              />
 
               <div
                 style={{
@@ -861,17 +970,19 @@ function ProjectDetailsModal({
 function ProjectCard({
   project,
   onOpen,
+  index,
 }: {
   project: Project;
   onOpen: () => void;
+  index: number;
 }) {
   const images = getProjectImages(project);
   const firstImage = images[0];
 
   return (
     <article
-      style={styles.card}
-      className="project-card-inline"
+      style={{ ...styles.card, animationDelay: `${index * 0.06}s` }}
+      className="project-card-inline project-card-reveal"
       onClick={onOpen}
     >
       <div style={styles.imageWrap}>
@@ -896,7 +1007,7 @@ function ProjectCard({
         <div style={styles.tags}>
           {project.type && <span style={styles.tag}>{project.type}</span>}
           {project.commercialModel && (
-            <span style={{ ...styles.tag, ...styles.tagGreen }}>
+            <span style={{ ...styles.tag, ...styles.tagBlue }}>
               {project.commercialModel}
             </span>
           )}
@@ -904,36 +1015,40 @@ function ProjectCard({
         </div>
 
         <div style={styles.priceRow} className="projetos-price-row">
-          {project.startingPrice ? (
-            <div style={styles.priceCard}>
-              <small style={styles.priceSmall}>Inicial</small>
-              <strong style={styles.priceStrong}>
-                {project.startingPrice}
-              </strong>
-            </div>
-          ) : (
-            <div style={styles.priceCard}>
-              <small style={styles.priceSmall}>Inicial</small>
-              <strong style={styles.priceStrong}>Sob consulta</strong>
-            </div>
-          )}
-
-          {project.monthlyPrice ? (
-            <div style={styles.priceCard}>
-              <small style={styles.priceSmall}>Mensal</small>
-              <strong style={styles.priceStrong}>{project.monthlyPrice}</strong>
-            </div>
-          ) : (
-            <div style={styles.priceCard}>
-              <small style={styles.priceSmall}>Mensal</small>
-              <strong style={styles.priceStrong}>Sob consulta</strong>
-            </div>
-          )}
+          <div style={styles.priceCard}>
+            <small style={styles.priceSmall}>Inicial</small>
+            <strong style={styles.priceStrong}>
+              {project.startingPrice || "Sob consulta"}
+            </strong>
+          </div>
+          <div style={styles.priceCard}>
+            <small style={styles.priceSmall}>Mensal</small>
+            <strong style={styles.priceStrong}>
+              {project.monthlyPrice || "Sob consulta"}
+            </strong>
+          </div>
         </div>
+
+        {!!project.technologies?.length && (
+          <div style={styles.tags}>
+            {project.technologies.slice(0, 3).map((tech) => (
+              <span style={styles.tag} key={tech}>
+                {tech}
+              </span>
+            ))}
+          </div>
+        )}
 
         <button
           type="button"
-          style={{ ...styles.ghost, width: "100%", marginTop: "auto" }}
+          style={{
+            ...styles.ghost,
+            width: "100%",
+            marginTop: "auto",
+            background:
+              "linear-gradient(135deg, rgba(37,99,235,0.28), rgba(14,165,233,0.16))",
+            borderColor: "rgba(56, 189, 248, 0.38)",
+          }}
           onClick={(event) => {
             event.stopPropagation();
             onOpen();
@@ -951,18 +1066,17 @@ export default function AssinaturasPage() {
   const { isMobile, isTablet, isNotebook } = useScreen();
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [search, setSearch] = useState("");
+  const [filters, setFilters] = useState<Filters>(initialFilters);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     getProjects()
-      .then((list) =>
-        setProjects(
-          (list as Project[]).filter((project) =>
-            isSubscriptionProject(project),
-          ),
-        ),
-      )
+      .then((list) => {
+        const subscriptions = (list as Project[]).filter((project) =>
+          isSubscriptionProject(project),
+        );
+        setProjects(subscriptions);
+      })
       .catch((error) => {
         console.error("Erro ao carregar sistemas por assinatura:", error);
         setProjects([]);
@@ -970,15 +1084,42 @@ export default function AssinaturasPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  const availableFilters = useMemo(
+    () => ({
+      niches: getUniqueOptions(projects, (project) => project.niche),
+      technologies: getUniqueOptions(
+        projects,
+        (project) => project.technologies,
+      ),
+    }),
+    [projects],
+  );
+
   const filteredProjects = useMemo(() => {
     return projects.filter((project) =>
-      projectMatchesGlobalSearch(project, search),
+      projectMatchesFilters(project, filters),
     );
-  }, [projects, search]);
+  }, [projects, filters]);
+
+  const customNichesCount = availableFilters.niches.length;
+  const technologiesCount = availableFilters.technologies.length;
 
   const whatsappUrl = makeWhatsappUrl(
     "Olá, Tais! Vi a página de sistemas por assinatura e quero saber qual solução combina com meu negócio.",
   );
+
+  function updateFilter<K extends keyof Filters>(field: K, value: Filters[K]) {
+    setFilters((prev) => ({ ...prev, [field]: value }));
+  }
+
+  function clearFilters() {
+    setFilters(initialFilters);
+  }
+
+  const hasActiveFilters = Object.entries(filters).some(([key, value]) => {
+    if (key === "search") return String(value).trim() !== "";
+    return value !== "Todos";
+  });
 
   return (
     <main style={styles.page}>
@@ -999,10 +1140,7 @@ export default function AssinaturasPage() {
               width={330}
               height={110}
               priority
-              style={{
-                ...styles.logo,
-                height: isMobile ? 54 : 64,
-              }}
+              style={{ ...styles.logo, height: isMobile ? 54 : 64 }}
               className="header-logo-inline"
             />
           </a>
@@ -1040,7 +1178,7 @@ export default function AssinaturasPage() {
 
       <section
         style={{ ...styles.container, ...styles.hero }}
-        className="container-inline"
+        className="container-inline hero-reveal"
       >
         <span style={styles.badge}>
           <Sparkles size={16} />
@@ -1048,14 +1186,15 @@ export default function AssinaturasPage() {
         </span>
 
         <h1 style={styles.h1}>
-          Sistemas prontos para empresas que querem começar
-          <span style={styles.gradientText}> com menor investimento.</span>
+          Sistemas prontos para empresas que querem{" "}
+          <span style={styles.gradientText}>
+            começar com estrutura profissional.
+          </span>
         </h1>
 
         <p style={styles.heroText}>
-          Soluções cadastradas no portfólio Defan com modelo de assinatura,
-          manutenção e evolução mensal. Use a busca global para encontrar por
-          nome, nicho, tecnologia, módulo ou descrição.
+          Soluções por assinatura para empresas que querem iniciar com menor
+          investimento, manutenção contínua e possibilidade de evolução mensal.
         </p>
 
         <div style={styles.trustRow}>
@@ -1070,7 +1209,22 @@ export default function AssinaturasPage() {
           </span>
         </div>
 
-        <section style={styles.filtersTop}>
+        <div style={styles.statsGrid} className="assinaturas-stats-grid">
+          <div style={styles.statCard} className="stat-reveal delay-1">
+            <strong style={styles.statNumber}>{projects.length}</strong>
+            <span style={styles.statLabel}>sistemas disponíveis</span>
+          </div>
+          <div style={styles.statCard} className="stat-reveal delay-2">
+            <strong style={styles.statNumber}>{customNichesCount}</strong>
+            <span style={styles.statLabel}>nichos atendidos</span>
+          </div>
+          <div style={styles.statCard} className="stat-reveal delay-3">
+            <strong style={styles.statNumber}>{technologiesCount}</strong>
+            <span style={styles.statLabel}>tecnologias usadas</span>
+          </div>
+        </div>
+
+        <section style={styles.filtersTop} className="filters-reveal">
           <div
             style={{
               display: "flex",
@@ -1082,53 +1236,56 @@ export default function AssinaturasPage() {
             }}
           >
             <div>
-              <span style={styles.kicker}>Filtro global</span>
+              <span style={styles.kicker}>Filtros</span>
               <h2
                 style={{ ...styles.h2, fontSize: "clamp(22px, 2.2vw, 32px)" }}
               >
-                Buscar sistema por assinatura
+                Buscar por nome e nicho
               </h2>
             </div>
-            {search.trim() && (
-              <button
-                type="button"
-                style={styles.ghost}
-                onClick={() => setSearch("")}
-              >
-                Limpar busca
-              </button>
-            )}
+            <button
+              type="button"
+              style={styles.ghost}
+              onClick={clearFilters}
+              disabled={!hasActiveFilters}
+            >
+              Limpar filtros
+            </button>
           </div>
 
-          <div
-            style={{
-              ...styles.filtersGridGlobal,
-              gridTemplateColumns: isTablet ? "1fr" : "1fr auto",
-            }}
-            className="filters-grid-inline"
-          >
+          <div style={styles.filtersGrid} className="filters-grid-inline">
             <label style={styles.field}>
               Buscar
               <div style={styles.inputWrap}>
                 <Search size={18} color={colors.soft} />
                 <input
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Digite nome, nicho, tecnologia, módulo..."
+                  value={filters.search}
+                  onChange={(event) =>
+                    updateFilter("search", event.target.value)
+                  }
+                  placeholder="Nome, nicho, módulo ou descrição..."
                   style={styles.input}
                 />
               </div>
             </label>
 
-            <a
-              href={whatsappUrl}
-              target="_blank"
-              rel="noreferrer"
-              style={{ ...styles.cta, width: isTablet ? "100%" : "auto" }}
-            >
-              Quero uma indicação
-              <ArrowRight size={17} />
-            </a>
+            {availableFilters.niches.length > 0 && (
+              <label style={styles.field}>
+                Nicho
+                <select
+                  value={filters.niche}
+                  onChange={(event) =>
+                    updateFilter("niche", event.target.value)
+                  }
+                  style={styles.select}
+                >
+                  <option>Todos</option>
+                  {availableFilters.niches.map((item) => (
+                    <option key={item}>{item}</option>
+                  ))}
+                </select>
+              </label>
+            )}
           </div>
         </section>
       </section>
@@ -1144,8 +1301,13 @@ export default function AssinaturasPage() {
               {filteredProjects.length} sistemas encontrados
             </h2>
           </div>
-          <a style={styles.ghost} href="/projetos">
-            Ver todos os projetos
+          <a
+            style={styles.cta}
+            href={whatsappUrl}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Quero uma indicação
             <ArrowRight size={17} />
           </a>
         </div>
@@ -1162,7 +1324,7 @@ export default function AssinaturasPage() {
               Nenhum sistema encontrado
             </h3>
             <p style={{ margin: 0 }}>
-              Limpe a busca ou fale no WhatsApp para receber uma indicação.
+              Limpe os filtros ou fale no WhatsApp para receber uma indicação.
             </p>
           </div>
         )}
@@ -1183,6 +1345,7 @@ export default function AssinaturasPage() {
               <ProjectCard
                 key={getProjectKey(project, index)}
                 project={project}
+                index={index}
                 onOpen={() => setSelectedProject(project)}
               />
             ))}
@@ -1227,6 +1390,55 @@ export default function AssinaturasPage() {
         </div>
       </section>
 
+      <footer style={styles.footer}>
+        <div
+          style={{ ...styles.container, ...styles.footerGrid }}
+          className="container-inline footer-grid-inline"
+        >
+          <div>
+            <a href="/" aria-label="Voltar para a home">
+              <Image
+                src="/logo-white.png"
+                alt="Defan Soluções Digitais"
+                width={260}
+                height={90}
+                style={{
+                  width: "auto",
+                  height: 76,
+                  objectFit: "contain",
+                  marginBottom: 16,
+                }}
+              />
+            </a>
+            <p style={{ color: colors.muted, lineHeight: 1.68, margin: 0 }}>
+              Defan Soluções Digitais — landing pages, websites, sistemas e
+              automações para empresas que querem vender melhor no digital.
+            </p>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              gap: 12,
+              flexWrap: "wrap",
+              justifyContent: "flex-end",
+            }}
+          >
+            <a href="/projetos" style={styles.ghost}>
+              Ver todos os projetos
+            </a>
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noreferrer"
+              style={styles.cta}
+            >
+              Falar no WhatsApp
+            </a>
+          </div>
+        </div>
+      </footer>
+
       <a
         href={`tel:+${WHATSAPP_NUMBER}`}
         style={styles.floatingPhone}
@@ -1251,15 +1463,69 @@ export default function AssinaturasPage() {
           text-decoration: none;
         }
 
+        button:disabled {
+          opacity: 0.45;
+          cursor: not-allowed !important;
+        }
+
+        input::placeholder {
+          color: rgba(203, 213, 225, 0.58);
+        }
+
+        select option {
+          background: #020617;
+          color: #f8fafc;
+        }
+
+        .hero-reveal {
+          animation: heroReveal 0.9s ease both;
+        }
+
+        .filters-reveal {
+          animation: fadeUp 0.9s ease both;
+          animation-delay: 0.18s;
+        }
+
+        .stat-reveal {
+          animation: fadeUp 0.8s ease both;
+        }
+
+        .delay-1 {
+          animation-delay: 0.08s;
+        }
+
+        .delay-2 {
+          animation-delay: 0.16s;
+        }
+
+        .delay-3 {
+          animation-delay: 0.24s;
+        }
+
+        .project-card-reveal {
+          animation: cardReveal 0.75s ease both;
+        }
+
+        .modal-reveal {
+          animation: modalReveal 0.24s ease both;
+        }
+
+        .project-card-inline {
+          transition:
+            transform 0.25s ease,
+            border-color 0.25s ease,
+            box-shadow 0.25s ease;
+        }
+
         .project-card-inline:hover {
-          transform: translateY(-7px);
-          border-color: rgba(125, 211, 252, 0.38) !important;
-          box-shadow: 0 30px 88px rgba(14, 165, 233, 0.16) !important;
+          transform: translateY(-9px) scale(1.01);
+          border-color: rgba(56, 189, 248, 0.42) !important;
+          box-shadow: 0 34px 96px rgba(14, 165, 233, 0.2) !important;
         }
 
         .project-card-inline:hover img {
-          transform: scale(1.045) !important;
-          transition: transform 0.35s ease;
+          transform: scale(1.055) !important;
+          transition: transform 0.4s ease;
         }
 
         .spin-local {
@@ -1268,24 +1534,112 @@ export default function AssinaturasPage() {
           margin-right: 8px;
         }
 
+        .project-modal-box-inline::-webkit-scrollbar {
+          width: 10px;
+        }
+
+        .project-modal-box-inline::-webkit-scrollbar-track {
+          background: rgba(2, 6, 23, 0.5);
+        }
+
+        .project-modal-box-inline::-webkit-scrollbar-thumb {
+          background: rgba(56, 189, 248, 0.75);
+          border-radius: 999px;
+        }
+
+        .project-modal-summary-inline {
+          max-width: 920px;
+          margin: 14px 0 0;
+          color: #cbd5e1;
+          font-size: clamp(15px, 1.15vw, 18px);
+          line-height: 1.65;
+        }
+
+        .project-description-paragraphs {
+          display: grid;
+          gap: 14px;
+          color: ${colors.muted};
+          line-height: 1.75;
+        }
+
+        .project-description-paragraphs p {
+          margin: 0;
+        }
+
         @keyframes spinLocal {
           to {
             transform: rotate(360deg);
           }
         }
 
+        @keyframes heroReveal {
+          from {
+            opacity: 0;
+            transform: translateY(24px) scale(0.98);
+            filter: blur(8px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            filter: blur(0);
+          }
+        }
+
+        @keyframes fadeUp {
+          from {
+            opacity: 0;
+            transform: translateY(28px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes cardReveal {
+          from {
+            opacity: 0;
+            transform: translateY(34px) scale(0.97);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+
+        @keyframes modalReveal {
+          from {
+            opacity: 0;
+            transform: translateY(18px) scale(0.98);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+
+        @media (max-width: 1180px) {
+          .filters-grid-inline {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+          }
+        }
+
         @media (max-width: 860px) {
+          .assinaturas-stats-grid,
+          .filters-grid-inline,
+          .project-modal-content-inline,
+          .project-modal-lists-inline,
+          .project-detail-grid-inline,
+          .footer-grid-inline {
+            grid-template-columns: 1fr !important;
+          }
+
           .projetos-top-result {
             align-items: flex-start !important;
             flex-direction: column !important;
           }
 
           .projetos-price-row {
-            grid-template-columns: 1fr !important;
-          }
-
-          .project-modal-content-inline,
-          .project-modal-lists-inline {
             grid-template-columns: 1fr !important;
           }
         }

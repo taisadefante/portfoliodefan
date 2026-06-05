@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 
 import { getProjectOptions, getProjects } from "@/lib/firestore";
+
 type OptionCategory = "types" | "niches" | "technologies" | "commercialModels";
 
 type Project = {
@@ -37,15 +38,6 @@ type Project = {
   indicatedBusinesses?: string[];
   basicFlow?: string[];
   highlight?: boolean;
-  seoTitle?: string;
-  seoDescription?: string;
-  seoKeywords?: string[];
-  seoLocation?: string;
-  seoText?: string;
-  seoFaqs?: {
-    question: string;
-    answer: string;
-  }[];
 };
 
 type Filters = {
@@ -66,15 +58,16 @@ const initialFilters: Filters = {
 
 const colors = {
   bg: "#020617",
-  panel: "rgba(15, 23, 42, 0.76)",
-  panelStrong: "rgba(15, 23, 42, 0.92)",
-  border: "rgba(125, 211, 252, 0.16)",
-  borderStrong: "rgba(125, 211, 252, 0.32)",
+  panel: "rgba(15, 23, 42, 0.74)",
+  panelStrong: "rgba(15, 23, 42, 0.94)",
+  border: "rgba(56, 189, 248, 0.18)",
+  borderStrong: "rgba(56, 189, 248, 0.34)",
   text: "#f8fafc",
   muted: "#cbd5e1",
   soft: "#94a3b8",
   blue: "#38bdf8",
-  lightBlue: "#bae6fd",
+  blue2: "#0ea5e9",
+  blue3: "#60a5fa",
 };
 
 const styles: Record<string, CSSProperties> = {
@@ -83,7 +76,7 @@ const styles: Record<string, CSSProperties> = {
     color: colors.text,
     fontFamily: "Arial, Helvetica, sans-serif",
     background:
-      "radial-gradient(circle at 18% 0%, rgba(14,165,233,0.16), transparent 30%), radial-gradient(circle at 84% 10%, rgba(56,189,248,0.1), transparent 26%), linear-gradient(180deg, #020617 0%, #061120 48%, #020617 100%)",
+      "radial-gradient(circle at 15% 0%, rgba(37,99,235,0.32), transparent 34%), radial-gradient(circle at 88% 12%, rgba(14,165,233,0.24), transparent 30%), linear-gradient(180deg, #020617 0%, #061a33 42%, #020617 100%)",
     overflowX: "hidden",
   },
   container: {
@@ -94,8 +87,8 @@ const styles: Record<string, CSSProperties> = {
     position: "sticky",
     top: 0,
     zIndex: 40,
-    background: "rgba(2, 6, 23, 0.86)",
-    backdropFilter: "blur(20px)",
+    background: "rgba(2, 6, 23, 0.82)",
+    backdropFilter: "blur(22px)",
     borderBottom: `1px solid ${colors.border}`,
   },
   nav: {
@@ -109,12 +102,12 @@ const styles: Record<string, CSSProperties> = {
     width: "auto",
     height: 64,
     objectFit: "contain",
-    filter: "drop-shadow(0 0 16px rgba(125,211,252,0.14))",
+    filter: "drop-shadow(0 0 20px rgba(56,189,248,0.2))",
   },
   navLinks: {
     display: "flex",
     alignItems: "center",
-    gap: 14,
+    gap: 16,
     flexWrap: "wrap",
   },
   navLink: {
@@ -126,7 +119,7 @@ const styles: Record<string, CSSProperties> = {
   cta: {
     border: 0,
     borderRadius: 999,
-    padding: "13px 18px",
+    padding: "13px 20px",
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
@@ -135,8 +128,8 @@ const styles: Record<string, CSSProperties> = {
     textDecoration: "none",
     fontWeight: 950,
     cursor: "pointer",
-    background: "linear-gradient(135deg, #0ea5e9, #38bdf8)",
-    boxShadow: "0 16px 40px rgba(14,165,233,0.22)",
+    background: "linear-gradient(135deg, #2563eb, #0ea5e9, #38bdf8)",
+    boxShadow: "0 18px 50px rgba(14,165,233,0.28)",
   },
   ghost: {
     borderRadius: 999,
@@ -149,95 +142,87 @@ const styles: Record<string, CSSProperties> = {
     textDecoration: "none",
     fontWeight: 950,
     cursor: "pointer",
-    background: "rgba(15, 23, 42, 0.72)",
+    background: "rgba(15, 23, 42, 0.62)",
     border: `1px solid ${colors.borderStrong}`,
   },
   hero: {
-    padding: "54px 0 30px",
+    padding: "78px 0 38px",
     textAlign: "center",
-  },
-  heroLogoBox: {
-    width: "min(360px, 76vw)",
-    margin: "0 auto 26px",
-    display: "grid",
-    placeItems: "center",
-    padding: 18,
-    borderRadius: 30,
-    background:
-      "radial-gradient(circle at 50% 30%, rgba(56,189,248,0.18), transparent 60%), rgba(15,23,42,0.36)",
-    border: `1px solid ${colors.border}`,
-  },
-  heroLogo: {
-    width: "min(290px, 100%)",
-    height: "auto",
-    objectFit: "contain",
+    position: "relative",
   },
   badge: {
     display: "inline-flex",
     alignItems: "center",
     gap: 8,
-    padding: "9px 14px",
+    padding: "10px 16px",
     borderRadius: 999,
-    color: colors.lightBlue,
-    fontWeight: 900,
-    background: "rgba(14,165,233,0.1)",
-    border: `1px solid ${colors.border}`,
+    color: "#dbeafe",
+    fontWeight: 950,
+    background: "rgba(37, 99, 235, 0.22)",
+    border: `1px solid ${colors.borderStrong}`,
+    boxShadow: "0 0 34px rgba(14,165,233,0.14)",
   },
   h1: {
-    maxWidth: 980,
-    margin: "22px auto 0",
-    fontSize: "clamp(34px, 5vw, 64px)",
-    lineHeight: 1.04,
-    letterSpacing: "-0.055em",
+    maxWidth: 1080,
+    margin: "26px auto 0",
+    fontSize: "clamp(42px, 6vw, 86px)",
+    lineHeight: 0.98,
+    letterSpacing: "-0.075em",
   },
   gradientText: {
-    background: "linear-gradient(135deg, #7dd3fc, #ffffff)",
+    background: "linear-gradient(135deg, #38bdf8, #60a5fa, #ffffff)",
     WebkitBackgroundClip: "text",
     color: "transparent",
   },
   heroText: {
-    maxWidth: 760,
-    margin: "20px auto 0",
+    maxWidth: 800,
+    margin: "26px auto 0",
     color: colors.muted,
-    fontSize: "clamp(16px, 1.25vw, 19px)",
-    lineHeight: 1.7,
+    fontSize: "clamp(16px, 1.3vw, 21px)",
+    lineHeight: 1.75,
   },
   statsGrid: {
-    width: "min(940px, 100%)",
+    width: "min(980px, 100%)",
     display: "grid",
     gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-    gap: 14,
-    margin: "30px auto 0",
+    gap: 16,
+    margin: "36px auto 0",
   },
   statCard: {
-    padding: 18,
-    borderRadius: 22,
-    background: "rgba(15, 23, 42, 0.58)",
+    padding: 22,
+    borderRadius: 26,
+    background:
+      "linear-gradient(180deg, rgba(15,23,42,0.82), rgba(8,47,73,0.48))",
     border: `1px solid ${colors.border}`,
-    boxShadow: "0 14px 42px rgba(0,0,0,0.14)",
+    boxShadow: "0 24px 70px rgba(0,0,0,0.2)",
   },
   statNumber: {
     display: "block",
-    fontSize: 30,
-    letterSpacing: "-0.04em",
+    fontSize: 36,
+    letterSpacing: "-0.05em",
+    background: "linear-gradient(135deg, #38bdf8, #ffffff)",
+    WebkitBackgroundClip: "text",
+    color: "transparent",
   },
   statLabel: {
     display: "block",
     marginTop: 4,
     color: colors.soft,
-    fontWeight: 800,
+    fontWeight: 850,
   },
   filtersTop: {
-    marginTop: 30,
-    padding: 20,
-    borderRadius: 26,
-    background: "rgba(15, 23, 42, 0.68)",
+    width: "min(1180px, 100%)",
+    margin: "36px auto 0",
+    padding: 22,
+    borderRadius: 30,
+    background:
+      "linear-gradient(180deg, rgba(15,23,42,0.82), rgba(8,47,73,0.46))",
     border: `1px solid ${colors.border}`,
-    boxShadow: "0 18px 58px rgba(0,0,0,0.16)",
+    boxShadow: "0 24px 80px rgba(0,0,0,0.24)",
   },
   filtersGrid: {
     display: "grid",
-    gridTemplateColumns: "1.4fr repeat(4, minmax(155px, 1fr)) auto",
+    gridTemplateColumns: "1.4fr repeat(4, minmax(150px, 1fr))",
     gap: 12,
     alignItems: "end",
   },
@@ -256,7 +241,7 @@ const styles: Record<string, CSSProperties> = {
     gap: 9,
     borderRadius: 16,
     padding: "0 13px",
-    background: "rgba(2, 6, 23, 0.46)",
+    background: "rgba(2, 6, 23, 0.52)",
     border: `1px solid ${colors.border}`,
   },
   input: {
@@ -265,61 +250,62 @@ const styles: Record<string, CSSProperties> = {
     outline: "none",
     color: colors.text,
     background: "transparent",
-    padding: "13px 0",
+    padding: "14px 0",
   },
   select: {
     width: "100%",
     border: `1px solid ${colors.border}`,
-    background: "rgba(2, 6, 23, 0.88)",
+    background: "rgba(2, 6, 23, 0.9)",
     color: colors.text,
     outline: "none",
     borderRadius: 16,
-    padding: "13px 14px",
+    padding: "14px",
   },
   content: {
-    padding: "28px 0 78px",
+    padding: "34px 0 90px",
   },
   topResult: {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
     gap: 16,
-    marginBottom: 24,
+    marginBottom: 26,
   },
   kicker: {
     display: "block",
     color: colors.blue,
     textTransform: "uppercase",
-    letterSpacing: "0.14em",
+    letterSpacing: "0.16em",
     fontSize: 12,
     fontWeight: 950,
     marginBottom: 8,
   },
   h2: {
     margin: 0,
-    fontSize: "clamp(26px, 3.2vw, 44px)",
-    letterSpacing: "-0.055em",
+    fontSize: "clamp(28px, 3.4vw, 50px)",
+    letterSpacing: "-0.06em",
+    lineHeight: 1.03,
   },
   grid: {
     display: "grid",
     gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-    gap: 22,
+    gap: 24,
   },
   card: {
     overflow: "hidden",
     position: "relative",
-    borderRadius: 32,
+    borderRadius: 34,
     background:
-      "linear-gradient(180deg, rgba(15,23,42,0.82), rgba(8,47,73,0.52))",
+      "linear-gradient(180deg, rgba(15,23,42,0.86), rgba(8,47,73,0.56))",
     border: `1px solid ${colors.border}`,
-    boxShadow: "0 22px 70px rgba(0,0,0,0.22)",
+    boxShadow: "0 24px 76px rgba(0,0,0,0.24)",
     display: "flex",
     flexDirection: "column",
     height: "100%",
   },
   imageWrap: {
     position: "relative",
-    height: 320,
+    height: 350,
     overflow: "hidden",
     background: "rgba(8,47,73,0.42)",
   },
@@ -335,20 +321,20 @@ const styles: Record<string, CSSProperties> = {
     position: "absolute",
     inset: 0,
     background:
-      "linear-gradient(180deg, rgba(2,6,23,0.04) 35%, rgba(2,6,23,0.84) 100%)",
+      "linear-gradient(180deg, rgba(2,6,23,0.02) 35%, rgba(2,6,23,0.88) 100%)",
     pointerEvents: "none",
   },
   imageEmpty: {
     height: "100%",
     display: "grid",
     placeItems: "center",
-    color: colors.lightBlue,
+    color: "#dbeafe",
     fontWeight: 950,
     background:
       "radial-gradient(circle at 30% 20%, rgba(56,189,248,0.22), transparent 40%), rgba(8,47,73,0.42)",
   },
   cardBody: {
-    padding: 24,
+    padding: 25,
     display: "flex",
     flexDirection: "column",
     gap: 16,
@@ -366,26 +352,26 @@ const styles: Record<string, CSSProperties> = {
     width: "fit-content",
     padding: "7px 10px",
     borderRadius: 999,
-    color: colors.lightBlue,
-    background: "rgba(14,165,233,0.1)",
+    color: "#dbeafe",
+    background: "rgba(14,165,233,0.11)",
     border: `1px solid ${colors.border}`,
     fontSize: 11,
     letterSpacing: "0.02em",
     fontWeight: 950,
   },
   tagGreen: {
-    color: "#bbf7d0",
-    background: "rgba(34,197,94,0.12)",
-    border: "1px solid rgba(74,222,128,0.22)",
+    color: "#bfdbfe",
+    background: "rgba(37,99,235,0.18)",
+    border: "1px solid rgba(96,165,250,0.26)",
   },
   tagPurple: {
-    color: "#ddd6fe",
-    background: "rgba(124,58,237,0.16)",
-    border: "1px solid rgba(167,139,250,0.22)",
+    color: "#dbeafe",
+    background: "rgba(14,165,233,0.14)",
+    border: "1px solid rgba(56,189,248,0.22)",
   },
   cardTitle: {
     margin: 0,
-    fontSize: 25,
+    fontSize: 26,
     lineHeight: 1.08,
     letterSpacing: "-0.045em",
   },
@@ -393,7 +379,7 @@ const styles: Record<string, CSSProperties> = {
     width: "100%",
     height: 1,
     background:
-      "linear-gradient(90deg, rgba(56,189,248,0.5), rgba(125,211,252,0.04))",
+      "linear-gradient(90deg, rgba(56,189,248,0.55), rgba(125,211,252,0.04))",
   },
   priceRow: {
     display: "grid",
@@ -401,7 +387,7 @@ const styles: Record<string, CSSProperties> = {
     gap: 10,
   },
   priceCard: {
-    padding: 13,
+    padding: 14,
     borderRadius: 18,
     background: "rgba(2, 6, 23, 0.35)",
     border: `1px solid ${colors.border}`,
@@ -427,9 +413,12 @@ const styles: Record<string, CSSProperties> = {
     lineHeight: 1.65,
   },
   footer: {
-    padding: "58px 0",
+    position: "relative",
+    overflow: "hidden",
+    padding: "74px 0 42px",
     borderTop: `1px solid ${colors.border}`,
-    background: "rgba(2, 6, 23, 0.52)",
+    background:
+      "radial-gradient(circle at 50% 0%, rgba(14,165,233,0.18), transparent 35%), rgba(2, 6, 23, 0.78)",
   },
   footerGrid: {
     display: "grid",
@@ -573,7 +562,9 @@ function getProjectImages(project: Project) {
   const images = Array.isArray(project.images)
     ? project.images.filter(Boolean)
     : [];
+
   if (images.length) return images;
+
   return project.imageUrl ? [project.imageUrl] : [];
 }
 
@@ -600,11 +591,13 @@ function TextParagraphs({
 
 function DetailList({ title, items }: { title: string; items?: string[] }) {
   const cleanItems = safeArray(items).filter(Boolean);
+
   if (!cleanItems.length) return null;
 
   return (
     <section style={styles.modalPanel}>
       <h3 style={{ margin: "0 0 14px", fontSize: 22 }}>{title}</h3>
+
       <div style={{ display: "grid", gap: 10 }}>
         {cleanItems.map((item, index) => (
           <div
@@ -668,6 +661,7 @@ function ProjectDetailsModal({
             <div>
               <div style={styles.tags}>
                 {project.type && <span style={styles.tag}>{project.type}</span>}
+
                 {project.commercialModel && (
                   <span
                     style={{
@@ -678,10 +672,12 @@ function ProjectDetailsModal({
                     {project.commercialModel}
                   </span>
                 )}
+
                 {project.niche && (
                   <span style={styles.tag}>{project.niche}</span>
                 )}
               </div>
+
               <h2
                 style={{
                   margin: "12px 0 0",
@@ -756,9 +752,11 @@ function ProjectDetailsModal({
                       <ChevronLeft size={17} />
                       Anterior
                     </button>
-                    <strong style={{ color: colors.lightBlue }}>
+
+                    <strong style={{ color: "#dbeafe" }}>
                       {activeImageIndex + 1} / {images.length}
                     </strong>
+
                     <button
                       type="button"
                       style={styles.ghost}
@@ -821,6 +819,7 @@ function ProjectDetailsModal({
                 <h3 style={{ margin: "0 0 10px", fontSize: 24 }}>
                   Descrição completa
                 </h3>
+
                 <TextParagraphs
                   text={project.fullDescription}
                   fallback="Projeto cadastrado no portfólio Defan."
@@ -842,6 +841,7 @@ function ProjectDetailsModal({
                       </strong>
                     </div>
                   )}
+
                   {project.monthlyPrice && (
                     <div style={styles.detailCard}>
                       <small style={{ color: colors.soft, fontWeight: 900 }}>
@@ -862,6 +862,7 @@ function ProjectDetailsModal({
                   <h3 style={{ margin: "0 0 14px", fontSize: 22 }}>
                     Tecnologias
                   </h3>
+
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                     {project.technologies.map((tech) => (
                       <span key={tech} style={styles.tag}>
@@ -914,6 +915,7 @@ function ProjectDetailsModal({
             ) : (
               <span />
             )}
+
             <a
               href={`https://wa.me/5521988359825?text=${encodeURIComponent(
                 `Olá, tenho interesse no projeto: ${project.name}`,
@@ -941,9 +943,11 @@ function ProjectDetailsModal({
               <ChevronLeft size={18} />
               Anterior
             </button>
+
             <strong>
               {activeImageIndex + 1} / {images.length}
             </strong>
+
             <button
               type="button"
               style={styles.closeButton}
@@ -966,11 +970,13 @@ function ProjectDetailsModal({
                 <ChevronLeft size={28} />
               </button>
             )}
+
             <img
               src={activeImage}
               alt={project.name}
               style={styles.lightboxImage}
             />
+
             {images.length > 1 && (
               <button
                 type="button"
@@ -1006,6 +1012,7 @@ export default function ProjetosPage() {
           getProjects(),
           getProjectOptions(),
         ]);
+
         setProjects(projectList as Project[]);
         setOptions(optionList as Record<OptionCategory, string[]>);
       } catch (error) {
@@ -1035,11 +1042,14 @@ export default function ProjetosPage() {
 
       const matchType =
         filters.type === "Todos" || project.type === filters.type;
+
       const matchNiche =
         filters.niche === "Todos" || project.niche === filters.niche;
+
       const matchTechnology =
         filters.technology === "Todos" ||
         technologies.includes(filters.technology);
+
       const matchCommercialModel =
         filters.commercialModel === "Todos" ||
         project.commercialModel === filters.commercialModel;
@@ -1096,6 +1106,9 @@ export default function ProjetosPage() {
             <a href="/projetos" style={styles.navLink}>
               Projetos
             </a>
+            <a href="/assinaturas" style={styles.navLink}>
+              Assinaturas
+            </a>
             <a
               href="https://wa.me/5521988359825"
               target="_blank"
@@ -1111,7 +1124,7 @@ export default function ProjetosPage() {
 
       <section
         style={{ ...styles.container, ...styles.hero }}
-        className="container-inline"
+        className="container-inline hero-reveal"
       >
         <span style={styles.badge}>
           <Sparkles size={16} />
@@ -1119,35 +1132,35 @@ export default function ProjetosPage() {
         </span>
 
         <h1 style={styles.h1}>
-          Encontre o projeto ideal para sua empresa.
-          <span style={styles.gradientText}>
-            {" "}
-            Por assinatura ou personalizado.
-          </span>
+          Projetos digitais para empresas que querem{" "}
+          <span style={styles.gradientText}>vender mais</span> e parecer mais
+          profissionais.
         </h1>
 
         <p style={styles.heroText}>
-          Projetos por assinatura são ideais para clientes que querem começar
-          gastando menos. Projetos personalizados são indicados quando a empresa
-          precisa de algo exclusivo.
+          Conheça sistemas, landing pages, automações e soluções por assinatura
+          ou personalizadas para melhorar sua presença digital, organizar sua
+          operação e aumentar a credibilidade do seu negócio.
         </p>
 
         <div style={styles.statsGrid} className="projetos-stats-grid">
-          <div style={styles.statCard}>
+          <div style={styles.statCard} className="stat-reveal delay-1">
             <strong style={styles.statNumber}>{projects.length}</strong>
             <span style={styles.statLabel}>projetos cadastrados</span>
           </div>
-          <div style={styles.statCard}>
+
+          <div style={styles.statCard} className="stat-reveal delay-2">
             <strong style={styles.statNumber}>{subscriptionCount}</strong>
             <span style={styles.statLabel}>opções por assinatura</span>
           </div>
-          <div style={styles.statCard}>
+
+          <div style={styles.statCard} className="stat-reveal delay-3">
             <strong style={styles.statNumber}>{customCount}</strong>
             <span style={styles.statLabel}>opções personalizadas</span>
           </div>
         </div>
 
-        <section style={styles.filtersTop}>
+        <section style={styles.filtersTop} className="filters-reveal">
           <div
             style={{
               display: "flex",
@@ -1163,9 +1176,10 @@ export default function ProjetosPage() {
               <h2
                 style={{ ...styles.h2, fontSize: "clamp(22px, 2.2vw, 32px)" }}
               >
-                Filtrar projetos
+                Encontre a solução ideal
               </h2>
             </div>
+
             <button type="button" style={styles.ghost} onClick={clearFilters}>
               Limpar filtros
             </button>
@@ -1261,6 +1275,7 @@ export default function ProjetosPage() {
               {filteredProjects.length} projetos encontrados
             </h2>
           </div>
+
           <a
             style={styles.cta}
             href="https://wa.me/5521988359825"
@@ -1290,7 +1305,7 @@ export default function ProjetosPage() {
         )}
 
         <div style={styles.grid} className="projetos-grid">
-          {filteredProjects.map((project) => {
+          {filteredProjects.map((project, index) => {
             const isSubscription = safeLower(project.commercialModel).includes(
               "assinatura",
             );
@@ -1299,7 +1314,14 @@ export default function ProjetosPage() {
             const firstImage = images[0];
 
             return (
-              <article style={styles.card} key={project.id || project.name}>
+              <article
+                style={{
+                  ...styles.card,
+                  animationDelay: `${index * 0.06}s`,
+                }}
+                key={project.id || project.name}
+                className="project-card-reveal"
+              >
                 <div style={styles.imageWrap}>
                   {firstImage ? (
                     <img
@@ -1310,6 +1332,7 @@ export default function ProjetosPage() {
                   ) : (
                     <div style={styles.imageEmpty}>Defan Soluções Digitais</div>
                   )}
+
                   <div style={styles.imageOverlay} />
                 </div>
 
@@ -1321,6 +1344,7 @@ export default function ProjetosPage() {
                     {project.type && (
                       <span style={styles.tag}>{project.type}</span>
                     )}
+
                     {project.commercialModel && (
                       <span
                         style={{
@@ -1333,6 +1357,7 @@ export default function ProjetosPage() {
                         {project.commercialModel}
                       </span>
                     )}
+
                     {project.niche && (
                       <span style={styles.tag}>{project.niche}</span>
                     )}
@@ -1349,6 +1374,7 @@ export default function ProjetosPage() {
                     ) : (
                       <div style={{ visibility: "hidden" }} />
                     )}
+
                     {project.monthlyPrice ? (
                       <div style={styles.priceCard}>
                         <small style={styles.priceSmall}>Mensal</small>
@@ -1378,8 +1404,8 @@ export default function ProjetosPage() {
                       width: "100%",
                       marginTop: "auto",
                       background:
-                        "linear-gradient(135deg, rgba(14,165,233,0.22), rgba(56,189,248,0.12))",
-                      borderColor: "rgba(125, 211, 252, 0.34)",
+                        "linear-gradient(135deg, rgba(37,99,235,0.28), rgba(14,165,233,0.16))",
+                      borderColor: "rgba(56, 189, 248, 0.38)",
                     }}
                     onClick={() => setSelectedProject(project)}
                   >
@@ -1413,9 +1439,10 @@ export default function ProjetosPage() {
                 }}
               />
             </a>
+
             <p style={{ color: colors.muted, lineHeight: 1.68, margin: 0 }}>
               Defan Soluções Digitais — landing pages, websites, sistemas e
-              automações para empresas.
+              automações para empresas que querem vender melhor no digital.
             </p>
           </div>
 
@@ -1430,6 +1457,7 @@ export default function ProjetosPage() {
             <a href="/" style={styles.ghost}>
               Voltar para home
             </a>
+
             <a
               href="https://wa.me/5521988359825"
               target="_blank"
@@ -1450,6 +1478,35 @@ export default function ProjetosPage() {
       )}
 
       <style jsx>{`
+        .hero-reveal {
+          animation: heroReveal 0.9s ease both;
+        }
+
+        .filters-reveal {
+          animation: fadeUp 0.9s ease both;
+          animation-delay: 0.18s;
+        }
+
+        .stat-reveal {
+          animation: fadeUp 0.8s ease both;
+        }
+
+        .delay-1 {
+          animation-delay: 0.08s;
+        }
+
+        .delay-2 {
+          animation-delay: 0.16s;
+        }
+
+        .delay-3 {
+          animation-delay: 0.24s;
+        }
+
+        .project-card-reveal {
+          animation: cardReveal 0.75s ease both;
+        }
+
         .spin-local {
           animation: spinLocal 1s linear infinite;
           vertical-align: middle;
@@ -1462,22 +1519,60 @@ export default function ProjetosPage() {
           }
         }
 
+        @keyframes heroReveal {
+          from {
+            opacity: 0;
+            transform: translateY(24px) scale(0.98);
+            filter: blur(8px);
+          }
+
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            filter: blur(0);
+          }
+        }
+
+        @keyframes fadeUp {
+          from {
+            opacity: 0;
+            transform: translateY(28px);
+          }
+
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes cardReveal {
+          from {
+            opacity: 0;
+            transform: translateY(34px) scale(0.97);
+          }
+
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+
         .projetos-grid article {
           transition:
-            transform 0.22s ease,
-            border-color 0.22s ease,
-            box-shadow 0.22s ease;
+            transform 0.25s ease,
+            border-color 0.25s ease,
+            box-shadow 0.25s ease;
         }
 
         .projetos-grid article:hover {
-          transform: translateY(-7px);
-          border-color: rgba(125, 211, 252, 0.38) !important;
-          box-shadow: 0 28px 84px rgba(14, 165, 233, 0.16) !important;
+          transform: translateY(-9px) scale(1.01);
+          border-color: rgba(56, 189, 248, 0.42) !important;
+          box-shadow: 0 34px 96px rgba(14, 165, 233, 0.2) !important;
         }
 
         .projetos-grid article:hover img {
-          transform: scale(1.045) !important;
-          transition: transform 0.35s ease;
+          transform: scale(1.055) !important;
+          transition: transform 0.4s ease;
         }
 
         .project-modal-box-inline::-webkit-scrollbar {
@@ -1510,6 +1605,15 @@ export default function ProjetosPage() {
 
         .project-description-paragraphs p {
           margin: 0;
+        }
+
+        input::placeholder {
+          color: rgba(203, 213, 225, 0.58);
+        }
+
+        select option {
+          background: #020617;
+          color: #f8fafc;
         }
 
         @media (max-width: 1180px) {
