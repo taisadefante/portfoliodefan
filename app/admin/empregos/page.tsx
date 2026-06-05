@@ -599,6 +599,24 @@ const styles: Record<string, CSSProperties> = {
     background: "rgba(14,165,233,0.12)",
     border: `1px solid ${colors.borderStrong}`,
   },
+  modalNotice: {
+    borderRadius: 18,
+    padding: "14px 16px",
+    margin: "0 0 18px",
+    color: "#e0f2fe",
+    background: "rgba(14,165,233,0.12)",
+    border: `1px solid ${colors.borderStrong}`,
+    lineHeight: 1.5,
+  },
+  modalError: {
+    borderRadius: 18,
+    padding: "14px 16px",
+    margin: "0 0 18px",
+    color: "#fee2e2",
+    background: "rgba(239,68,68,0.13)",
+    border: "1px solid rgba(248,113,113,0.42)",
+    lineHeight: 1.5,
+  },
   modalBackdrop: {
     position: "fixed",
     inset: 0,
@@ -1007,6 +1025,10 @@ export default function AdminEmpregosPage() {
 
   const [companyModalOpen, setCompanyModalOpen] = useState(false);
   const [companyForm, setCompanyForm] = useState<JobCompany>(emptyJobCompany);
+  const [companyModalMessage, setCompanyModalMessage] = useState("");
+  const [companyModalMessageType, setCompanyModalMessageType] = useState<
+    "success" | "error" | "info"
+  >("info");
   const [savingCompany, setSavingCompany] = useState(false);
 
   const [emailModalOpen, setEmailModalOpen] = useState(false);
@@ -1203,6 +1225,8 @@ export default function AdminEmpregosPage() {
   }, [companies]);
 
   function openNewCompany() {
+    setCompanyModalMessage("");
+    setCompanyModalMessageType("info");
     setCompanyForm({
       ...emptyJobCompany,
       jobType: "tudo",
@@ -1212,6 +1236,8 @@ export default function AdminEmpregosPage() {
   }
 
   function openEditCompany(company: JobCompany) {
+    setCompanyModalMessage("");
+    setCompanyModalMessageType("info");
     setCompanyForm({
       ...emptyJobCompany,
       ...company,
@@ -1225,17 +1251,16 @@ export default function AdminEmpregosPage() {
   }
 
   async function handleSaveCompany() {
-    const validEmails = companyForm.emails
+    setCompanyModalMessage("");
+    setCompanyModalMessageType("info");
+
+    const validEmails = (companyForm.emails || [])
       .map((item) => ({
         ...item,
-        email: item.email.trim().toLowerCase(),
+        id: item.id || crypto.randomUUID(),
+        email: (item.email || "").trim().toLowerCase(),
       }))
       .filter((item) => item.email);
-
-    if (validEmails.length === 0) {
-      setMessage("Informe ao menos um e-mail da empresa.");
-      return;
-    }
 
     const duplicatedEmailsInForm = validEmails
       .map((item) => item.email)
@@ -1246,11 +1271,13 @@ export default function AdminEmpregosPage() {
     );
 
     if (uniqueDuplicatedEmailsInForm.length > 0) {
-      setMessage(
-        `E-mail repetido nesta empresa: ${uniqueDuplicatedEmailsInForm.join(
-          ", ",
-        )}. Remova o repetido para salvar.`,
-      );
+      const duplicatedMessage = `E-mail repetido nesta empresa: ${uniqueDuplicatedEmailsInForm.join(
+        ", ",
+      )}. Remova o repetido para salvar.`;
+
+      setCompanyModalMessage(duplicatedMessage);
+      setCompanyModalMessageType("error");
+      setMessage(duplicatedMessage);
       return;
     }
 
@@ -1280,10 +1307,11 @@ export default function AdminEmpregosPage() {
     if (duplicatedExistingEmails.length > 0) {
       const email = duplicatedExistingEmails[0];
       const companyName = existingEmails.get(email) || "outra empresa";
+      const duplicatedMessage = `O e-mail "${email}" já está cadastrado em "${companyName}". O cadastro não foi salvo.`;
 
-      setMessage(
-        `O e-mail "${email}" já está cadastrado em "${companyName}". O cadastro não foi salvo.`,
-      );
+      setCompanyModalMessage(duplicatedMessage);
+      setCompanyModalMessageType("error");
+      setMessage(duplicatedMessage);
       return;
     }
 
@@ -1292,16 +1320,42 @@ export default function AdminEmpregosPage() {
 
       await saveJobCompany({
         ...companyForm,
+        companyName: companyForm.companyName?.trim() || "",
+        contactName: companyForm.contactName?.trim() || "",
+        phone: companyForm.phone?.trim() || "",
+        linkedin: companyForm.linkedin?.trim() || "",
+        instagram: companyForm.instagram?.trim() || "",
+        facebook: companyForm.facebook?.trim() || "",
+        jobsPageLink: companyForm.jobsPageLink?.trim() || "",
+        desiredRole: companyForm.desiredRole?.trim() || "",
+        city: companyForm.city?.trim() || "",
+        state: companyForm.state?.trim() || "",
+        description: companyForm.description?.trim() || "",
+        notes: companyForm.notes?.trim() || "",
         emails: validEmails,
-      });
+        status: companyForm.status || "nao_enviado",
+        workMode: companyForm.workMode || "nao_informado",
+      } as JobCompany);
 
       await loadCompanies();
       setCompanyModalOpen(false);
       setCompanyForm(emptyJobCompany);
+      setCompanyModalMessage("");
+      setCompanyModalMessageType("info");
       setMessage("Empresa salva com sucesso.");
     } catch (error) {
-      console.error(error);
-      setMessage("Erro ao salvar empresa.");
+      console.error("Erro ao salvar empresa:", error);
+
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Erro desconhecido ao salvar empresa.";
+
+      const friendlyMessage = `Erro ao salvar empresa: ${errorMessage}`;
+
+      setCompanyModalMessage(friendlyMessage);
+      setCompanyModalMessageType("error");
+      setMessage(friendlyMessage);
     } finally {
       setSavingCompany(false);
     }
@@ -2521,9 +2575,15 @@ export default function AdminEmpregosPage() {
         <CompanyModal
           company={companyForm}
           setCompany={setCompanyForm}
-          close={() => setCompanyModalOpen(false)}
+          close={() => {
+            setCompanyModalOpen(false);
+            setCompanyModalMessage("");
+            setCompanyModalMessageType("info");
+          }}
           save={handleSaveCompany}
           saving={savingCompany}
+          modalMessage={companyModalMessage}
+          modalMessageType={companyModalMessageType}
         />
       )}
 
@@ -2698,6 +2758,18 @@ function ImportCompaniesModal({
           </button>
         </header>
 
+        {modalMessage && (
+          <div
+            style={
+              modalMessageType === "error"
+                ? styles.modalError
+                : styles.modalNotice
+            }
+          >
+            {modalMessage}
+          </div>
+        )}
+
         <div className="form-grid">
           <Field
             label="Prefixo opcional para nome da empresa"
@@ -2791,17 +2863,21 @@ function CompanyModal({
   close,
   save,
   saving,
+  modalMessage,
+  modalMessageType,
 }: {
   company: JobCompany;
   setCompany: React.Dispatch<React.SetStateAction<JobCompany>>;
   close: () => void;
   save: () => void;
   saving: boolean;
+  modalMessage: string;
+  modalMessageType: "success" | "error" | "info";
 }) {
   function addEmail() {
     setCompany((prev) => ({
       ...prev,
-      emails: [...prev.emails, { id: crypto.randomUUID(), email: "" }],
+      emails: [...(prev.emails || []), { id: crypto.randomUUID(), email: "" }],
     }));
   }
 
@@ -2809,9 +2885,9 @@ function CompanyModal({
     setCompany((prev) => ({
       ...prev,
       emails:
-        prev.emails.length === 1
-          ? prev.emails
-          : prev.emails.filter((item) => item.id !== id),
+        (prev.emails || []).length <= 1
+          ? prev.emails || []
+          : (prev.emails || []).filter((item) => item.id !== id),
     }));
   }
 
@@ -2832,6 +2908,18 @@ function CompanyModal({
           </button>
         </header>
 
+        {modalMessage && (
+          <div
+            style={
+              modalMessageType === "error"
+                ? styles.modalError
+                : styles.modalNotice
+            }
+          >
+            {modalMessage}
+          </div>
+        )}
+
         <div className="form-grid">
           <Field
             label="Nome da empresa"
@@ -2851,7 +2939,7 @@ function CompanyModal({
 
           <div className="emails-box">
             <div className="emails-title">
-              <strong>E-mails *</strong>
+              <strong>E-mails</strong>
               <button
                 type="button"
                 style={styles.secondaryButton}
@@ -2861,7 +2949,7 @@ function CompanyModal({
               </button>
             </div>
 
-            {company.emails.map((item, index) => (
+            {(company.emails || []).map((item, index) => (
               <div className="email-line" key={item.id}>
                 <input
                   value={item.email}
@@ -3278,6 +3366,18 @@ function TargetedJobEmailModal({
             <X size={18} /> Fechar
           </button>
         </header>
+
+        {modalMessage && (
+          <div
+            style={
+              modalMessageType === "error"
+                ? styles.modalError
+                : styles.modalNotice
+            }
+          >
+            {modalMessage}
+          </div>
+        )}
 
         <div className="form-grid">
           <Field
