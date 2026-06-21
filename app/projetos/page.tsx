@@ -1201,21 +1201,7 @@ export default function ProjetosPage() {
               </div>
             </label>
 
-            <label style={styles.field}>
-              Modelo comercial
-              <select
-                value={filters.commercialModel}
-                onChange={(event) =>
-                  updateFilter("commercialModel", event.target.value)
-                }
-                style={styles.select}
-              >
-                <option>Todos</option>
-                {options.commercialModels.map((item) => (
-                  <option key={item}>{item}</option>
-                ))}
-              </select>
-            </label>
+           
 
             <label style={styles.field}>
               Tipo

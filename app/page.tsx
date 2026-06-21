@@ -16,6 +16,8 @@ import Footer from "@/components/home/Footer";
 import ProjectDetailsModal from "@/components/home/ProjectDetailsModal";
 import { Project } from "@/components/home/types";
 import { styles } from "@/components/home/styles";
+import MensalidadeSection from "@/components/home/MensalidadeSection";
+
 
 export default function HomePage() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -54,6 +56,8 @@ export default function HomePage() {
       <TechMarquee />
       <SocialProof />
       <Services />
+            <MensalidadeSection />
+
       <About />
       <ProjectsSection
         id="projetos"
