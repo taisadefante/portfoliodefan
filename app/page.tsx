@@ -18,7 +18,6 @@ import { Project } from "@/components/home/types";
 import { styles } from "@/components/home/styles";
 import MensalidadeSection from "@/components/home/MensalidadeSection";
 
-
 export default function HomePage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -49,42 +48,66 @@ export default function HomePage() {
   return (
     <main className="premium-page">
       <style>{styles}</style>
+
       <div className="page-glow page-glow-1" />
       <div className="page-glow page-glow-2" />
-      <Header />
-      <Hero />
-      <TechMarquee />
-      <SocialProof />
-      <Services />
-            <MensalidadeSection />
 
-      <About />
-      <ProjectsSection
-        id="projetos"
-        eyebrow="Projetos em destaque"
-        title="Portfólios, sistemas e soluções que mostram valor antes da proposta"
-        description="Projetos com visual forte, estrutura profissional e foco em conversão, automação e operação."
-        projects={projects}
-        ctaHref="/projetos"
-        ctaLabel="Ver todos os projetos"
-        onOpen={setSelectedProject}
-      />
-      {subscriptionProjects.length > 0 && (
+      <Header />
+
+      <Hero />
+
+      <TechMarquee />
+
+      <SocialProof />
+
+      <div id="services" style={{ scrollMarginTop: 90 }}>
+        <Services />
+      </div>
+
+      <MensalidadeSection />
+
+      <div id="about" style={{ scrollMarginTop: 90 }}>
+        <About />
+      </div>
+
+      <div id="projetos" style={{ scrollMarginTop: 90 }}>
         <ProjectsSection
-          id="assinaturas"
-          eyebrow="Sistemas por assinatura"
-          title="Comece agora com estrutura profissional"
-          description="Soluções prontas para negócios que querem começar com baixo investimento e evoluir com segurança."
-          projects={subscriptionProjects}
-          ctaHref="/assinaturas"
-          ctaLabel="Ver todos os planos"
+          id="projetos"
+          eyebrow="Projetos em destaque"
+          title="Portfólios, sistemas e soluções que mostram valor antes da proposta"
+          description="Projetos com visual forte, estrutura profissional e foco em conversão, automação e operação."
+          projects={projects}
+          ctaHref="/projetos"
+          ctaLabel="Ver todos os projetos"
           onOpen={setSelectedProject}
         />
+      </div>
+
+      {subscriptionProjects.length > 0 && (
+        <div id="assinaturas" style={{ scrollMarginTop: 90 }}>
+          <ProjectsSection
+            id="assinaturas"
+            eyebrow="Sistemas por assinatura"
+            title="Comece agora com estrutura profissional"
+            description="Soluções prontas para negócios que querem começar com baixo investimento e evoluir com segurança."
+            projects={subscriptionProjects}
+            ctaHref="/assinaturas"
+            ctaLabel="Ver todos os planos"
+            onOpen={setSelectedProject}
+          />
+        </div>
       )}
+
       <Testimonials />
+
       <FaqSection />
-      <FinalCta />
+
+      <div id="contact" style={{ scrollMarginTop: 90 }}>
+        <FinalCta />
+      </div>
+
       <Footer />
+
       {selectedProject && (
         <ProjectDetailsModal
           project={selectedProject}

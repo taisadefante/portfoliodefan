@@ -1,16 +1,119 @@
 "use client";
 
-import { useState } from "react";
+import React, { useMemo, useState } from "react";
 import Image from "next/image";
+import { usePathname, useRouter } from "next/navigation";
 import { ArrowRight, Menu, X } from "lucide-react";
-import { navItems, whatsappUrl } from "./data";
+import { whatsappUrl } from "./data";
+
+const baseNavItems = [
+  { label: "Home", href: "/" },
+  { label: "Sobre", href: "/#about" },
+  { label: "Projetos", href: "/projetos" },
+  { label: "Tecnologias", href: "/#services" },
+  { label: "Contato", href: "/#contact" },
+];
 
 export default function Header() {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+  const router = useRouter();
+
+  const isHome = pathname === "/" || pathname === "/site";
+
+  const navItems = useMemo(() => {
+    return isHome
+      ? baseNavItems.filter((item) => item.href !== "/")
+      : baseNavItems;
+  }, [isHome]);
+
+  const proposalButtonStyle: React.CSSProperties = {
+    height: 46,
+    padding: "0 28px",
+    borderRadius: 14,
+    border: "1px solid rgba(147,197,253,.45)",
+    background: "linear-gradient(135deg,#2563eb,#38bdf8)",
+    color: "#fff",
+    fontWeight: 900,
+    fontSize: 15,
+    lineHeight: 1,
+    textDecoration: "none",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    boxShadow: "0 10px 30px rgba(56,189,248,.28)",
+    transition: "all .3s ease",
+    whiteSpace: "nowrap",
+  };
+
+  function scrollToSection(id: string) {
+    let tries = 0;
+
+    const attempt = () => {
+      const el = document.getElementById(id);
+
+      if (el) {
+        const headerOffset = 86;
+        const top =
+          el.getBoundingClientRect().top + window.scrollY - headerOffset;
+
+        window.history.replaceState(null, "", `#${id}`);
+
+        window.scrollTo({
+          top,
+          behavior: "smooth",
+        });
+
+        return;
+      }
+
+      tries += 1;
+
+      if (tries < 60) {
+        requestAnimationFrame(attempt);
+      }
+    };
+
+    requestAnimationFrame(attempt);
+  }
+
+  function handleClick(href: string) {
+    setOpen(false);
+
+    if (href === "/") {
+      router.push("/");
+      return;
+    }
+
+    if (href === "/projetos") {
+      router.push("/projetos");
+      return;
+    }
+
+    if (href.startsWith("/#")) {
+      const id = href.replace("/#", "");
+
+      if (isHome) {
+        scrollToSection(id);
+        return;
+      }
+
+      router.push(`/#${id}`);
+      return;
+    }
+
+    router.push(href);
+  }
 
   return (
     <>
       <style jsx>{`
+        .header-container {
+          width: min(1320px, calc(100% - 32px));
+          margin: 0 auto;
+        }
+
         .menu-link:hover {
           color: #38bdf8 !important;
           text-shadow: 0 0 14px rgba(56, 189, 248, 0.45);
@@ -30,6 +133,11 @@ export default function Header() {
 
         .menu-link:hover::after {
           width: 100%;
+        }
+
+        .proposal-cta:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 16px 38px rgba(56, 189, 248, 0.38) !important;
         }
 
         .mobile-link:hover {
@@ -65,11 +173,12 @@ export default function Header() {
           zIndex: 999,
           background: "rgba(2,6,23,.74)",
           backdropFilter: "blur(16px)",
+          WebkitBackdropFilter: "blur(16px)",
           borderBottom: "1px solid rgba(255,255,255,.06)",
         }}
       >
         <div
-          className="container"
+          className="header-container"
           style={{
             height: 70,
             display: "flex",
@@ -78,13 +187,17 @@ export default function Header() {
             gap: 24,
           }}
         >
-          <a
-            href="/"
-            aria-label="Defan Soluções Digitais"
+          <button
+            type="button"
+            onClick={() => handleClick("/")}
+            aria-label="Ir para Home"
             style={{
               display: "flex",
               alignItems: "center",
-              textDecoration: "none",
+              background: "transparent",
+              border: 0,
+              padding: 0,
+              cursor: "pointer",
             }}
           >
             <Image
@@ -99,7 +212,7 @@ export default function Header() {
                 objectFit: "contain",
               }}
             />
-          </a>
+          </button>
 
           <nav
             className="desktop-nav"
@@ -111,9 +224,10 @@ export default function Header() {
             }}
           >
             {navItems.map((item) => (
-              <a
+              <button
                 key={item.href}
-                href={item.href}
+                type="button"
+                onClick={() => handleClick(item.href)}
                 className="menu-link"
                 style={{
                   color: "#dbeafe",
@@ -123,18 +237,22 @@ export default function Header() {
                   position: "relative",
                   padding: "8px 0",
                   transition: "all .3s ease",
+                  background: "transparent",
+                  border: 0,
+                  cursor: "pointer",
                 }}
               >
                 {item.label}
-              </a>
+              </button>
             ))}
           </nav>
 
           <a
-            className="btn btn-primary desktop-cta"
+            className="desktop-cta proposal-cta"
             href={whatsappUrl}
             target="_blank"
             rel="noreferrer"
+            style={proposalButtonStyle}
           >
             Solicitar proposta <ArrowRight size={16} />
           </a>
@@ -172,6 +290,7 @@ export default function Header() {
             background:
               "radial-gradient(circle at top right, rgba(56,189,248,.14), transparent 35%), rgba(2,6,23,.97)",
             backdropFilter: "blur(22px)",
+            WebkitBackdropFilter: "blur(22px)",
             display: "flex",
             flexDirection: "column",
           }}
@@ -186,18 +305,30 @@ export default function Header() {
               borderBottom: "1px solid rgba(255,255,255,.06)",
             }}
           >
-            <Image
-              src="/logo-white.png"
-              alt="Defan Soluções Digitais"
-              width={118}
-              height={42}
-              priority
+            <button
+              type="button"
+              onClick={() => handleClick("/")}
+              aria-label="Ir para Home"
               style={{
-                width: 118,
-                height: "auto",
-                objectFit: "contain",
+                background: "transparent",
+                border: 0,
+                padding: 0,
+                cursor: "pointer",
               }}
-            />
+            >
+              <Image
+                src="/logo-white.png"
+                alt="Defan Soluções Digitais"
+                width={118}
+                height={42}
+                priority
+                style={{
+                  width: 118,
+                  height: "auto",
+                  objectFit: "contain",
+                }}
+              />
+            </button>
 
             <button
               type="button"
@@ -229,10 +360,10 @@ export default function Header() {
             }}
           >
             {navItems.map((item) => (
-              <a
+              <button
                 key={item.href}
-                href={item.href}
-                onClick={() => setOpen(false)}
+                type="button"
+                onClick={() => handleClick(item.href)}
                 className="mobile-link"
                 style={{
                   color: "#fff",
@@ -240,18 +371,25 @@ export default function Header() {
                   fontWeight: 900,
                   textDecoration: "none",
                   transition: "all .3s ease",
+                  background: "transparent",
+                  border: 0,
+                  cursor: "pointer",
                 }}
               >
                 {item.label}
-              </a>
+              </button>
             ))}
 
             <a
-              className="btn btn-primary"
+              className="proposal-cta"
               href={whatsappUrl}
               target="_blank"
               rel="noreferrer"
-              style={{ marginTop: 24 }}
+              style={{
+                ...proposalButtonStyle,
+                height: 52,
+                marginTop: 24,
+              }}
             >
               Solicitar proposta <ArrowRight size={16} />
             </a>

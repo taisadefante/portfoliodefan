@@ -15,6 +15,7 @@ import {
   X,
 } from "lucide-react";
 
+import Header from "@/components/home/Header";
 import { getProjectOptions, getProjects } from "@/lib/firestore";
 
 type OptionCategory = "types" | "niches" | "technologies" | "commercialModels";
@@ -83,39 +84,6 @@ const styles: Record<string, CSSProperties> = {
     width: "min(1440px, calc(100% - 44px))",
     margin: "0 auto",
   },
-  header: {
-    position: "sticky",
-    top: 0,
-    zIndex: 40,
-    background: "rgba(2, 6, 23, 0.82)",
-    backdropFilter: "blur(22px)",
-    borderBottom: `1px solid ${colors.border}`,
-  },
-  nav: {
-    minHeight: 82,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 18,
-  },
-  logo: {
-    width: "auto",
-    height: 64,
-    objectFit: "contain",
-    filter: "drop-shadow(0 0 20px rgba(56,189,248,0.2))",
-  },
-  navLinks: {
-    display: "flex",
-    alignItems: "center",
-    gap: 16,
-    flexWrap: "wrap",
-  },
-  navLink: {
-    color: colors.muted,
-    textDecoration: "none",
-    fontWeight: 850,
-    fontSize: 14,
-  },
   cta: {
     border: 0,
     borderRadius: 999,
@@ -146,7 +114,7 @@ const styles: Record<string, CSSProperties> = {
     border: `1px solid ${colors.borderStrong}`,
   },
   hero: {
-    padding: "78px 0 38px",
+    padding: "130px 0 38px",
     textAlign: "center",
     position: "relative",
   },
@@ -222,7 +190,7 @@ const styles: Record<string, CSSProperties> = {
   },
   filtersGrid: {
     display: "grid",
-    gridTemplateColumns: "1.4fr repeat(4, minmax(150px, 1fr))",
+    gridTemplateColumns: "1.4fr repeat(2, minmax(150px, 1fr))",
     gap: 12,
     alignItems: "end",
   },
@@ -1082,45 +1050,7 @@ export default function ProjetosPage() {
 
   return (
     <main style={styles.page}>
-      <header style={styles.header}>
-        <div
-          style={{ ...styles.container, ...styles.nav }}
-          className="container-inline"
-        >
-          <a href="/" aria-label="Voltar para a home">
-            <Image
-              src="/logo-white.png"
-              alt="Defan Soluções Digitais"
-              width={330}
-              height={110}
-              priority
-              style={styles.logo}
-              className="header-logo-inline"
-            />
-          </a>
-
-          <nav style={styles.navLinks} className="nav-links-inline">
-            <a href="/" style={styles.navLink}>
-              Início
-            </a>
-            <a href="/projetos" style={styles.navLink}>
-              Projetos
-            </a>
-            <a href="/assinaturas" style={styles.navLink}>
-              Assinaturas
-            </a>
-            <a
-              href="https://wa.me/5521988359825"
-              target="_blank"
-              rel="noreferrer"
-              style={styles.cta}
-            >
-              <MessageCircle size={17} />
-              WhatsApp
-            </a>
-          </nav>
-        </div>
-      </header>
+      <Header />
 
       <section
         style={{ ...styles.container, ...styles.hero }}
@@ -1201,8 +1131,6 @@ export default function ProjetosPage() {
               </div>
             </label>
 
-           
-
             <label style={styles.field}>
               Tipo
               <select
@@ -1230,8 +1158,7 @@ export default function ProjetosPage() {
                 ))}
               </select>
             </label>
-
-                      </div>
+          </div>
         </section>
       </section>
 
@@ -1604,14 +1531,6 @@ export default function ProjetosPage() {
         @media (max-width: 760px) {
           .container-inline {
             width: min(100% - 28px, 1440px) !important;
-          }
-
-          .nav-links-inline {
-            display: none !important;
-          }
-
-          .header-logo-inline {
-            height: 64px !important;
           }
 
           .projetos-stats-grid,
