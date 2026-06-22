@@ -1231,22 +1231,7 @@ export default function ProjetosPage() {
               </select>
             </label>
 
-            <label style={styles.field}>
-              Tecnologia
-              <select
-                value={filters.technology}
-                onChange={(event) =>
-                  updateFilter("technology", event.target.value)
-                }
-                style={styles.select}
-              >
-                <option>Todos</option>
-                {options.technologies.map((item) => (
-                  <option key={item}>{item}</option>
-                ))}
-              </select>
-            </label>
-          </div>
+                      </div>
         </section>
       </section>
 
