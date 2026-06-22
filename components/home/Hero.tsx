@@ -8,9 +8,9 @@ export default function Hero() {
         position: "relative",
         overflow: "hidden",
         minHeight: "calc(100vh - 64px)",
-        padding: "140px 0 90px",
+        padding: "132px 0 82px",
         backgroundImage:
-          "linear-gradient(90deg, rgba(2,6,23,.96) 0%, rgba(2,6,23,.88) 30%, rgba(2,6,23,.55) 58%, rgba(2,6,23,.18) 100%), url('/hero-tech-bg.png')",
+          "linear-gradient(90deg, rgba(2,6,23,.96) 0%, rgba(2,6,23,.88) 32%, rgba(2,6,23,.56) 60%, rgba(2,6,23,.2) 100%), url('/hero-tech-bg.png')",
         backgroundSize: "cover",
         backgroundPosition: "center right",
         backgroundRepeat: "no-repeat",
@@ -54,7 +54,6 @@ export default function Hero() {
         @media (max-width: 640px) {
           section {
             padding: 92px 0 54px !important;
-            background-position: center top !important;
           }
 
           .hero-actions-inline {
@@ -68,13 +67,7 @@ export default function Hero() {
         }
       `}</style>
 
-      <div
-        className="container"
-        style={{
-          position: "relative",
-          zIndex: 2,
-        }}
-      >
+      <div className="container" style={{ position: "relative", zIndex: 2 }}>
         <div
           className="hero-copy-inline reveal-up"
           style={{
@@ -98,23 +91,31 @@ export default function Hero() {
               backdropFilter: "blur(12px)",
             }}
           >
-            <Sparkles size={15} /> Soluções digitais que geram credibilidade e
-            resultados
+            <Sparkles size={15} /> Sites, landing pages, sistemas e automações
+            para empresas
           </span>
 
           <h1
             style={{
               margin: "24px 0 24px",
               color: "#f8fafc",
-              fontSize: "clamp(44px, 5.6vw, 86px)",
-              lineHeight: 0.94,
-              letterSpacing: -3.5,
-              fontWeight: 950,
+              fontSize: "clamp(38px, 4.25vw, 66px)",
+              lineHeight: 1.03,
+              letterSpacing: "-0.055em",
+              fontWeight: 900,
               textShadow: "0 18px 60px rgba(0,0,0,.45)",
             }}
           >
-            Seu negócio parece{" "}
-            <strong style={{ color: "#38bdf8" }}>amador</strong> na internet?
+            Criação de sites, landing pages e{" "}
+            <strong
+              style={{
+                color: "#38bdf8",
+                fontWeight: 950,
+              }}
+            >
+              sistemas web
+            </strong>{" "}
+            para empresas
           </h1>
 
           <p
@@ -127,9 +128,9 @@ export default function Hero() {
               textShadow: "0 10px 35px rgba(0,0,0,.45)",
             }}
           >
-            Criamos sites, sistemas e automações que aumentam sua credibilidade,
-            organizam sua operação e ajudam sua empresa a vender mais com uma
-            presença digital forte.
+            A Defan Soluções Digitais cria websites profissionais, landing pages
+            de alta conversão, sistemas personalizados, dashboards e automações
+            para empresas que querem vender mais e organizar processos.
           </p>
 
           <div

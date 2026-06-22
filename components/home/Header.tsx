@@ -9,6 +9,8 @@ import { whatsappUrl } from "./data";
 const baseNavItems = [
   { label: "Home", href: "/" },
   { label: "Sobre", href: "/#about" },
+    { label: "Serviços", href: "/servicos" },
+
   { label: "Projetos", href: "/projetos" },
   { label: "Tecnologias", href: "/#services" },
   { label: "Contato", href: "/#contact" },
