@@ -8,7 +8,6 @@ import {
   Edit3,
   FileText,
   Loader2,
-  Mail,
   Plus,
   Save,
   Search,
@@ -390,6 +389,21 @@ const ITEMS_PER_PAGE = 50;
 
 type ListView = "ativos" | "separados" | "todos";
 
+type LinkFilter =
+  | "todos"
+  | "com_pagina_vagas"
+  | "com_linkedin"
+  | "com_pagina_ou_linkedin"
+  | "sem_links";
+
+const linkFilterLabels: Record<LinkFilter, string> = {
+  todos: "Todos os links",
+  com_pagina_vagas: "Com página de vagas",
+  com_linkedin: "Com LinkedIn",
+  com_pagina_ou_linkedin: "Página de vagas ou LinkedIn",
+  sem_links: "Sem página/LinkedIn",
+};
+
 const closedFollowUpStatuses: JobCompanyStatus[] = [
   "respondeu",
   "entrevista",
@@ -429,6 +443,39 @@ function getJobTypeValue(company: JobCompany): JobType {
   }
 
   return "tudo";
+}
+
+function hasJobsPageLink(company: JobCompany) {
+  return Boolean(company.jobsPageLink?.trim());
+}
+
+function hasLinkedinLink(company: JobCompany) {
+  return Boolean(company.linkedin?.trim());
+}
+
+function hasInstagramLink(company: JobCompany) {
+  return Boolean(company.instagram?.trim());
+}
+
+function hasFacebookLink(company: JobCompany) {
+  return Boolean(company.facebook?.trim());
+}
+
+function matchesCompanyLinkFilter(company: JobCompany, filter: LinkFilter) {
+  const hasJobs = hasJobsPageLink(company);
+  const hasLinkedin = hasLinkedinLink(company);
+
+  if (filter === "todos") return true;
+  if (filter === "com_pagina_vagas") return hasJobs;
+  if (filter === "com_linkedin") return hasLinkedin;
+  if (filter === "com_pagina_ou_linkedin") return hasJobs || hasLinkedin;
+  if (filter === "sem_links") return !hasJobs && !hasLinkedin;
+
+  return true;
+}
+
+function getCompaniesByLinkFilter(companies: JobCompany[], filter: LinkFilter) {
+  return companies.filter((company) => matchesCompanyLinkFilter(company, filter));
 }
 
 const styles: Record<string, CSSProperties> = {
@@ -1076,6 +1123,7 @@ export default function AdminEmpregosPage() {
     useState<FollowUpDateFilter>("todos");
   const [followUpStartDate, setFollowUpStartDate] = useState("");
   const [followUpEndDate, setFollowUpEndDate] = useState("");
+  const [linkFilter, setLinkFilter] = useState<LinkFilter>("todos");
   const [currentPage, setCurrentPage] = useState(1);
   const [listView, setListView] = useState<ListView>("ativos");
 
@@ -1111,6 +1159,7 @@ export default function AdminEmpregosPage() {
     followUpDateFilter,
     followUpStartDate,
     followUpEndDate,
+    linkFilter,
     listView,
     emailLogs,
   ]);
@@ -1136,6 +1185,8 @@ export default function AdminEmpregosPage() {
           followUpEndDate,
         );
 
+        const matchesLinkFilter = matchesCompanyLinkFilter(company, linkFilter);
+
         const matchesSearch = matchesSearchText(
           searchValue,
           buildCompanySearchText(company),
@@ -1153,6 +1204,7 @@ export default function AdminEmpregosPage() {
           matchesMode &&
           matchesJobType &&
           matchesFollowUpDate &&
+          matchesLinkFilter &&
           matchesSearch
         );
       })
@@ -1166,6 +1218,7 @@ export default function AdminEmpregosPage() {
     followUpDateFilter,
     followUpStartDate,
     followUpEndDate,
+    linkFilter,
     listView,
     emailLogs,
   ]);
@@ -1190,6 +1243,9 @@ export default function AdminEmpregosPage() {
 
   const kpis = useMemo(() => {
     const todayValue = today();
+    const activeCompanies = companies.filter(
+      (item) => !isClosedFollowUpStatus(item.status),
+    );
 
     return {
       total: companies.length,
@@ -1200,32 +1256,29 @@ export default function AdminEmpregosPage() {
         (item) => item.nextFollowUpDate === todayValue,
       ).length,
       followUpOverdue: companies.filter(
-        (item) => item.nextFollowUpDate && item.nextFollowUpDate < todayValue,
+        (item) =>
+          !isClosedFollowUpStatus(item.status) &&
+          item.nextFollowUpDate &&
+          item.nextFollowUpDate < todayValue,
       ).length,
       interviews: companies.filter((item) => item.status === "entrevista")
         .length,
-      activeFollowUps: companies.filter(
-        (item) => !isClosedFollowUpStatus(item.status),
-      ).length,
+      hired: companies.filter((item) => item.status === "contratada").length,
+      activeFollowUps: activeCompanies.length,
       closedFollowUps: companies.filter((item) =>
         isClosedFollowUpStatus(item.status),
       ).length,
+      jobsPageLinks: companies.filter(hasJobsPageLink).length,
+      linkedinLinks: companies.filter(hasLinkedinLink).length,
+      instagramLinks: companies.filter(hasInstagramLink).length,
+      facebookLinks: companies.filter(hasFacebookLink).length,
+      jobsOrLinkedinLinks: companies.filter(
+        (item) => hasJobsPageLink(item) || hasLinkedinLink(item),
+      ).length,
+      withoutJobsAndLinkedin: companies.filter(
+        (item) => !hasJobsPageLink(item) && !hasLinkedinLink(item),
+      ).length,
     };
-  }, [companies]);
-
-  const statusCards = useMemo(() => {
-    return [
-      {
-        status: "todos" as const,
-        label: "Todos",
-        total: companies.length,
-      },
-      ...Object.entries(jobStatusLabels).map(([status, label]) => ({
-        status: status as JobCompanyStatus,
-        label,
-        total: companies.filter((company) => company.status === status).length,
-      })),
-    ];
   }, [companies]);
 
   function openNewCompany() {
@@ -1462,6 +1515,67 @@ export default function AdminEmpregosPage() {
 
     setSelectedCompanyIds(
       paginatedCompanies.map((company) => company.id || "").filter(Boolean),
+    );
+  }
+
+  function selectCompaniesByLinkFilter(filter: LinkFilter) {
+    const selectedIds = getCompaniesByLinkFilter(filteredCompanies, filter)
+      .map((company) => company.id || "")
+      .filter(Boolean);
+
+    setSelectedCompanyIds(selectedIds);
+    setLinkFilter(filter);
+
+    setMessage(
+      selectedIds.length > 0
+        ? `${selectedIds.length} empresa(s) selecionada(s): ${linkFilterLabels[filter]}.`
+        : `Nenhuma empresa encontrada para: ${linkFilterLabels[filter]}.`,
+    );
+  }
+
+  function clearSmartSelection() {
+    setSelectedCompanyIds([]);
+    setLinkFilter("todos");
+    setMessage("Seleção limpa.");
+  }
+
+  function openVisibleJobsPages() {
+    const links = filteredCompanies
+      .map((company) => company.jobsPageLink || "")
+      .filter(Boolean)
+      .map(normalizeUrl);
+
+    if (links.length === 0) {
+      setMessage("Nenhuma página de vagas encontrada no filtro atual.");
+      return;
+    }
+
+    links.slice(0, 20).forEach((link) => window.open(link, "_blank", "noopener,noreferrer"));
+
+    setMessage(
+      links.length > 20
+        ? "Abrimos as primeiras 20 páginas de vagas. Filtre melhor para abrir menos abas."
+        : `${links.length} página(s) de vagas aberta(s).`,
+    );
+  }
+
+  function openVisibleLinkedins() {
+    const links = filteredCompanies
+      .map((company) => company.linkedin || "")
+      .filter(Boolean)
+      .map(normalizeUrl);
+
+    if (links.length === 0) {
+      setMessage("Nenhum LinkedIn encontrado no filtro atual.");
+      return;
+    }
+
+    links.slice(0, 20).forEach((link) => window.open(link, "_blank", "noopener,noreferrer"));
+
+    setMessage(
+      links.length > 20
+        ? "Abrimos os primeiros 20 LinkedIns. Filtre melhor para abrir menos abas."
+        : `${links.length} LinkedIn(s) aberto(s).`,
     );
   }
 
@@ -1966,47 +2080,41 @@ export default function AdminEmpregosPage() {
 
         {message && <div style={styles.notice}>{message}</div>}
 
-        <section className="kpi-grid">
+        <section className="kpi-grid compact-kpi-grid">
           <button
             type="button"
             onClick={() => {
               setStatusFilter("todos");
               setFollowUpDateFilter("todos");
+              setLinkFilter("todos");
               setListView("todos");
             }}
           >
             <BriefcaseBusiness size={22} />
             <strong>{kpis.total}</strong>
-            <span>Empresas cadastradas</span>
+            <span>Empresas</span>
           </button>
+
           <button
             type="button"
             onClick={() => {
               setFollowUpDateFilter("todos");
               setStatusFilter("todos");
+              setLinkFilter("todos");
+              setListView("ativos");
             }}
           >
             <Send size={22} />
             <strong>{kpis.sentToday}</strong>
-            <span>Currículos enviados hoje</span>
+            <span>Enviados hoje</span>
           </button>
-          <button
-            type="button"
-            onClick={() => {
-              setStatusFilter("nao_enviado");
-              setFollowUpDateFilter("todos");
-              setListView("ativos");
-            }}
-          >
-            <Mail size={22} />
-            <strong>{kpis.notSent}</strong>
-            <span>Ainda não enviados</span>
-          </button>
+
           <button
             type="button"
             onClick={() => {
               setFollowUpDateFilter("vencidos");
               setStatusFilter("todos");
+              setLinkFilter("todos");
               setListView("ativos");
             }}
           >
@@ -2014,23 +2122,27 @@ export default function AdminEmpregosPage() {
             <strong>{kpis.followUpOverdue}</strong>
             <span>Retornos vencidos</span>
           </button>
+
           <button
             type="button"
             onClick={() => {
               setFollowUpDateFilter("hoje");
               setStatusFilter("todos");
+              setLinkFilter("todos");
               setListView("ativos");
             }}
           >
             <CalendarClock size={22} />
             <strong>{kpis.followUpToday}</strong>
-            <span>Retornos para hoje</span>
+            <span>Retornos hoje</span>
           </button>
+
           <button
             type="button"
             onClick={() => {
               setStatusFilter("entrevista");
               setFollowUpDateFilter("todos");
+              setLinkFilter("todos");
               setListView("separados");
             }}
           >
@@ -2038,92 +2150,180 @@ export default function AdminEmpregosPage() {
             <strong>{kpis.interviews}</strong>
             <span>Entrevistas</span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setStatusFilter("contratada");
+              setFollowUpDateFilter("todos");
+              setLinkFilter("todos");
+              setListView("separados");
+            }}
+          >
+            <CheckCircle2 size={22} />
+            <strong>{kpis.hired}</strong>
+            <span>Contratadas</span>
+          </button>
         </section>
 
-        <section className="list-view-grid">
-          <button
-            type="button"
-            className={
-              listView === "ativos" ? "list-view-card active" : "list-view-card"
-            }
-            onClick={() => {
-              setListView("ativos");
-              setStatusFilter("todos");
-              setFollowUpDateFilter("todos");
-            }}
-          >
-            <span>Lista de envio e retorno</span>
-            <strong>{kpis.activeFollowUps}</strong>
-            <small>
-              Empresas que ainda podem receber currículo ou retorno.
-            </small>
-          </button>
+        <section className="smart-panel">
+          <div className="smart-panel-header">
+            <div>
+              <h2>Busca inteligente por links</h2>
+              <p>
+                Selecione empresas com página de vagas ou LinkedIn para abrir e
+                acompanhar oportunidades mais rápido.
+              </p>
+            </div>
 
-          <button
-            type="button"
-            className={
-              listView === "separados"
-                ? "list-view-card separated active"
-                : "list-view-card separated"
-            }
-            onClick={() => {
-              setListView("separados");
-              setStatusFilter("todos");
-              setFollowUpDateFilter("todos");
-            }}
-          >
-            <span>Lista separada / não reenviar</span>
-            <strong>{kpis.closedFollowUps}</strong>
-            <small>
-              Entrevista, resposta, recusado, contratado ou sem retorno.
-            </small>
-          </button>
+            <div className="smart-panel-actions">
+              <button type="button" onClick={openVisibleJobsPages}>
+                Abrir páginas de vagas
+              </button>
+              <button type="button" onClick={openVisibleLinkedins}>
+                Abrir LinkedIns
+              </button>
+            </div>
+          </div>
 
+          <div className="link-kpi-grid">
+            <button
+              type="button"
+              className={linkFilter === "com_pagina_vagas" ? "active" : ""}
+              onClick={() => {
+                setLinkFilter("com_pagina_vagas");
+                setListView("todos");
+              }}
+            >
+              <span>Página de vagas</span>
+              <strong>{kpis.jobsPageLinks}</strong>
+            </button>
+
+            <button
+              type="button"
+              className={linkFilter === "com_linkedin" ? "active" : ""}
+              onClick={() => {
+                setLinkFilter("com_linkedin");
+                setListView("todos");
+              }}
+            >
+              <span>LinkedIn</span>
+              <strong>{kpis.linkedinLinks}</strong>
+            </button>
+
+            <button
+              type="button"
+              className={linkFilter === "com_pagina_ou_linkedin" ? "active" : ""}
+              onClick={() => {
+                setLinkFilter("com_pagina_ou_linkedin");
+                setListView("todos");
+              }}
+            >
+              <span>Vagas ou LinkedIn</span>
+              <strong>{kpis.jobsOrLinkedinLinks}</strong>
+            </button>
+
+            <button
+              type="button"
+              className={linkFilter === "sem_links" ? "active" : ""}
+              onClick={() => {
+                setLinkFilter("sem_links");
+                setListView("todos");
+              }}
+            >
+              <span>Sem vaga/LinkedIn</span>
+              <strong>{kpis.withoutJobsAndLinkedin}</strong>
+            </button>
+          </div>
+
+          <div className="smart-selection-actions">
+            <button type="button" onClick={() => selectCompaniesByLinkFilter("com_pagina_vagas")}>
+              Selecionar com página de vagas
+            </button>
+            <button type="button" onClick={() => selectCompaniesByLinkFilter("com_linkedin")}>
+              Selecionar com LinkedIn
+            </button>
+            <button type="button" onClick={() => selectCompaniesByLinkFilter("com_pagina_ou_linkedin")}>
+              Selecionar vagas ou LinkedIn
+            </button>
+            <button type="button" onClick={clearSmartSelection}>
+              Limpar seleção
+            </button>
+          </div>
+        </section>
+
+        <section className="quick-filter-bar">
           <button
             type="button"
-            className={
-              listView === "todos"
-                ? "list-view-card all active"
-                : "list-view-card all"
-            }
+            className={listView === "todos" && statusFilter === "todos" ? "active" : ""}
             onClick={() => {
               setListView("todos");
               setStatusFilter("todos");
               setFollowUpDateFilter("todos");
             }}
           >
-            <span>Ver tudo</span>
-            <strong>{companies.length}</strong>
-            <small>Mostra ativos e separados juntos.</small>
+            Todos <strong>{kpis.total}</strong>
           </button>
-        </section>
 
-        <section className="status-cards-grid">
-          {statusCards.map((card) => (
-            <button
-              key={card.status}
-              type="button"
-              className={`status-card status-card-${card.status} ${
-                statusFilter === card.status ? "status-card-active" : ""
-              }`}
-              onClick={() => {
-                setStatusFilter(card.status);
-                setFollowUpDateFilter("todos");
+          <button
+            type="button"
+            className={listView === "ativos" && statusFilter === "todos" ? "active" : ""}
+            onClick={() => {
+              setListView("ativos");
+              setStatusFilter("todos");
+              setFollowUpDateFilter("todos");
+            }}
+          >
+            Envio e retorno <strong>{kpis.activeFollowUps}</strong>
+          </button>
 
-                if (card.status === "todos") {
-                  setListView("todos");
-                  return;
-                }
+          <button
+            type="button"
+            className={statusFilter === "nao_enviado" ? "active" : ""}
+            onClick={() => {
+              setListView("ativos");
+              setStatusFilter("nao_enviado");
+              setFollowUpDateFilter("todos");
+            }}
+          >
+            Enviar currículo <strong>{kpis.notSent}</strong>
+          </button>
 
-                setListView(
-                  isClosedFollowUpStatus(card.status) ? "separados" : "ativos",
-                );
-              }}
-            >
-              <span>{card.label}</span>
-              <strong>{card.total}</strong>
-            </button>
-          ))}
+          <button
+            type="button"
+            className={followUpDateFilter === "vencidos" ? "active" : ""}
+            onClick={() => {
+              setListView("ativos");
+              setStatusFilter("todos");
+              setFollowUpDateFilter("vencidos");
+            }}
+          >
+            Retorno vencido <strong>{kpis.followUpOverdue}</strong>
+          </button>
+
+          <button
+            type="button"
+            className={statusFilter === "entrevista" ? "active" : ""}
+            onClick={() => {
+              setListView("separados");
+              setStatusFilter("entrevista");
+              setFollowUpDateFilter("todos");
+            }}
+          >
+            Entrevista <strong>{kpis.interviews}</strong>
+          </button>
+
+          <button
+            type="button"
+            className={listView === "separados" && statusFilter === "todos" ? "active" : ""}
+            onClick={() => {
+              setListView("separados");
+              setStatusFilter("todos");
+              setFollowUpDateFilter("todos");
+            }}
+          >
+            Não reenviar <strong>{kpis.closedFollowUps}</strong>
+          </button>
         </section>
 
         <section style={styles.card}>
@@ -2210,6 +2410,23 @@ export default function AdminEmpregosPage() {
             </label>
 
             <label style={styles.field}>
+              <span style={styles.label}>Links</span>
+              <select
+                value={linkFilter}
+                onChange={(event) =>
+                  setLinkFilter(event.target.value as LinkFilter)
+                }
+                style={styles.select}
+              >
+                {Object.entries(linkFilterLabels).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label style={styles.field}>
               <span style={styles.label}>Data de retorno</span>
               <select
                 value={followUpDateFilter}
@@ -2283,6 +2500,7 @@ export default function AdminEmpregosPage() {
                     </th>
                     <th>Empresa</th>
                     <th>Contato</th>
+                    <th>Links</th>
                     <th>E-mails</th>
                     <th>Vaga / Modalidade</th>
                     <th>Tipo</th>
@@ -2318,20 +2536,23 @@ export default function AdminEmpregosPage() {
                               getDisplayCompanyName(company)}
                           </strong>
                           <span>{company.description || "Sem descrição"}</span>
-                          {company.jobsPageLink && (
-                            <a
-                              href={company.jobsPageLink}
-                              target="_blank"
-                              rel="noreferrer"
-                            >
-                              Página de vagas
-                            </a>
-                          )}
                         </td>
                         <td>
                           <strong>{company.contactName || "-"}</strong>
                           <span>{company.phone || "-"}</span>
+                        </td>
+                        <td>
                           <div className="social-links">
+                            {company.jobsPageLink && (
+                              <a
+                                href={normalizeUrl(company.jobsPageLink)}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                Página de vagas
+                              </a>
+                            )}
+
                             {company.linkedin && (
                               <a
                                 href={normalizeUrl(company.linkedin)}
@@ -2362,9 +2583,10 @@ export default function AdminEmpregosPage() {
                               </a>
                             )}
 
-                            {!company.linkedin &&
+                            {!company.jobsPageLink &&
+                              !company.linkedin &&
                               !company.instagram &&
-                              !company.facebook && <small>Sem redes</small>}
+                              !company.facebook && <small>Sem links</small>}
                           </div>
                         </td>
                         <td>
@@ -3778,6 +4000,128 @@ function GlobalStyle() {
         );
       }
 
+
+
+      .smart-panel {
+        margin: 0 0 22px;
+        padding: 20px;
+        border-radius: 28px;
+        background: rgba(15, 23, 42, 0.72);
+        border: 1px solid rgba(125, 211, 252, 0.18);
+        box-shadow: 0 22px 70px rgba(0, 0, 0, 0.18);
+      }
+
+      .smart-panel-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+      }
+
+      .smart-panel-header h2 {
+        margin: 0;
+        font-size: 21px;
+        letter-spacing: -0.035em;
+      }
+
+      .smart-panel-header p {
+        margin: 6px 0 0;
+        color: #94a3b8;
+        line-height: 1.5;
+      }
+
+      .smart-panel-actions,
+      .smart-selection-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .smart-panel-actions button,
+      .smart-selection-actions button {
+        border: 1px solid rgba(125, 211, 252, 0.2);
+        background: rgba(2, 6, 23, 0.42);
+        color: #e0f2fe;
+        border-radius: 999px;
+        padding: 10px 13px;
+        font-size: 12px;
+        font-weight: 900;
+        cursor: pointer;
+      }
+
+      .link-kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+
+      .link-kpi-grid button {
+        border: 1px solid rgba(125, 211, 252, 0.16);
+        background: rgba(2, 6, 23, 0.34);
+        color: #f8fafc;
+        border-radius: 20px;
+        padding: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        cursor: pointer;
+      }
+
+      .link-kpi-grid button.active {
+        border-color: rgba(56, 189, 248, 0.92);
+        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.14);
+      }
+
+      .link-kpi-grid span {
+        color: #cbd5e1;
+        font-size: 13px;
+        font-weight: 900;
+      }
+
+      .link-kpi-grid strong {
+        font-size: 28px;
+      }
+
+      .quick-filter-bar {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin: 0 0 22px;
+      }
+
+      .quick-filter-bar button {
+        border: 1px solid rgba(125, 211, 252, 0.16);
+        background: rgba(15, 23, 42, 0.72);
+        color: #e2e8f0;
+        border-radius: 999px;
+        padding: 11px 14px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        font-weight: 900;
+        cursor: pointer;
+      }
+
+      .quick-filter-bar button.active {
+        color: #ffffff;
+        border-color: rgba(56, 189, 248, 0.92);
+        background: linear-gradient(
+          135deg,
+          rgba(14, 165, 233, 0.32),
+          rgba(56, 189, 248, 0.16)
+        );
+      }
+
+      .quick-filter-bar strong {
+        font-size: 15px;
+      }
+
       .status-inline-editor {
         display: grid;
         gap: 6px;
@@ -3873,7 +4217,7 @@ function GlobalStyle() {
 
       .filters-grid {
         display: grid;
-        grid-template-columns: 1.3fr 0.72fr 0.72fr 0.72fr 0.8fr 0.62fr 0.62fr;
+        grid-template-columns: 1.3fr 0.72fr 0.72fr 0.72fr 0.72fr 0.8fr 0.62fr 0.62fr;
         gap: 14px;
         margin: 0 0 20px;
       }
